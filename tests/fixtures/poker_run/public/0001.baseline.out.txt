@@ -1,0 +1,41 @@
+40
+play 24 44 23 10 50
+play 43 31 41 6 29
+play 35 34 11 49 33
+play 22 40 3 14 27
+buy coal_seam
+next
+play 13 9 48 8 0
+play 49 6 38 19 25
+play 24 17 34 12 16
+play 2 27 45 41 15
+buy tricolor
+next
+play 17 8 47 35 48
+play 6 33 41 18 45
+play 49 16 34 23 36
+play 20 25 24 14 19
+buy rose_tint
+next
+play 45 43 5 34 7
+play 30 11 47 8 37
+play 39 15 32 19 26
+play 4 44 28 23 10
+buy low_road
+next
+play 5 16 3 17 30
+discard 15 4 33 10 8
+discard 39 31 46 37 34
+discard 42 18 49 21 11
+play 12 14 40 51 25
+play 41 29
+play 36 50 38 22 47
+level TP
+next
+discard 40 31 33 10 21
+discard 2 16 7 37
+play 12 51 6 32 19
+discard 26 14 3 18 36
+play 24 22 43 11 30
+play 28 46 47 13 0
+play 48 29 42 49 23

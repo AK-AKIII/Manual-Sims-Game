@@ -6,6 +6,7 @@ Small trading and strategy games.
 | --- | --- | --- |
 | Informed Flow | Browser market making game: quote a bid and ask against noise, tipped and informed counterparties | [counterparty/index.html](counterparty/index.html) |
 | Poker Hands | Bot competition: a jokerless Balatro played by Python bots | [poker_hands/](poker_hands/), bots in [bots/](bots/) |
+| Poker Run | Heuristic contest problem: plan a whole 8-round poker run with modifiers, levels and deck editing; play it by hand in the browser or write a solver | [poker_run/](poker_run/) |
 
 ---
 
@@ -87,3 +88,51 @@ python3 -m unittest discover -s tests -t .               # tests
 The same seed always produces the same deck, so results can be reproduced. Shared mode also reports each bot's win rate.
 
 Bots run in the same Python process as the engine, with no time limit or sandbox. Only run bot files from people you trust.
+
+---
+
+## Poker Run
+
+A heuristic-optimisation contest problem in the AtCoder Heuristic style, built on Poker Hands. The input reveals a whole run: the draw order of all 8 rounds and every shop's offers. You output the moves (plays, discards and shop purchases) that score the most points without missing a round's target. Full rules: [poker_run/problem/statement.md](poker_run/problem/statement.md). Generator and reference numbers: [poker_run/problem/generator.md](poker_run/problem/generator.md).
+
+```
+poker_run/rules.py, instance.py, sim.py   the rules, the generator and input format, the simulator
+poker_run/checker.py                      scores an output (the judge)
+poker_run/baseline.py                     reference greedy solver: proves the problem isn't trivial
+poker_run/__main__.py                     gen / check / batch command line
+poker_run/web/                            browser game: play by hand, replay any output, pick seeds (same rules, ported to JS)
+poker_run/solvers/                        example solvers for students: beam search, Monte Carlo, MCTS, tuned heuristic
+poker_run/starters/starter.py             single-file Python starter: input parsing, the judge's simulator, an empty solve()
+poker_run/problem/                        statement and generator doc
+tests/fixtures/poker_run/public/          the 10 public seeds with baseline outputs and checker verdicts
+```
+
+### Use
+
+```bash
+python3 -m poker_run gen --seed 7 > in.txt                       # a test case
+python3 -m poker_run gen --seeds 1-50 --out-dir /path/to/tests   # judge test data
+python3 -m poker_run.baseline < in.txt > out.txt                 # reference solver
+python3 -m poker_run check in.txt out.txt                        # JSON verdict; exit 0 valid, 1 illegal move, 2 unparsable, 3 bad input
+python3 -m poker_run batch --seeds 1-10 --solver "python3 my_solver.py"            # 2 s per test
+python3 -m poker_run batch --seeds 1-10 --solver "python3 my_solver.py" --json --verbose
+```
+
+To play by hand, open [poker_run/web/index.html](poker_run/web/index.html) in a browser. It runs from `file://` and works offline. It can also replay a solver's output move by move.
+
+To write a solver, copy [poker_run/starters/starter.py](poker_run/starters/starter.py) and fill in `solve()`. It contains an exact copy of the judge's simulator, so `game.clone()` and `game.apply(move)` let you try moves before committing to them. After changing the rules, rebuild it with `python3 poker_run/starters/build_starter.py`; a test fails if it is stale.
+
+### Tests
+
+```bash
+python3 -m unittest discover -s tests -t .
+```
+
+These cover the rules and scoring, the shop, the checker's exit codes, the public fixtures, the starter against the judge, and the browser engine against the Python engine. The browser test needs Node and is skipped without it.
+
+Regenerate the public fixtures after a rule change:
+
+```bash
+python3 -m poker_run batch --seeds 1-10 --solver "python3 -m poker_run.baseline" \
+  --out-dir tests/fixtures/poker_run/public --name baseline --write-expected
+```

@@ -1,0 +1,16 @@
+15
+discard 4 5 35 47 50
+discard 42 17 6 20 21
+play 15 12 2 51 38
+play 13 26 39 14 40
+play 33 44 29 10 19
+play 27 41 0 25 16
+buy savings
+next
+discard 0 27 28 6 7
+discard 30 5 19 10 37
+discard 26 42 8 38
+play 22 35 23 36 14
+play 13 3 47 34 16
+play 1 24 4 11 17
+play 25 46 41 15 12

@@ -1,0 +1,17 @@
+8 8 4 3 5 12
+300 600 1200 2400 4800 9600 19200 38400
+44 10 37 12 1 19 49 38 25 7 43 40 20 34 30 32 14 46 5 35 11 4 21 24 28 18 47 23 51 8 36 31 6 13 16 22 29 17 2 45 15 39 48 42 41 50 3 26 9 33 0 27
+37 46 5 7 0 26 11 25 36 50 8 13 6 33 31 22 28 51 21 40 24 35 32 47 30 34 27 38 45 41 42 29 9 10 23 43 2 18 19 44 20 39 3 15 4 17 48 49 12 14 16 1
+31 20 15 8 10 44 21 28 4 18 45 38 11 43 1 22 34 9 26 30 6 40 13 32 47 25 42 50 17 23 5 46 12 3 24 51 33 14 48 27 16 39 35 49 19 41 2 29 0 36 37 7
+34 51 28 26 25 2 48 3 45 22 30 19 29 16 39 41 36 35 49 10 37 44 9 6 8 11 7 46 18 5 23 13 33 0 31 4 38 47 15 50 1 32 40 43 21 42 27 24 17 14 20 12
+7 22 34 51 24 28 5 10 11 38 2 3 0 14 47 25 49 20 40 44 43 17 23 1 12 15 18 36 35 32 31 29 6 26 41 50 33 42 21 27 46 13 9 30 39 16 8 48 37 45 19 4
+12 1 44 7 25 19 18 32 33 16 23 22 34 48 0 38 5 21 31 51 41 2 24 4 43 17 27 26 49 40 10 35 13 8 46 14 20 3 39 15 42 36 50 37 47 28 30 29 6 9 45 11
+25 21 2 23 17 37 35 31 43 32 3 15 20 16 26 11 6 44 24 9 5 7 36 10 28 46 12 49 19 51 8 40 4 22 30 29 18 33 0 14 1 42 27 38 39 34 45 50 47 48 13 41
+16 48 29 22 31 26 36 39 20 11 17 33 18 6 13 23 19 0 15 25 1 30 28 9 42 4 5 38 47 37 32 14 51 45 41 49 24 35 3 21 27 34 43 10 8 12 44 46 40 2 50 7
+ace_dividend high_court spare_hands collector twin_engine rose_tint coal_seam low_road last_call savings even_split short_hand
+twin_engine collector full_spread last_call rose_tint tricolor high_court coal_seam short_hand low_road savings mirror
+last_call high_court collector full_spread thin_deck savings twin_engine momentum even_split odd_job spare_hands short_hand
+even_split mirror spare_hands coal_seam collector full_spread last_call tricolor high_court thin_deck twin_engine momentum
+momentum full_spread high_court low_road even_split odd_job last_call short_hand spare_hands ace_dividend mirror collector
+even_split rose_tint last_call short_hand high_court ace_dividend collector spare_hands thin_deck tricolor coal_seam odd_job
+odd_job rose_tint short_hand coal_seam collector high_court thin_deck momentum spare_hands full_spread ace_dividend twin_engine

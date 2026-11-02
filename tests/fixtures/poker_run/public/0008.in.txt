@@ -1,0 +1,17 @@
+8 8 4 3 5 12
+300 600 1200 2400 4800 9600 19200 38400
+49 5 23 20 19 0 41 36 50 14 27 48 33 25 47 44 38 16 30 45 18 42 11 7 26 9 12 32 29 39 13 17 1 4 40 24 35 6 51 43 3 46 2 22 10 37 21 28 34 15 31 8
+12 37 2 18 46 13 28 32 20 29 35 41 50 17 51 25 45 49 11 34 6 24 15 33 21 39 48 7 10 31 40 22 9 42 1 16 14 30 23 38 0 47 36 43 4 5 19 8 26 27 3 44
+7 25 32 13 49 28 23 41 43 46 50 39 36 37 21 24 26 38 35 31 12 19 11 47 18 0 2 29 6 14 3 33 17 42 9 22 48 20 51 40 44 10 8 5 30 16 27 1 45 15 34 4
+11 38 29 23 19 15 4 18 5 8 6 45 51 25 14 2 1 43 17 21 49 42 28 27 34 30 24 31 33 36 37 41 46 47 39 32 26 50 22 40 0 35 12 10 20 3 9 7 44 13 48 16
+20 23 50 41 32 42 22 24 37 48 46 45 43 3 51 12 0 35 18 33 9 17 15 10 26 4 6 8 39 5 1 28 19 13 25 29 14 49 21 2 27 31 34 30 38 16 7 44 11 47 36 40
+19 46 18 8 9 40 45 51 38 24 49 23 20 42 27 3 12 28 5 21 25 34 0 41 1 50 13 39 44 17 22 32 47 35 15 31 14 7 11 2 26 48 6 30 4 33 37 36 43 16 10 29
+29 32 24 17 51 3 37 20 4 26 45 19 1 46 13 28 7 48 9 21 47 2 6 16 15 35 34 14 39 31 30 27 8 25 40 11 23 49 36 12 22 44 10 33 50 18 5 38 42 43 41 0
+47 21 22 34 20 33 44 39 42 9 0 19 3 35 16 17 8 38 26 23 24 11 37 50 10 1 13 32 48 51 28 29 15 45 46 18 31 41 7 5 30 2 43 36 25 49 40 27 12 14 6 4
+even_split tricolor ace_dividend thin_deck mirror coal_seam rose_tint spare_hands collector short_hand low_road savings
+twin_engine momentum tricolor full_spread low_road high_court ace_dividend odd_job thin_deck even_split collector savings
+high_court thin_deck tricolor rose_tint momentum low_road twin_engine ace_dividend odd_job even_split coal_seam full_spread
+tricolor last_call mirror coal_seam thin_deck full_spread collector low_road ace_dividend odd_job high_court short_hand
+low_road savings high_court last_call mirror thin_deck momentum rose_tint full_spread ace_dividend collector odd_job
+savings coal_seam rose_tint ace_dividend thin_deck mirror short_hand high_court twin_engine even_split momentum spare_hands
+savings even_split coal_seam full_spread ace_dividend mirror odd_job low_road short_hand thin_deck high_court rose_tint

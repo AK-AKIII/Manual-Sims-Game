@@ -2,3 +2,9 @@ __pycache__/
 *.pyc
 results*.json
 .DS_Store
+
+# Rendered videos: rebuild with video/make_poker_run_video.sh and video/render_poker_hands.py
+video/*.mp4
+video/*.webm
+# Built static site
+platform/site/dist/

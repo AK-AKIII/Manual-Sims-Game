@@ -1,0 +1,47 @@
+46
+discard 30 31 8 22
+play 15 2 19 28 6
+play 0 48 46 35 20
+play 39 17 3 13 16
+play 49 25 37 47 9
+buy spare_hands
+level TP
+next
+discard 13 40 17 20 37
+play 12 15 22 38 35
+play 6 2 4 9 5
+play 41 14 23 10 1
+play 11 18 16 32 19
+buy short_hand
+next
+discard 41 29 17 31 22
+discard 26 3 43 48
+play 7 25 46 38 20
+play 37 50 11
+play 13 21 16 18 24
+play 36 49 10
+buy rose_tint
+next
+play 9 35 48
+discard 2 41 17 45 33
+play 24 25 16 21 20
+play 34 43 30
+play 38 10 42 49 3
+buy high_court
+buy even_split
+next
+play 43 41 30 22 35
+discard 4 18 21
+play 25 14 3 2 13
+discard 0 28 20 50 9
+discard 40 16 17 24 49
+play 51 12 34 8 27
+play 33 19 11 37 6
+next
+discard 0 14 17 6 50
+discard 39 27 29 5 33
+discard 21 8 25
+play 28 2 9 22 48
+play 41 42 43 15 30
+play 16 36 34 3 10
+play 19 51 38

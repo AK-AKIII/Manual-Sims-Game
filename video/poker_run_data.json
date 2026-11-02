@@ -1,0 +1,368 @@
+{
+ "seeds": "1-20",
+ "solvers": {
+  "Greedy": {
+   "command": "python3 -m poker_run.baseline",
+   "summary": {
+    "seeds": 20,
+    "total": 181384,
+    "mean": 9069.2,
+    "mean_cleared": 3.25,
+    "invalid": 0,
+    "max_time": 0.051
+   },
+   "scores": [
+    29393,
+    21453,
+    1231,
+    11559,
+    4427,
+    23550,
+    2448,
+    10302,
+    15298,
+    2688,
+    20390,
+    10114,
+    1684,
+    2156,
+    5012,
+    6234,
+    2756,
+    2386,
+    4968,
+    3335
+   ],
+   "cleared": [
+    5,
+    5,
+    1,
+    4,
+    3,
+    5,
+    2,
+    4,
+    5,
+    2,
+    5,
+    4,
+    2,
+    2,
+    3,
+    3,
+    2,
+    2,
+    3,
+    3
+   ]
+  },
+  "Beam search": {
+   "command": "python3 poker_run/solvers/beam_search.py",
+   "summary": {
+    "seeds": 20,
+    "total": 1907175,
+    "mean": 95358.75,
+    "mean_cleared": 7.1,
+    "invalid": 0,
+    "max_time": 1.326
+   },
+   "scores": [
+    133553,
+    87662,
+    46057,
+    89668,
+    110580,
+    102532,
+    95857,
+    129677,
+    113640,
+    82420,
+    112970,
+    111999,
+    94580,
+    95523,
+    93380,
+    78718,
+    73999,
+    41041,
+    134215,
+    79104
+   ],
+   "cleared": [
+    7,
+    7,
+    6,
+    7,
+    7,
+    7,
+    7,
+    8,
+    7,
+    7,
+    7,
+    8,
+    8,
+    7,
+    7,
+    7,
+    7,
+    6,
+    8,
+    7
+   ]
+  },
+  "Monte Carlo": {
+   "command": "python3 poker_run/solvers/monte_carlo.py",
+   "summary": {
+    "seeds": 20,
+    "total": 1794897,
+    "mean": 89744.85,
+    "mean_cleared": 7.05,
+    "invalid": 0,
+    "max_time": 1.404
+   },
+   "scores": [
+    122254,
+    92275,
+    110258,
+    91331,
+    87794,
+    71619,
+    89851,
+    129382,
+    116290,
+    78965,
+    99854,
+    103031,
+    43572,
+    94310,
+    83644,
+    79818,
+    77862,
+    68673,
+    76060,
+    78054
+   ],
+   "cleared": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    8,
+    7,
+    7,
+    7,
+    8,
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ]
+  },
+  "MCTS": {
+   "command": "python3 poker_run/solvers/mcts.py",
+   "summary": {
+    "seeds": 20,
+    "total": 1550882,
+    "mean": 77544.1,
+    "mean_cleared": 6.75,
+    "invalid": 0,
+    "max_time": 1.232
+   },
+   "scores": [
+    111428,
+    90760,
+    84161,
+    86834,
+    84456,
+    53570,
+    80831,
+    108802,
+    100817,
+    49154,
+    98254,
+    83824,
+    37354,
+    84006,
+    83104,
+    73771,
+    69650,
+    41052,
+    49959,
+    79095
+   ],
+   "cleared": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    6,
+    7,
+    7,
+    7,
+    6,
+    7,
+    7,
+    6,
+    7,
+    7,
+    7,
+    7,
+    6,
+    6,
+    7
+   ]
+  },
+  "Tuned": {
+   "command": "python3 poker_run/solvers/tuned.py",
+   "summary": {
+    "seeds": 20,
+    "total": 1683142,
+    "mean": 84157.1,
+    "mean_cleared": 6.6,
+    "invalid": 0,
+    "max_time": 0.169
+   },
+   "scores": [
+    125824,
+    97531,
+    85067,
+    43448,
+    44526,
+    100002,
+    80301,
+    117473,
+    97992,
+    56378,
+    71982,
+    41975,
+    94236,
+    74288,
+    132860,
+    104362,
+    84984,
+    11183,
+    129490,
+    89240
+   ],
+   "cleared": [
+    7,
+    7,
+    7,
+    6,
+    6,
+    7,
+    7,
+    7,
+    7,
+    6,
+    6,
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    4,
+    7,
+    7
+   ]
+  }
+ },
+ "ranking": [
+  {
+   "name": "Beam search",
+   "mean": 95358.75,
+   "mean_rank": 1.8,
+   "firsts": 11,
+   "duels_won": 4
+  },
+  {
+   "name": "Monte Carlo",
+   "mean": 89744.85,
+   "mean_rank": 2.15,
+   "firsts": 4,
+   "duels_won": 3
+  },
+  {
+   "name": "Tuned",
+   "mean": 84157.1,
+   "mean_rank": 2.65,
+   "firsts": 5,
+   "duels_won": 2
+  },
+  {
+   "name": "MCTS",
+   "mean": 77544.1,
+   "mean_rank": 3.4,
+   "firsts": 0,
+   "duels_won": 1
+  },
+  {
+   "name": "Greedy",
+   "mean": 9069.2,
+   "mean_rank": 5,
+   "firsts": 0,
+   "duels_won": 0
+  }
+ ],
+ "wins": {
+  "Greedy": {
+   "Greedy": 0,
+   "Beam search": 0,
+   "Monte Carlo": 0,
+   "MCTS": 0,
+   "Tuned": 0
+  },
+  "Beam search": {
+   "Greedy": 20,
+   "Beam search": 0,
+   "Monte Carlo": 13,
+   "MCTS": 17,
+   "Tuned": 14
+  },
+  "Monte Carlo": {
+   "Greedy": 20,
+   "Beam search": 7,
+   "Monte Carlo": 0,
+   "MCTS": 19,
+   "Tuned": 11
+  },
+  "MCTS": {
+   "Greedy": 20,
+   "Beam search": 3,
+   "Monte Carlo": 1,
+   "MCTS": 0,
+   "Tuned": 8
+  },
+  "Tuned": {
+   "Greedy": 20,
+   "Beam search": 6,
+   "Monte Carlo": 9,
+   "MCTS": 12,
+   "Tuned": 0
+  }
+ },
+ "demo": {
+  "seed": 7,
+  "input": "8 8 4 3 5 12\n300 600 1200 2400 4800 9600 19200 38400\n23 9 50 17 45 8 26 16 40 33 47 29 39 2 51 43 15 11 49 22 36 12 38 1 46 14 42 28 4 5 27 37 32 35 18 41 13 7 20 30 6 44 31 24 10 21 19 25 34 48 3 0\n5 43 13 17 3 9 21 49 46 20 41 2 36 32 11 39 23 14 10 35 27 24 16 50 12 0 37 48 42 28 51 26 31 30 40 19 4 34 25 33 22 38 45 1 47 29 8 15 44 6 7 18\n10 25 47 7 18 38 33 19 17 37 51 36 26 1 28 2 0 21 9 46 5 3 12 11 13 4 35 43 40 41 15 30 42 20 34 23 27 49 31 8 16 45 24 22 44 6 48 29 39 32 50 14\n18 44 8 37 1 6 12 25 0 48 4 46 26 5 21 2 43 49 30 29 33 10 19 23 47 22 7 15 36 32 39 50 42 28 16 38 9 41 13 17 31 34 45 11 3 35 24 14 51 20 40 27\n28 38 32 3 6 37 21 1 0 35 13 15 27 11 19 49 8 5 42 36 18 20 9 45 7 2 33 26 40 34 43 14 23 4 16 50 51 22 44 29 25 31 30 17 24 12 46 10 47 41 39 48\n14 17 12 44 37 0 6 9 42 50 36 23 32 28 31 41 8 38 51 49 47 48 30 15 27 7 24 20 34 1 25 22 10 26 5 39 43 18 4 19 11 29 33 16 45 3 46 21 2 35 40 13\n6 16 40 9 0 23 13 20 14 1 51 4 30 17 34 43 26 22 50 11 31 37 7 41 39 49 32 19 18 48 21 42 45 28 46 12 44 5 10 36 2 15 24 47 38 33 27 3 25 8 35 29\n30 34 27 18 48 39 11 4 33 51 5 38 16 22 28 44 32 42 45 12 2 31 49 13 7 24 29 8 19 14 0 41 25 23 1 37 17 6 36 43 40 46 9 21 10 20 50 3 47 15 35 26\nsavings thin_deck last_call even_split twin_engine momentum coal_seam short_hand ace_dividend full_spread rose_tint odd_job\nace_dividend thin_deck tricolor savings short_hand odd_job mirror momentum collector full_spread rose_tint last_call\nsavings tricolor spare_hands even_split odd_job momentum twin_engine coal_seam high_court rose_tint low_road full_spread\nfull_spread odd_job last_call short_hand twin_engine tricolor even_split high_court coal_seam collector ace_dividend savings\ncoal_seam ace_dividend even_split low_road savings last_call twin_engine short_hand tricolor high_court collector thin_deck\ncoal_seam ace_dividend collector momentum spare_hands high_court even_split thin_deck tricolor short_hand odd_job low_road\ntwin_engine rose_tint coal_seam even_split last_call low_road savings full_spread ace_dividend momentum mirror short_hand\n",
+  "output": "63\ndiscard 8 16 17 26 50\ndiscard 29 33 39 40 45\ndiscard 9 11 23 43 47\nplay 51 12 38 49 36\nend\nreroll\nbuy twin_engine\nnext\ndiscard 3 5 9 13 21\ndiscard 2 17 41 43\ndiscard 20 23 32 39 46\nplay 49 36 10 11 24\nend\nbuy tricolor\nnext\ndiscard 7 18 19 47\ndiscard 17 33 37\ndiscard 1\nplay 25 38 51 10 36\nend\nreroll\nbuy odd_job\nnext\ndiscard 1 37\ndiscard 0 6 8 48\ndiscard 4 26 46\nplay 18 44 5 12 25\nend\nbuy last_call\nnext\ndiscard 1 3 21 28\ndiscard 0 13 15 35 38\nplay 27 49 8 37 11\nplay 32 6 5 18 42\nplay 19 45 36 2 9\nplay 20 7 33 40 14\nbuy coal_seam\npromote 0\nnext\nplay 44 37 17 6 9\nplay 36 23 0 14 42\nplay 41 28 50\ndiscard 31 32\ndiscard 8 30 47 48 49\nplay 12 51 38 7 20\nlevel FH\nnext\ndiscard 6 9 13 16 20\nplay 40 0 1 4 30\ndiscard 14 23 26 34 51\nplay 50 11 37 43 17\ndiscard 7 31 39 41 49\nplay 42 18 21 48 22\nplay 45 32 19 44 5\npaint 39 S\nnext\ndiscard 11 27 34 39 48\ndiscard 4 16 30 33\ndiscard 22 28 32\nplay 51 12 38 5 44\nplay 18 31 13 2 7\nplay 45 19 42 29 8\nplay 0 1 14 49 23\n",
+  "verdict": {
+   "valid": true,
+   "score": 95857,
+   "cleared": 7,
+   "rounds": 8,
+   "finished": true,
+   "moves": 63,
+   "money": 1
+  }
+ }
+}

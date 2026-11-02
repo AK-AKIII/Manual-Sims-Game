@@ -1,0 +1,17 @@
+8 8 4 3 5 12
+300 600 1200 2400 4800 9600 19200 38400
+42 46 40 2 15 14 37 29 22 45 19 16 36 34 13 43 44 47 21 31 28 18 1 5 24 12 3 7 6 51 38 8 23 25 49 41 11 17 0 26 48 32 9 50 20 33 27 4 30 10 39 35
+5 14 20 9 37 46 30 11 25 49 24 7 19 50 32 35 13 4 21 10 6 38 40 16 36 28 22 33 42 34 29 23 1 41 47 18 27 3 2 26 45 31 15 0 44 48 39 8 12 43 51 17
+40 23 50 38 27 43 26 29 45 17 1 51 39 10 13 9 16 11 25 6 35 24 15 44 0 46 41 49 28 30 37 21 8 36 12 3 22 7 32 20 4 34 47 33 14 42 48 2 19 18 5 31
+32 26 36 46 35 2 15 45 42 10 27 19 4 43 17 37 31 41 44 8 5 7 24 39 47 29 16 1 33 51 3 6 18 14 23 21 20 30 25 50 11 22 28 0 34 48 12 38 13 9 49 40
+49 44 51 2 28 13 32 15 22 39 40 9 3 47 5 48 14 20 50 45 25 46 17 26 29 11 0 16 43 23 33 30 7 6 36 35 18 41 12 19 27 4 21 42 38 8 10 24 37 34 31 1
+46 43 22 17 23 39 48 9 31 26 11 34 45 10 15 35 42 18 41 3 7 37 24 8 14 5 50 44 33 1 13 30 28 20 2 25 51 12 29 49 19 36 40 38 16 6 4 47 27 0 21 32
+14 42 2 5 16 32 38 47 28 3 51 10 20 15 39 43 46 49 36 30 33 24 40 35 27 6 8 50 18 11 22 45 7 13 48 21 44 31 1 26 17 34 12 0 4 9 23 41 19 25 37 29
+10 13 12 20 9 17 41 28 35 18 8 5 51 40 47 34 7 21 43 46 0 19 25 26 22 31 36 1 27 50 11 15 44 45 42 29 4 2 30 6 39 48 33 14 16 23 24 37 38 32 49 3
+high_court momentum collector short_hand low_road odd_job full_spread last_call rose_tint thin_deck mirror tricolor
+low_road high_court ace_dividend rose_tint twin_engine collector last_call full_spread coal_seam momentum thin_deck tricolor
+mirror momentum savings coal_seam low_road rose_tint tricolor short_hand spare_hands even_split full_spread ace_dividend
+rose_tint full_spread spare_hands coal_seam savings tricolor low_road high_court momentum mirror odd_job last_call
+collector spare_hands twin_engine full_spread tricolor short_hand even_split odd_job momentum ace_dividend rose_tint high_court
+twin_engine low_road even_split coal_seam short_hand rose_tint ace_dividend spare_hands high_court momentum collector tricolor
+thin_deck short_hand full_spread last_call spare_hands even_split high_court twin_engine tricolor ace_dividend savings odd_job

@@ -1,0 +1,30 @@
+29
+play 42 46 2 15 29
+play 40 14 37 45 19
+discard 13 16 43 44 22
+play 34 47 21 31 18
+play 1 5 12 3 7
+buy high_court
+next
+play 5 20 37 46 11
+play 14 9 30 49 24
+play 7 19 50 35 13
+play 25 32 4 6 38
+buy low_road
+next
+discard 26 29 43 23 50
+play 40 38 27 1 51
+discard 16 17 45 10 9
+play 39 13 11 25 24
+discard 0 44 6 46 35
+play 15 41 28 21 8
+play 49 30 37 36 12
+buy mirror
+next
+discard 26 46 36 35
+discard 27 42 10
+play 2 15 4 43 17
+discard 41 37 8
+play 32 45 19 31 44
+play 5 7 24 29 16
+play 39 47 1 33 51

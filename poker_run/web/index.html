@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Poker Run</title>
+<style>
+:root {
+  color-scheme: dark;
+  --felt-in: #185440;
+  --felt-mid: #0f3a2c;
+  --felt-out: #082018;
+  --cream: #f4efe3;
+  --muted: #a0beb0;
+  --gold: #f2c14e;
+  --gold-soft: rgba(242, 193, 78, 0.18);
+  --red: #e2584c;
+  --card: #faf7f0;
+  --card-edge: #e3dccb;
+  --suit-red: #c82830;
+  --suit-black: #1c1c1e;
+  --panel: rgba(0, 0, 0, 0.32);
+  --panel-2: rgba(0, 0, 0, 0.22);
+  --line: rgba(244, 239, 227, 0.12);
+  --ok: #7fd1a4;
+  --cw: 76px;
+  --sans: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: Menlo, ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html { background: var(--felt-out); }
+body {
+  margin: 0; min-height: 100vh; color: var(--cream); font-family: var(--sans); font-size: 15px; line-height: 1.4;
+  background: radial-gradient(ellipse at 50% 35%, var(--felt-in) 0%, var(--felt-mid) 55%, var(--felt-out) 100%) fixed;
+  background-color: var(--felt-out);
+  overflow-x: hidden;
+}
+a { color: var(--gold); }
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: 0.01em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 14px 16px 40px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-bottom: 14px; }
+header.top h1 { font-size: 26px; font-weight: 800; letter-spacing: 0.06em; }
+header.top h1 span { color: var(--gold); }
+.tabs { display: flex; gap: 4px; background: var(--panel); padding: 3px; border-radius: 10px; }
+.tab { background: transparent; border: 0; color: var(--muted); padding: 6px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--gold); color: #1b1a14; }
+.source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.source label { color: var(--muted); font-size: 13px; }
+input[type="number"], input[type="text"], textarea, select {
+  background: rgba(0, 0, 0, 0.35); color: var(--cream); border: 1px solid var(--line); border-radius: 8px;
+  font: 14px var(--mono); padding: 6px 8px;
+}
+input[type="number"] { width: 100px; }
+textarea { width: 100%; min-height: 110px; resize: vertical; }
+select { font-family: var(--sans); }
+.btn {
+  background: rgba(244, 239, 227, 0.08); color: var(--cream); border: 1px solid rgba(244, 239, 227, 0.22);
+  border-radius: 8px; padding: 7px 12px; font: 600 14px var(--sans); cursor: pointer; white-space: nowrap;
+  transition: background 0.12s, transform 0.12s;
+}
+.btn:hover:not(:disabled) { background: rgba(244, 239, 227, 0.16); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn.primary { background: var(--gold); border-color: var(--gold); color: #1b1a14; }
+.btn.primary:hover:not(:disabled) { background: #f6cf6f; }
+.btn.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.btn .price { opacity: 0.8; font-weight: 500; margin-left: 4px; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+.gold { color: var(--gold); }
+.err { color: #ffb4a8; background: rgba(226, 88, 76, 0.16); border: 1px solid rgba(226, 88, 76, 0.5); border-radius: 8px; padding: 8px 10px; }
+.okmsg { color: var(--ok); background: rgba(127, 209, 164, 0.1); border: 1px solid rgba(127, 209, 164, 0.4); border-radius: 8px; padding: 8px 10px; }
+.msg { margin: 8px 0 0; font-size: 14px; }
+.msg:empty { display: none; }
+.hidden { display: none !important; }
+
+/* ---------- layout */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+.col { display: grid; gap: 14px; min-width: 0; }
+@media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- status */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+.stat { background: var(--panel-2); border-radius: 10px; padding: 8px 10px; }
+.stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.stat .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 13px; color: var(--muted); font-weight: 500; }
+.stat.money .v { color: var(--gold); }
+.progress { margin-top: 10px; height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); overflow: hidden; position: relative; }
+.progress .bar { height: 100%; background: linear-gradient(90deg, #c99a2e, var(--gold)); width: 0; transition: width 0.25s; }
+.progress .ghost { position: absolute; top: 0; height: 100%; background: rgba(242, 193, 78, 0.35); }
+.progress.done .bar { background: linear-gradient(90deg, #4fa77a, var(--ok)); }
+.progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.phase-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: var(--gold-soft); color: var(--gold); }
+
+/* ---------- cards */
+.card {
+  --w: var(--cw);
+  width: var(--w); height: calc(var(--w) * 1.4); flex: none; position: relative;
+  background: var(--card); border-radius: calc(var(--w) * 0.1); border: 1px solid var(--card-edge);
+  color: var(--suit-black); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45); font-family: var(--sans);
+  user-select: none; padding: 0; text-align: left; transition: transform 0.14s, box-shadow 0.14s;
+}
+.card.red { color: var(--suit-red); }
+button.card { cursor: pointer; }
+button.card:hover { transform: translateY(-3px); }
+.card .tl { position: absolute; top: calc(var(--w) * 0.05); left: calc(var(--w) * 0.08); line-height: 0.95; text-align: center; font-weight: 800; font-size: calc(var(--w) * 0.25); }
+.card .tl i { display: block; font-style: normal; font-size: calc(var(--w) * 0.2); font-weight: 400; }
+.card .br { position: absolute; bottom: calc(var(--w) * 0.05); right: calc(var(--w) * 0.08); line-height: 0.95; text-align: center; font-weight: 800; font-size: calc(var(--w) * 0.25); transform: rotate(180deg); }
+.card .br i { display: block; font-style: normal; font-size: calc(var(--w) * 0.2); font-weight: 400; }
+.card .mid { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--w) * 0.56); line-height: 1; padding-top: calc(var(--w) * 0.06); }
+.card .cid { position: absolute; top: calc(var(--w) * 0.06); right: calc(var(--w) * 0.08); font: 600 calc(var(--w) * 0.14) / 1 var(--mono); color: #8f897a; }
+.card .dot { position: absolute; bottom: calc(var(--w) * 0.07); left: calc(var(--w) * 0.08); width: calc(var(--w) * 0.1); height: calc(var(--w) * 0.1); border-radius: 50%; background: var(--gold); border: 1px solid #b38a25; }
+.card .tag { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); font: 700 10px/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 6px; border-radius: 999px; white-space: nowrap; }
+.card.sel { transform: translateY(-12px); box-shadow: 0 0 0 3px var(--gold), 0 10px 18px rgba(0, 0, 0, 0.5); }
+button.card.sel:hover { transform: translateY(-14px); }
+.card.sel.scored .tag { background: var(--gold); color: #1b1a14; }
+.card.sel.kicker .tag { background: #3c4a44; color: var(--cream); }
+.card.sel.kicker { box-shadow: 0 0 0 3px rgba(160, 190, 176, 0.8), 0 10px 18px rgba(0, 0, 0, 0.5); }
+.card.hl { box-shadow: 0 0 0 3px var(--red), 0 0 16px rgba(226, 88, 76, 0.7); }
+.card.hl.scored { box-shadow: 0 0 0 3px var(--gold), 0 0 16px rgba(242, 193, 78, 0.7); }
+.card.gone { opacity: 0.22; }
+.card.next-draw { box-shadow: 0 0 0 2px var(--gold); }
+.card.mini { --w: 40px; border-radius: 5px; }
+.card.mini .br, .card.mini .mid { display: none; }
+.card.mini .tl { font-size: 15px; left: 4px; top: 3px; }
+.card.mini .tl i { font-size: 14px; }
+.card.mini .cid { top: auto; bottom: 3px; right: 4px; font-size: 9px; }
+.card.mini .dot { left: auto; right: 4px; top: 4px; bottom: auto; width: 5px; height: 5px; }
+.card.deckc { --w: 50px; }
+.card.deckc .br { display: none; }
+.card.deckc .mid { font-size: 22px; padding-top: 14px; }
+.card.deckc .cid { font-size: 9px; }
+.card.deckc.pick { box-shadow: 0 0 0 3px var(--gold), 0 6px 14px rgba(0, 0, 0, 0.5); transform: translateY(-3px); }
+
+.hand { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 2px 14px; min-height: calc(var(--cw) * 1.4 + 30px); }
+.strip { display: flex; gap: 5px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-color: rgba(244, 239, 227, 0.25) transparent; }
+.strip .pos { font: 10px var(--mono); color: var(--muted); text-align: center; margin-top: 2px; }
+.strip .slot { flex: none; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+
+/* ---------- preview */
+.preview { margin-top: 12px; background: var(--panel-2); border-radius: 10px; padding: 10px 12px; min-height: 64px; }
+.preview .hand-name { font-size: 20px; font-weight: 800; }
+.preview .formula { font: 14px var(--mono); margin-top: 4px; color: var(--cream); overflow-wrap: anywhere; }
+.preview .formula b { color: var(--gold); }
+.preview .parts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: rgba(244, 239, 227, 0.08); border: 1px solid var(--line); }
+.chip.on { border-color: rgba(242, 193, 78, 0.6); color: var(--gold); }
+
+/* ---------- modifiers / shop */
+.mods { display: grid; gap: 8px; }
+.mod { background: var(--panel-2); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: start; }
+.mod .name { font-weight: 700; }
+.mod .fx { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.mod .state { grid-column: 1 / -1; font-size: 13px; color: var(--gold); }
+.slots-left { font-size: 13px; color: var(--muted); }
+.offers { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.offer { background: linear-gradient(160deg, rgba(122, 31, 43, 0.55), rgba(60, 14, 22, 0.55)); border: 1px solid rgba(242, 193, 78, 0.35); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-height: 130px; }
+.offer.sold { opacity: 0.4; background: var(--panel-2); border-style: dashed; }
+.offer .name { font-weight: 800; font-size: 16px; }
+.offer .fx { font-size: 13px; color: #e8dccb; flex: 1; }
+.offer .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.offer .cost { color: var(--gold); font-weight: 800; font-size: 18px; }
+.queue-later { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 13px; }
+table.hands { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+table.hands th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.hands td { padding: 4px 6px; border-bottom: 1px solid rgba(244, 239, 227, 0.06); }
+table.hands td.num, table.hands th.num { text-align: right; }
+table.hands tr.lit td { background: var(--gold-soft); }
+.scroll-x { overflow-x: auto; }
+.deckgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+.deck-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; min-height: 34px; }
+.shop-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 760px) { .shop-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- log / export */
+.log { max-height: 300px; overflow: auto; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.log li { display: grid; grid-template-columns: 34px 1fr; gap: 6px; padding: 3px 4px; border-bottom: 1px solid rgba(244, 239, 227, 0.05); }
+.log li .n { color: var(--muted); font-family: var(--mono); text-align: right; }
+.log li .m { font-family: var(--mono); overflow-wrap: anywhere; }
+.log li .d { color: var(--muted); }
+.log li.cur { background: var(--gold-soft); border-radius: 6px; }
+.log li.bad { background: rgba(226, 88, 76, 0.2); border-radius: 6px; }
+.log li[data-step] { cursor: pointer; }
+.export textarea { min-height: 120px; font-size: 12px; }
+
+/* ---------- summary */
+.summary { text-align: center; padding: 22px 14px; }
+.summary .big { font-size: 44px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+.summary .sub { color: var(--muted); font-size: 16px; }
+
+/* ---------- replay */
+.replay-io { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .replay-io { grid-template-columns: minmax(0, 1fr); } }
+.stepper { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stepper input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--gold); }
+.verdict { font-size: 15px; }
+.lastmove { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.lastmove .cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.lastmove .card.sel { transform: none; } /* a record of the move, not a selection: don't lift into the text above */
+details summary { cursor: pointer; color: var(--muted); }
+.kbd { font: 11px var(--mono); padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
+
+@media (max-width: 600px) {
+  :root { --cw: 54px; }
+  .wrap { padding: 10px 10px 30px; }
+  header.top h1 { font-size: 22px; }
+  .source { margin-left: 0; }
+  .hand { gap: 6px; }
+  .stat .v { font-size: 17px; }
+  .card .tag { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  .card.sel, button.card:hover, button.card.sel:hover, .card.deckc.pick { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>POKER <span>RUN</span></h1>
+    <div class="tabs" role="tablist" aria-label="Mode">
+      <button class="tab" role="tab" id="tab-play" aria-selected="true" aria-controls="view-play" data-act="mode" data-v="play">Play</button>
+      <button class="tab" role="tab" id="tab-replay" aria-selected="false" aria-controls="view-replay" data-act="mode" data-v="replay">Replay</button>
+    </div>
+    <div class="source" id="source-bar">
+      <label for="seed">Seed</label>
+      <input type="number" id="seed" value="1" step="1" inputmode="numeric">
+      <button class="btn primary" data-act="deal">Deal</button>
+      <button class="btn" data-act="random-seed" title="Deal a random seed">Random</button>
+      <button class="btn" data-act="toggle-load" aria-expanded="false" aria-controls="load-panel">Load input…</button>
+    </div>
+  </header>
+
+  <section class="panel hidden" id="load-panel" aria-label="Load a custom input">
+    <h2>Custom input</h2>
+    <p class="muted" style="margin:0 0 8px">Paste an input file (the same format the judge reads) or pick one from disk.</p>
+    <textarea id="load-text" spellcheck="false" placeholder="8 8 4 3 5 12&#10;300 600 …"></textarea>
+    <div class="actions" style="margin-top:8px">
+      <input type="file" id="load-file" accept=".txt,text/plain">
+      <button class="btn primary" data-act="load-input">Start with this input</button>
+      <button class="btn" data-act="toggle-load">Close</button>
+    </div>
+    <div class="msg" id="load-msg" role="status" aria-live="polite"></div>
+  </section>
+
+  <main id="view-play" role="tabpanel" aria-labelledby="tab-play">
+    <div class="layout">
+      <div class="col" id="play-main"></div>
+      <aside class="col" id="play-side"></aside>
+    </div>
+  </main>
+
+  <main id="view-replay" class="hidden" role="tabpanel" aria-labelledby="tab-replay">
+    <div class="col">
+      <section class="panel">
+        <h2>Replay an output</h2>
+        <div class="replay-io">
+          <div>
+            <label class="muted" for="rp-input">Input</label>
+            <textarea id="rp-input" spellcheck="false" placeholder="input file text"></textarea>
+            <div class="actions" style="margin-top:6px">
+              <input type="file" id="rp-input-file" accept=".txt,text/plain" aria-label="Input file">
+              <label class="muted" for="rp-seed">or seed</label>
+              <input type="number" id="rp-seed" value="1" step="1">
+              <button class="btn small" data-act="rp-seed">Generate</button>
+            </div>
+          </div>
+          <div>
+            <label class="muted" for="rp-output">Output</label>
+            <textarea id="rp-output" spellcheck="false" placeholder="S&#10;move 1&#10;move 2&#10;…"></textarea>
+            <div class="actions" style="margin-top:6px">
+              <input type="file" id="rp-output-file" accept=".txt,text/plain" aria-label="Output file">
+            </div>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn primary" data-act="rp-run">Check &amp; replay</button>
+          <button class="btn" data-act="rp-from-play">Use my current game</button>
+        </div>
+        <div class="msg verdict" id="rp-verdict" role="status" aria-live="polite"></div>
+      </section>
+      <section class="panel hidden" id="rp-stepper-panel">
+        <div class="stepper">
+          <button class="btn" data-act="rp-step" data-v="first" aria-label="First move">⏮</button>
+          <button class="btn" data-act="rp-step" data-v="-1" aria-label="Previous move">◀</button>
+          <input type="range" id="rp-slider" min="0" max="0" value="0" aria-label="Move number">
+          <button class="btn" data-act="rp-step" data-v="1" aria-label="Next move">▶</button>
+          <button class="btn" data-act="rp-step" data-v="last" aria-label="Last move">⏭</button>
+          <span class="mono" id="rp-pos"></span>
+          <button class="btn small" data-act="rp-continue" title="Load the moves up to this point into Play mode">Play on from here</button>
+        </div>
+        <p class="muted" style="margin:6px 0 0;font-size:12px"><span class="kbd">←</span> <span class="kbd">→</span> step when the slider is focused.</p>
+      </section>
+      <div class="layout hidden" id="rp-board">
+        <div class="col" id="rp-main"></div>
+        <aside class="col" id="rp-side"></aside>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="engine.js"></script>
+<script>
+"use strict";
+/* ======================================================================
+ * Pure helpers (no DOM). Kept separate so they can be exercised from Node:
+ * the test harness evaluates this script with no `document` and reads UI.
+ * ==================================================================== */
+const UI = (function (PR) {
+  const SUIT_GLYPH = ["♠︎", "♥︎", "♦︎", "♣︎"];
+  const SUIT_LETTER = PR.SUITS;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function rankLabel(r) { return r === 8 ? "10" : PR.RANKS[r]; }
+  function faceText(g, id) { return rankLabel(g.rank[id]) + SUIT_GLYPH[g.suit[id]]; }
+  function isRed(suit) { return suit === 1 || suit === 2; }
+  function isModified(g, id) { const f = PR.startFace(id); return g.rank[id] !== f[0] || g.suit[id] !== f[1]; }
+  function num(x) { return typeof x === "bigint" ? x.toString() : Number(x).toLocaleString("en-US"); }
+  function prettyMod(name) { return name.replace(/_/g, " "); }
+
+  // Build a game from an instance and a move list. Stops at the first illegal move.
+  function buildGame(inst, moves) {
+    const g = new PR.Game(inst);
+    for (let k = 0; k < moves.length; k++) {
+      try { g.apply(moves[k]); } catch (e) {
+        if (e instanceof PR.IllegalMove) return { game: g, applied: k, error: e.message };
+        throw e;
+      }
+    }
+    return { game: g, applied: moves.length, error: null };
+  }
+
+  // Every state of a replay: states[k] is the game after k moves.
+  function replayStates(inst, moves) {
+    const states = [new PR.Game(inst)];
+    for (let k = 0; k < moves.length; k++) {
+      const g = states[k].clone();
+      try { g.apply(moves[k]); } catch (e) {
+        if (e instanceof PR.IllegalMove) return { states, errorAt: k + 1, error: e.message };
+        throw e;
+      }
+      states.push(g);
+    }
+    return { states, errorAt: null, error: null };
+  }
+
+  // Card ids a move refers to (play/discard/remove/paint/promote); only small integers.
+  function moveCards(move) {
+    const t = PR._py.pySplit(move);
+    if (!t.length) return [];
+    let ids = [];
+    if (t[0] === "play" || t[0] === "discard") ids = t.slice(1);
+    else if (["remove", "paint", "promote"].includes(t[0])) ids = t.slice(1, 2);
+    const out = [];
+    for (const x of ids) {
+      try { const v = PR._py.pyInt(x); if (typeof v === "number" && v >= 0 && v < PR.N_CARDS) out.push(v); } catch (e) { /* not a card */ }
+    }
+    return out;
+  }
+
+  // A short human description of a move, given the game before it.
+  function describe(g, move) {
+    const t = PR._py.pySplit(move);
+    const cmd = t[0];
+    const cards = moveCards(move);
+    const faces = cards.map((c) => faceText(g, c)).join(" ");
+    if (cmd === "play") {
+      const err = g.tryMove(move);
+      if (err) return faces;
+      const r = g.evaluate(cards);
+      return `${faces} → ${PR.HAND_NAMES[r.hand]} ${num(r.points)}` + (r.money ? ` +$${r.money}` : "");
+    }
+    if (cmd === "discard") return faces;
+    if (cmd === "end") return "end round";
+    if (cmd === "buy") return t[1] && Object.prototype.hasOwnProperty.call(PR.MODIFIERS, t[1]) ? `buy ${prettyMod(t[1])} -$${PR.MODIFIERS[t[1]][0]}` : "buy";
+    if (cmd === "sell") return t[1] ? `sell ${prettyMod(t[1])}` : "sell";
+    if (cmd === "level") return t[1] && g.levels[t[1]] !== undefined && PR.HAND_CODES.includes(t[1])
+      ? `${PR.HAND_NAMES[t[1]]} → level ${g.levels[t[1]] + 1}` : "level";
+    if (cmd === "remove") return `remove ${faces}`;
+    if (cmd === "paint" && cards.length && t[2] && SUIT_LETTER.includes(t[2])) {
+      return `${faces} → ${rankLabel(g.rank[cards[0]])}${SUIT_GLYPH[SUIT_LETTER.indexOf(t[2])]}`;
+    }
+    if (cmd === "promote" && cards.length && g.rank[cards[0]] < 12) {
+      return `${faces} → ${rankLabel(g.rank[cards[0]] + 1)}${SUIT_GLYPH[g.suit[cards[0]]]}`;
+    }
+    if (cmd === "discards") return "+1 discard per round";
+    if (cmd === "handsize") return "+1 hand size";
+    if (cmd === "reroll") return "next three offers";
+    if (cmd === "next") return `start round ${g.round + 2}`;
+    return "";
+  }
+
+  // Money you'd get by ending the round now (or after a round-ending play).
+  function roundReward(g) {
+    const cap = PR.INTEREST_CAP + (g.hasMod("savings") ? 5 : 0);
+    let r = PR.ROUND_REWARD + PR.PLAY_BONUS * g.plays_left + Math.min(Math.floor(g.money / PR.INTEREST_PER), cap);
+    if (g.hasMod("spare_hands")) r += 2 * g.discards_left;
+    return r;
+  }
+
+  // What the preview panel shows for a selection during a round.
+  function preview(g, selected) {
+    if (g.phase !== "play" || !selected.length) return null;
+    const ids = selected.slice();
+    const res = ids.length <= 5 ? g.evaluate(ids, true) : null;
+    const playLine = "play " + ids.join(" ");
+    const playErr = g.tryMove(playLine);
+    let after = null;
+    if (!playErr) {
+      const c = g.clone();
+      c.apply(playLine);
+      after = { phase: c.phase, round_score: c.round_score, money: c.money, total: c.total, cleared: c.cleared > g.cleared };
+    }
+    return { res, playErr, discardErr: g.tryMove("discard " + ids.join(" ")), after };
+  }
+
+  function formula(res) {
+    if (!res) return "";
+    const modBase = res.base - res.handBase - res.cardChips;
+    const modMult = res.mult - res.handMult;
+    let s = `(${res.handBase} + ${res.cardChips} chips` + (modBase ? ` + ${modBase}` : "") + `) × (${res.handMult}` +
+      (modMult ? ` + ${modMult}` : "") + ")";
+    if (res.times !== 1) s += ` × ${res.times}`;
+    return s + ` = ${num(res.points)}`;
+  }
+
+  function verdictText(code, v) {
+    if (!v.valid) return v.error;
+    const end = v.cleared === v.rounds ? "won the run" : !v.finished ? "stopped early" : "out";
+    return `score ${num(v.score)} · cleared ${v.cleared}/${v.rounds} (${end}) · ${v.moves} moves · $${v.money}`;
+  }
+
+  function outcome(g) {
+    if (!g.over) return null;
+    const won = g.cleared === g.inst.rounds;
+    return {
+      won, score: g.total, cleared: g.cleared, rounds: g.inst.rounds,
+      text: won ? `Cleared all ${g.inst.rounds} rounds` :
+        `Out in round ${g.round + 1}: ${num(g.round_score)} of ${num(g.target)} points`,
+    };
+  }
+
+  // Cards of the next round's draw order still in the deck (shop planning).
+  function nextRoundPile(g) {
+    if (g.phase !== "shop") return [];
+    return g.inst.orders[g.round + 1].filter((c) => g.in_deck[c]);
+  }
+
+  function sortedHand(g, how) {
+    const h = g.hand.slice();
+    if (how === "rank") h.sort((a, b) => g.rank[b] - g.rank[a] || g.suit[a] - g.suit[b] || a - b);
+    else if (how === "suit") h.sort((a, b) => g.suit[a] - g.suit[b] || g.rank[b] - g.rank[a] || a - b);
+    return h;
+  }
+
+  function deckOrder(g) {
+    const ids = [...Array(PR.N_CARDS).keys()];
+    return ids.sort((a, b) => (g.in_deck[b] - g.in_deck[a]) || g.suit[a] - g.suit[b] || g.rank[a] - g.rank[b] || a - b);
+  }
+
+  function modState(name, state) {
+    if (name === "momentum") return state.streak ? `streak ${state.streak} × ${PR.HAND_NAMES[state.last]} (+${2 * state.streak} mult on another one)` : "no streak yet";
+    if (name === "collector") return `+${state.bonus} base banked`;
+    return "";
+  }
+
+  return { SUIT_GLYPH, SUIT_LETTER, esc, rankLabel, faceText, isRed, isModified, num, prettyMod, buildGame, replayStates,
+    moveCards, describe, roundReward, preview, formula, verdictText, outcome, nextRoundPile, sortedHand, deckOrder, modState };
+})(typeof PokerRun !== "undefined" ? PokerRun : require("./engine.js"));
+
+/* ======================================================================
+ * DOM app
+ * ==================================================================== */
+function startApp(PR) {
+  const $ = (id) => document.getElementById(id);
+  const esc = UI.esc;
+  const STORE_KEY = "poker-run:v1";
+
+  const S = {
+    mode: "play",
+    source: { type: "seed", seed: 1 },  // or {type: "text", text}
+    inputText: "",
+    inst: null,
+    moves: [],
+    labels: [],          // describe() of each move, computed from the game before it
+    game: null,
+    sel: [],             // selected hand cards, in click order
+    deckPick: null,      // card picked in the shop's deck editor
+    sort: "draw",
+    msg: null,           // {kind: 'err'|'ok', text}
+    rp: null,            // replay state
+    rpStep: 0,
+  };
+
+  // ---------- persistence (per-viewer convenience only)
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ source: S.source, moves: S.moves, sort: S.sort })); } catch (e) { /* storage unavailable */ }
+  }
+  function restore() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  // ---------- game lifecycle
+  function startFromSource(source, moves) {
+    let text;
+    if (source.type === "seed") text = PR.formatInstance(PR.generate(source.seed));
+    else text = source.text;
+    const inst = PR.parseInstance(text); // may throw BadInput
+    S.source = source;
+    S.inputText = text;
+    S.inst = inst;
+    setMoves(moves || []);
+    if (source.type === "seed") $("seed").value = String(source.seed);
+    if (source.type === "seed") {
+      try { history.replaceState(null, "", "#seed=" + source.seed); } catch (e) {
+        try { location.hash = "seed=" + source.seed; } catch (e2) { /* no URL updates here */ }
+      }
+    }
+    save();
+  }
+
+  function setMoves(moves) {
+    const g = new PR.Game(S.inst);
+    const kept = [], labels = [];
+    for (const m of moves) {
+      const label = UI.describe(g, m);
+      try { g.apply(m); } catch (e) { if (e instanceof PR.IllegalMove) break; throw e; }
+      kept.push(m); labels.push(label);
+    }
+    S.moves = kept; S.labels = labels; S.game = g; S.sel = []; S.deckPick = null;
+  }
+
+  function doMove(line) {
+    const g = S.game.clone();
+    const label = UI.describe(S.game, line);
+    try { g.apply(line); } catch (e) {
+      if (e instanceof PR.IllegalMove) { S.msg = { kind: "err", text: `${line}: ${e.message}` }; renderKeepFocus(); return false; }
+      throw e;
+    }
+    S.game = g;
+    S.moves.push(line);
+    S.labels.push(label);
+    S.sel = S.sel.filter((c) => g.hand.includes(c) && g.phase === "play");
+    if (g.phase !== "play") S.sel = [];
+    S.msg = null;
+    if (S.deckPick !== null && (!g.in_deck[S.deckPick] || g.phase !== "shop")) S.deckPick = null;
+    save();
+    renderKeepFocus();
+    return true;
+  }
+
+  function undo() {
+    if (!S.moves.length) return;
+    const last = S.moves[S.moves.length - 1];
+    setMoves(S.moves.slice(0, -1));
+    S.msg = { kind: "ok", text: `Undid "${last}".` };
+    save();
+    render();
+  }
+
+  function outputText() { return PR.formatOutput(S.moves); }
+
+  // ---------- rendering pieces
+  function cardHTML(g, id, o) {
+    o = o || {};
+    const r = g.rank[id], s = g.suit[id];
+    const cls = ["card", UI.isRed(s) ? "red" : ""];
+    if (o.size) cls.push(o.size);
+    if (o.cls) cls.push(o.cls);
+    const label = UI.rankLabel(r), glyph = UI.SUIT_GLYPH[s];
+    const mod = UI.isModified(g, id) ? '<span class="dot" title="painted or promoted"></span>' : "";
+    const tag = o.tag ? `<span class="tag">${esc(o.tag)}</span>` : "";
+    const inner = `<span class="tl">${label}<i>${glyph}</i></span><span class="cid">${id}</span>` +
+      `<span class="mid">${glyph}</span><span class="br">${label}<i>${glyph}</i></span>${mod}${tag}`;
+    const aria = `${label} of ${["spades", "hearts", "diamonds", "clubs"][s]}, card ${id}` + (o.aria ? ", " + o.aria : "");
+    if (o.act) {
+      return `<button type="button" class="${cls.join(" ")}" data-act="${o.act}" data-id="${id}" aria-pressed="${o.pressed ? "true" : "false"}" aria-label="${esc(aria)}">${inner}</button>`;
+    }
+    return `<div class="${cls.join(" ")}" role="img" aria-label="${esc(aria)}">${inner}</div>`;
+  }
+
+  function btn(label, act, opts) {
+    opts = opts || {};
+    const dis = opts.err ? " disabled" : "";
+    const title = opts.err ? ` title="${esc(opts.err)}"` : opts.title ? ` title="${esc(opts.title)}"` : "";
+    const v = opts.v !== undefined ? ` data-v="${esc(opts.v)}"` : "";
+    const price = opts.price !== undefined ? `<span class="price">$${opts.price}</span>` : "";
+    return `<button type="button" class="btn${opts.cls ? " " + opts.cls : ""}" data-act="${act}"${v}${dis}${title}${opts.aria ? ` aria-label="${esc(opts.aria)}"` : ""}>${label}${price}</button>`;
+  }
+
+  function statusHTML(g) {
+    const R = g.inst.rounds;
+    const target = Number(g.target);
+    const pct = target > 0 ? Math.min(100, (100 * g.round_score) / target) : 100;
+    const done = g.round_score >= g.target;
+    let phase = g.phase === "play" ? "round" : g.phase === "shop" ? "shop" : "run over";
+    const roundLine = g.phase === "shop"
+      ? `<div class="progress-label"><span>Round ${g.round + 1} cleared with ${UI.num(g.round_score)}</span><span>Next target ${UI.num(g.inst.targets[g.round + 1])}</span></div>`
+      : `<div class="progress-label"><span>${UI.num(g.round_score)} / ${UI.num(g.target)}</span><span>${done ? "target reached" : UI.num(Math.max(0, target - g.round_score)) + " to go"}</span></div>`;
+    return `<section class="panel" aria-label="Round status">
+      <div class="toolbar" style="margin-bottom:10px"><h2 style="margin:0">Round ${g.round + 1} of ${R}</h2><span class="phase-tag">${phase}</span></div>
+      <div class="stats">
+        <div class="stat"><div class="k">Target</div><div class="v">${UI.num(g.target)}</div></div>
+        <div class="stat"><div class="k">Round pts</div><div class="v">${UI.num(g.round_score)}</div></div>
+        <div class="stat"><div class="k">Plays</div><div class="v">${g.phase === "play" ? g.plays_left : "–"}<small> / ${g.inst.plays}</small></div></div>
+        <div class="stat"><div class="k">Discards</div><div class="v">${g.phase === "play" ? g.discards_left : "–"}<small> / ${g.inst.discards + g.extra_discards}</small></div></div>
+        <div class="stat"><div class="k">Hand size</div><div class="v">${g.hand_size}</div></div>
+        <div class="stat money"><div class="k">Money</div><div class="v">$${g.money}</div></div>
+        <div class="stat"><div class="k">Total score</div><div class="v gold">${UI.num(g.total)}</div></div>
+      </div>
+      <div class="progress${done ? " done" : ""}" role="progressbar" aria-label="Round points" aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${g.round_score}">
+        <div class="bar" style="width:${pct}%"></div>
+      </div>
+      ${roundLine}
+    </section>`;
+  }
+
+  function pileHTML(g, ids, title, hint, nextN, hlSet) {
+    if (!ids.length) return `<section class="panel"><h2>${title}</h2><p class="muted" style="margin:0">Empty: no more cards to draw this round.</p></section>`;
+    const items = ids.map((c, i) => `<div class="slot">${cardHTML(g, c, { size: "mini", cls: (i < nextN ? "next-draw" : "") + (hlSet && hlSet.has(c) ? " hl" : "") })}<div class="pos">${i + 1}</div></div>`).join("");
+    return `<section class="panel"><div class="toolbar"><h2>${title}</h2><span class="muted" style="font-size:12px">${hint}</span></div><div class="strip" tabindex="0" aria-label="${esc(title)}">${items}</div></section>`;
+  }
+
+  function previewHTML(g) {
+    const p = UI.preview(g, S.sel);
+    if (!p) return `<div class="preview muted" aria-live="polite">Select 1 to 5 cards to see what they score. The input shows every future draw, so plan ahead with the draw pile below.</div>`;
+    if (!p.res) return `<div class="preview" aria-live="polite"><span class="err">At most 5 cards can be played or discarded.</span></div>`;
+    const r = p.res;
+    const parts = r.parts.filter((x) => x.base || x.mult || x.times !== 1 || x.money).map((x) => {
+      const bits = [];
+      if (x.base) bits.push(`+${x.base} base`);
+      if (x.mult) bits.push(`+${x.mult} mult`);
+      if (x.times !== 1) bits.push(`×${x.times}`);
+      if (x.money) bits.push(`+$${x.money}`);
+      return `<span class="chip on">${esc(UI.prettyMod(x.name))}: ${bits.join(", ")}</span>`;
+    }).join("");
+    let after = "";
+    if (p.after) {
+      if (p.after.phase === "play") after = `Round would be at ${UI.num(p.after.round_score)} / ${UI.num(g.target)}.`;
+      else if (p.after.cleared) after = `Ends the round: cleared with ${UI.num(p.after.round_score)}, money becomes $${p.after.money}.`;
+      else after = `Ends the round below target (${UI.num(p.after.round_score)} / ${UI.num(g.target)}): the run would be over.`;
+    }
+    const kick = S.sel.length - r.scored.length;
+    return `<div class="preview" aria-live="polite">
+      <div class="toolbar"><span class="hand-name">${esc(PR.HAND_NAMES[r.hand])} <span class="muted" style="font-size:14px;font-weight:600">level ${g.levels[r.hand]}</span></span>
+      <span class="gold" style="font-size:22px;font-weight:800">${UI.num(r.points)} pts${r.money ? ` · +$${r.money}` : ""}</span></div>
+      <div class="formula">base <b>${r.base}</b> × mult <b>${r.mult}</b>${r.times !== 1 ? ` × <b>${r.times}</b>` : ""} &nbsp;·&nbsp; ${esc(UI.formula(r))}</div>
+      <div class="muted" style="font-size:13px;margin-top:4px">${r.scored.length} scored card${r.scored.length === 1 ? "" : "s"}${kick ? `, ${kick} kicker${kick === 1 ? "" : "s"}` : ""}. ${esc(after)}</div>
+      ${parts ? `<div class="parts">${parts}</div>` : ""}
+    </div>`;
+  }
+
+  function handHTML(g, opts) {
+    const sel = new Set(opts.selected || []);
+    const res = opts.selected && opts.selected.length && opts.selected.length <= 5 ? g.evaluate(opts.selected) : null;
+    const scored = new Set(res ? res.scored : []);
+    const hl = opts.highlight || new Set();
+    const hlScored = opts.hlScored || new Set();
+    return UI.sortedHand(g, opts.sort || "draw").map((c) => {
+      let cls = "", tag = "";
+      if (sel.has(c)) { cls = "sel " + (scored.has(c) ? "scored" : "kicker"); tag = scored.has(c) ? "scores" : "kicker"; }
+      if (hl.has(c)) { cls += " hl" + (hlScored.has(c) ? " scored" : ""); }
+      return cardHTML(g, c, { act: opts.interactive ? "card" : null, cls, tag, pressed: sel.has(c),
+        aria: sel.has(c) ? "selected" : "" });
+    }).join("");
+  }
+
+  function playPanelHTML(g, interactive) {
+    const sel = S.sel;
+    const p = interactive ? UI.preview(g, sel) : null;
+    const playErr = !sel.length ? "Select 1 to 5 cards" : p ? p.playErr : "";
+    const discErr = !sel.length ? "Select 1 to 5 cards" : p ? p.discardErr : "";
+    const endErr = g.tryMove("end");
+    const reward = !endErr ? UI.roundReward(g) : 0;
+    const sortSel = `<label class="muted" style="font-size:13px">Order <select id="sort-hand" aria-label="Hand order">
+        ${["draw", "rank", "suit"].map((v) => `<option value="${v}"${S.sort === v ? " selected" : ""}>${v === "draw" ? "as drawn" : "by " + v}</option>`).join("")}
+      </select></label>`;
+    return `<section class="panel" aria-label="Your hand">
+      <div class="toolbar"><h2 style="margin:0">Hand <span class="muted" style="text-transform:none;letter-spacing:0">(${g.hand.length} cards)</span></h2>${sortSel}</div>
+      <div class="hand" id="hand">${handHTML(g, { interactive: true, selected: sel, sort: S.sort })}</div>
+      <div class="actions">
+        ${btn(`Play${sel.length ? " " + sel.length : ""}`, "play", { cls: "primary", err: playErr })}
+        ${btn(`Discard${sel.length ? " " + sel.length : ""}`, "discard", { err: discErr })}
+        ${btn("End round", "end", { err: endErr, title: !endErr ? `Clear now for +$${reward}` : "" })}
+        ${btn("Clear selection", "clear-sel", { err: sel.length ? "" : "Nothing selected" })}
+        ${!endErr ? `<span class="muted" style="font-size:13px">Ending now pays +$${reward}</span>` : ""}
+      </div>
+      ${previewHTML(g)}
+      <div class="msg" id="play-msg" role="status" aria-live="polite">${S.msg ? `<div class="${S.msg.kind === "err" ? "err" : "okmsg"}">${esc(S.msg.text)}</div>` : ""}</div>
+    </section>`;
+  }
+
+  function handTableHTML(g, interactive, litCode) {
+    const rows = PR.HANDS.map(([code, name]) => {
+      const lvl = g.levels[code];
+      const [b, m] = PR.handValue(code, lvl);
+      const err = g.phase === "shop" ? g.tryMove("level " + code) : "Only in the shop";
+      const action = interactive && g.phase === "shop" ? `<td class="num">${btn("Level up", "level", { v: code, price: g.levelPrice(code), err, cls: "small", aria: `Level up ${name} for $${g.levelPrice(code)}` })}</td>` : "";
+      return `<tr class="${code === litCode ? "lit" : ""}"><td class="mono">${code}</td><td>${name}</td><td class="num">${lvl}</td><td class="num">${b}</td><td class="num">${m}</td>${action}</tr>`;
+    }).join("");
+    const head = interactive && g.phase === "shop" ? '<th class="num">Price</th>' : "";
+    return `<section class="panel" aria-label="Hand types"><h2>Hand types</h2><div class="scroll-x"><table class="hands">
+      <thead><tr><th>Code</th><th>Hand</th><th class="num">Lvl</th><th class="num">Base</th><th class="num">Mult</th>${head}</tr></thead>
+      <tbody>${rows}</tbody></table></div></section>`;
+  }
+
+  function modsHTML(g, interactive) {
+    const list = g.mods.map(([name, state]) => {
+      const [price, fx] = PR.MODIFIERS[name];
+      const st = UI.modState(name, state);
+      const sell = interactive && g.phase === "shop" ? btn("Sell", "sell", { v: name, cls: "small", title: `Sell for $${Math.floor(price / 2)}`, aria: `Sell ${name} for $${Math.floor(price / 2)}` }) + ` <span class="muted" style="font-size:12px">+$${Math.floor(price / 2)}</span>` : `<span class="muted" style="font-size:12px">$${price}</span>`;
+      return `<div class="mod"><span class="name">${esc(UI.prettyMod(name))}</span><span>${sell}</span><span class="fx">${esc(fx)}</span>${st ? `<span class="state">${esc(st)}</span>` : ""}</div>`;
+    }).join("");
+    return `<section class="panel" aria-label="Modifiers"><div class="toolbar"><h2 style="margin:0">Modifiers</h2><span class="slots-left">${g.mods.length} / ${g.inst.slots} slots</span></div>
+      <div class="mods" style="margin-top:8px">${list || '<p class="muted" style="margin:0">None yet. Buy them in the shop after each round.</p>'}</div></section>`;
+  }
+
+  function shopHTML(g) {
+    const prices = g.prices();
+    const queue = g.inst.offers[g.round];
+    const slots = g.visibleSlots();
+    const offers = slots.map(({ name, taken }) => {
+      const [price, fx] = PR.MODIFIERS[name];
+      if (taken) return `<div class="offer sold"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Bought</div></div>`;
+      const err = g.tryMove("buy " + name);
+      return `<div class="offer"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">${esc(fx)}</div>
+        <div class="row"><span class="cost">$${price}</span>${btn("Buy", "buy", { v: name, cls: "primary small", err, aria: `Buy ${name} for $${price}` })}</div></div>`;
+    }).join("");
+    const later = queue.slice(g.offer_pos + PR.SHOP_WINDOW).map((m) => `<span class="chip" title="${esc(PR.MODIFIERS[m] ? PR.MODIFIERS[m][1] : "")}">${esc(UI.prettyMod(m))}</span>`).join("");
+    const pick = S.deckPick;
+    let deckActions = '<span class="muted">Pick a card below to remove, paint or promote it.</span>';
+    if (pick !== null && g.in_deck[pick]) {
+      const paint = [0, 1, 2, 3].map((s) => btn(UI.SUIT_GLYPH[s], "paint", { v: s, cls: "small", err: g.tryMove(`paint ${pick} ${PR.SUITS[s]}`), aria: `Paint card ${pick} ${["spades", "hearts", "diamonds", "clubs"][s]} for $${prices.paint}` })).join("");
+      deckActions = `${cardHTML(g, pick, { size: "mini" })}
+        <span>Card <b class="mono">${pick}</b> (${esc(UI.faceText(g, pick))})</span>
+        ${btn("Remove", "remove", { price: prices.remove, err: g.tryMove("remove " + pick), cls: "small" })}
+        <span class="muted" style="font-size:13px">Paint $${prices.paint}</span>${paint}
+        ${btn("Promote", "promote", { price: prices.promote, err: g.tryMove("promote " + pick), cls: "small" })}
+        ${btn("Done", "deck-pick", { v: "", cls: "small" })}`;
+    }
+    const deck = UI.deckOrder(g).map((c) => g.in_deck[c]
+      ? cardHTML(g, c, { size: "deckc", act: "deck-pick", cls: c === pick ? "pick" : "", pressed: c === pick })
+      : cardHTML(g, c, { size: "deckc", cls: "gone", aria: "removed" })).join("");
+    return `<section class="panel" aria-label="Shop">
+      <div class="toolbar"><h2 style="margin:0">Shop after round ${g.round + 1}</h2>
+        <div class="actions">${btn("Next round →", "next", { cls: "primary", err: g.tryMove("next") })}</div></div>
+      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + PR.SHOP_WINDOW, queue.length)} of ${queue.length} in this shop's queue.</p>
+      <div class="offers">${offers || '<p class="muted">No offers.</p>'}</div>
+      <div class="actions" style="margin-top:10px">
+        ${btn("Reroll", "reroll", { price: prices.reroll, err: g.tryMove("reroll") })}
+        ${btn("+1 discard", "discards", { price: prices.discards, err: g.tryMove("discards"), title: "+1 discard every round from now on" })}
+        ${btn("+1 hand size", "handsize", { price: prices.handsize, err: g.tryMove("handsize"), title: `+1 hand size (max ${PR.MAX_HAND_SIZE})` })}
+      </div>
+      ${later ? `<div class="queue-later"><span class="muted">Later in the queue:</span>${later}</div>` : ""}
+      <div class="msg" id="play-msg" role="status" aria-live="polite">${S.msg ? `<div class="${S.msg.kind === "err" ? "err" : "okmsg"}">${esc(S.msg.text)}</div>` : ""}</div>
+    </section>
+    <section class="panel" aria-label="Deck editor">
+      <div class="toolbar"><h2 style="margin:0">Deck</h2><span class="muted" style="font-size:13px">${g.deck_size} cards (min ${PR.MIN_DECK}) · gold dot = painted or promoted</span></div>
+      <div class="deck-actions">${deckActions}</div>
+      <div class="deckgrid">${deck}</div>
+    </section>`;
+  }
+
+  function summaryHTML(g) {
+    const o = UI.outcome(g);
+    return `<section class="panel summary" aria-label="Run summary">
+      <div class="muted" style="text-transform:uppercase;letter-spacing:.14em;font-size:13px">${o.won ? "Run complete" : "Run over"}</div>
+      <div class="big">${UI.num(o.score)}</div>
+      <div class="sub">points · cleared ${o.cleared} of ${o.rounds} rounds</div>
+      <p>${esc(o.text)}</p>
+      <div class="actions" style="justify-content:center">${btn("Undo last move", "undo", { err: S.moves.length ? "" : "Nothing to undo" })}${btn("Replay this run", "rp-from-play")}${btn("Deal a new seed", "random-seed", { cls: "primary" })}</div>
+    </section>`;
+  }
+
+  function logHTML(moves, labels, cur, bad) {
+    const items = moves.map((m, i) => `<li class="${i + 1 === cur ? "cur" : ""}${i + 1 === bad ? " bad" : ""}"${S.mode === "replay" ? ` data-step="${i + 1}"` : ""}><span class="n">${i + 1}</span><span><span class="m">${esc(m)}</span>${labels[i] ? ` <span class="d">${esc(labels[i])}</span>` : ""}</span></li>`).join("");
+    return `<ol class="log" id="${S.mode === "replay" ? "rp-log" : "play-log"}" aria-label="Move log">${items || '<li class="muted"><span></span><span>No moves yet.</span></li>'}</ol>`;
+  }
+
+  function sideHTML(g) {
+    const out = outputText();
+    return `${modsHTML(g, true)}
+      <section class="panel" aria-label="Moves">
+        <div class="toolbar"><h2 style="margin:0">Moves (${S.moves.length})</h2>${btn("Undo", "undo", { err: S.moves.length ? "" : "Nothing to undo", title: "Undo the last move" })}</div>
+        <div style="margin-top:8px">${logHTML(S.moves, S.labels, 0, 0)}</div>
+      </section>
+      <section class="panel export" aria-label="Export">
+        <h2>Output file</h2>
+        <textarea id="export-text" readonly spellcheck="false" aria-label="Output text">${esc(out)}</textarea>
+        <div class="actions" style="margin-top:8px">${btn("Copy", "copy")}${btn("Download", "download")}
+          <span class="muted" style="font-size:12px">${esc(sourceLabel())}</span></div>
+        <div class="msg" id="export-msg" role="status" aria-live="polite"></div>
+      </section>`;
+  }
+
+  function sourceLabel() { return S.source.type === "seed" ? `seed ${S.source.seed}` : "custom input"; }
+
+  function renderPlay() {
+    const g = S.game;
+    let main = statusHTML(g);
+    if (g.phase === "play") {
+      main += playPanelHTML(g, true);
+      const nextN = S.sel.length ? Math.min(S.sel.length, g.pile.length) : 0;
+      main += pileHTML(g, g.pile, "Draw pile", nextN ? `gold = the ${nextN} card${nextN === 1 ? "" : "s"} you'd draw next` : "next card first", nextN);
+      main += handTableHTML(g, true, S.sel.length && S.sel.length <= 5 ? g.evaluate(S.sel).hand : null);
+    } else if (g.phase === "shop") {
+      main += shopHTML(g);
+      main += handTableHTML(g, true, null);
+      main += pileHTML(g, UI.nextRoundPile(g), `Round ${g.round + 2} draw order`, "in draw order \u00b7 gold = your opening hand", Math.min(g.hand_size, UI.nextRoundPile(g).length));
+    } else {
+      main += summaryHTML(g);
+      main += handTableHTML(g, false, null);
+    }
+    $("play-main").innerHTML = main;
+    $("play-side").innerHTML = sideHTML(g);
+  }
+
+  // ---------- replay
+  function runReplay() {
+    const input = $("rp-input").value, output = $("rp-output").value;
+    const [code, v] = PR.check(input, output);
+    const rp = { code, verdict: v, inst: null, moves: [], states: null, errorAt: null, error: null, labels: [] };
+    try { rp.inst = PR.parseInstance(input); } catch (e) { if (!(e instanceof PR.BadInput)) throw e; }
+    if (rp.inst) {
+      try { rp.moves = PR.parseOutput(output); } catch (e) { rp.moves = null; }
+    }
+    if (rp.inst && rp.moves) {
+      const r = UI.replayStates(rp.inst, rp.moves);
+      rp.states = r.states; rp.errorAt = r.errorAt; rp.error = r.error;
+      rp.labels = rp.moves.map((m, i) => (i < r.states.length ? UI.describe(r.states[i], m) : ""));
+    }
+    S.rp = rp;
+    S.rpStep = rp.states ? (rp.errorAt ? rp.states.length - 1 : 0) : 0;
+    renderReplay();
+  }
+
+  function renderReplay() {
+    const rp = S.rp;
+    const vEl = $("rp-verdict");
+    if (!rp) { vEl.innerHTML = ""; $("rp-stepper-panel").classList.add("hidden"); $("rp-board").classList.add("hidden"); return; }
+    const codeName = ["valid", "illegal move", "unparsable output", "bad input"][rp.code];
+    vEl.innerHTML = rp.verdict.valid
+      ? `<div class="okmsg"><b>Valid.</b> ${esc(UI.verdictText(rp.code, rp.verdict))}</div>`
+      : `<div class="err"><b>Invalid (${codeName}, exit ${rp.code}), score 0.</b> ${esc(rp.verdict.error)}</div>`;
+    if (!rp.states) { $("rp-stepper-panel").classList.add("hidden"); $("rp-board").classList.add("hidden"); return; }
+    $("rp-stepper-panel").classList.remove("hidden");
+    $("rp-board").classList.remove("hidden");
+    const n = rp.states.length - 1;
+    const k = Math.max(0, Math.min(S.rpStep, n));
+    S.rpStep = k;
+    const slider = $("rp-slider");
+    slider.max = String(n); slider.value = String(k);
+    $("rp-pos").textContent = `move ${k} / ${rp.moves.length}`;
+    const g = rp.states[k];
+
+    // The next move's cards are highlighted on this board; the last move is shown separately.
+    const nextMove = k < rp.moves.length ? rp.moves[k] : null;
+    const nextCards = nextMove ? new Set(UI.moveCards(nextMove)) : new Set();
+    let nextScored = new Set();
+    if (nextMove && /^play\b/.test(nextMove) && !g.tryMove(nextMove)) nextScored = new Set(g.evaluate(UI.moveCards(nextMove)).scored);
+    let last = "";
+    if (k > 0) {
+      const prev = rp.states[k - 1], m = rp.moves[k - 1];
+      const cards = UI.moveCards(m);
+      let res = null;
+      if (/^play\b/.test(m)) res = prev.evaluate(cards, true);
+      const scored = new Set(res ? res.scored : []);
+      const faces = cards.map((c) => cardHTML(prev, c, { cls: /^play\b/.test(m) ? "sel " + (scored.has(c) ? "scored" : "kicker") : "", tag: res ? (scored.has(c) ? "scores" : "kicker") : "" })).join("");
+      last = `<div class="lastmove"><div><span class="muted">Move ${k}:</span> <b class="mono">${esc(m)}</b> <span class="muted">${esc(rp.labels[k - 1] || "")}</span></div>
+        ${faces ? `<div class="cards" style="padding-bottom:10px">${faces}</div>` : ""}
+        ${res ? `<div class="formula mono" style="font-size:13px">${esc(PR.HAND_NAMES[res.hand])}: ${esc(UI.formula(res))}${res.money ? ` · +$${res.money}` : ""}</div>` : ""}</div>`;
+    }
+    let nextLine = "";
+    if (nextMove) {
+      const bad = rp.errorAt === k + 1;
+      nextLine = `<div class="${bad ? "err" : "muted"}" style="margin-top:8px">Next, move ${k + 1}: <b class="mono">${esc(nextMove)}</b>${bad ? ` — illegal: ${esc(rp.error)}` : ` <span>${esc(rp.labels[k] || "")}</span> (highlighted)`}</div>`;
+    } else if (k === rp.moves.length) {
+      nextLine = `<div class="muted" style="margin-top:8px">End of the output.${g.over ? "" : " The run was not finished; the score is the points so far."}</div>`;
+    }
+    let main = statusHTML(g);
+    if (g.phase === "play") {
+      main += `<section class="panel" aria-label="Hand at this step"><h2>Hand</h2><div class="hand">${handHTML(g, { interactive: false, highlight: nextCards, hlScored: nextScored })}</div>${last}${nextLine}</section>`;
+      main += pileHTML(g, g.pile, "Draw pile", "next card first", 0, nextCards);
+    } else if (g.phase === "shop") {
+      const offers = g.visibleSlots().map(({ name, taken }) => `<span class="chip${taken ? "" : " on"}">${esc(UI.prettyMod(name))}${taken ? " (bought)" : ` $${PR.MODIFIERS[name][0]}`}</span>`).join(" ");
+      main += `<section class="panel" aria-label="Shop at this step"><h2>Shop after round ${g.round + 1}</h2>
+        <div class="parts">${offers || '<span class="muted">No offers left in the window.</span>'}</div>
+        <p class="muted" style="font-size:13px">Prices: reroll $${g.prices().reroll}, +discard $${g.prices().discards}, +hand size $${g.prices().handsize}, remove/paint/promote $3.</p>
+        ${last}${nextLine}</section>`;
+      const deck = UI.deckOrder(g).map((c) => cardHTML(g, c, { size: "deckc", cls: (g.in_deck[c] ? "" : "gone") + (nextCards.has(c) ? " hl" : "") })).join("");
+      main += `<section class="panel" aria-label="Deck"><h2>Deck (${g.deck_size} cards)</h2><div class="deckgrid">${deck}</div></section>`;
+    } else {
+      const o = UI.outcome(g);
+      main += `<section class="panel summary"><div class="big">${UI.num(o.score)}</div><div class="sub">cleared ${o.cleared} of ${o.rounds} rounds</div><p>${esc(o.text)}</p>${last}${nextLine}</section>`;
+    }
+    main += handTableHTML(g, false, null);
+    $("rp-main").innerHTML = main;
+    $("rp-side").innerHTML = modsHTML(g, false) + `<section class="panel"><h2>Moves (${rp.moves.length})</h2>${logHTML(rp.moves, rp.labels, k, rp.errorAt || 0)}</section>`;
+    const cur = document.querySelector("#rp-log li.cur");
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "nearest" });
+  }
+
+  // ---------- top-level render
+  function render() {
+    $("view-play").classList.toggle("hidden", S.mode !== "play");
+    $("view-replay").classList.toggle("hidden", S.mode !== "replay");
+    $("tab-play").setAttribute("aria-selected", String(S.mode === "play"));
+    $("tab-replay").setAttribute("aria-selected", String(S.mode === "replay"));
+    $("source-bar").classList.toggle("hidden", S.mode !== "play");
+    if (S.mode === "play") renderPlay(); else renderReplay();
+  }
+
+  const cssEsc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&"));
+
+  // Re-render, keeping keyboard focus on the same control where possible.
+  function renderKeepFocus() {
+    const a = document.activeElement;
+    const key = a && a.dataset ? [a.dataset.act, a.dataset.id, a.dataset.v] : null;
+    render();
+    if (key && key[0]) {
+      const sel = `[data-act="${key[0]}"]` + (key[1] !== undefined ? `[data-id="${key[1]}"]` : "") + (key[2] !== undefined ? `[data-v="${cssEsc(key[2])}"]` : "");
+      const el = document.querySelector(sel);
+      if (el && !el.disabled) el.focus();
+    }
+  }
+
+  function flash(id, kind, text) {
+    const el = $(id);
+    if (el) el.innerHTML = `<div class="${kind === "err" ? "err" : "okmsg"}">${esc(text)}</div>`;
+  }
+
+  // ---------- actions
+  function readFile(input, cb) {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => cb(String(r.result));
+    r.onerror = () => cb(null);
+    r.readAsText(f);
+  }
+
+  function dealSeed(seed) {
+    if (!Number.isSafeInteger(seed)) { S.msg = { kind: "err", text: "The seed must be a whole number." }; render(); return; }
+    startFromSource({ type: "seed", seed });
+    S.msg = null;
+    render();
+  }
+
+  const actions = {
+    mode(el) { S.mode = el.dataset.v; render(); },
+    deal() { dealSeed(Number($("seed").value)); },
+    "random-seed"() { const s = Math.floor(Math.random() * 1000000) + 1; S.mode = "play"; dealSeed(s); },
+    "toggle-load"() {
+      const p = $("load-panel"); p.classList.toggle("hidden");
+      document.querySelectorAll('[data-act="toggle-load"]').forEach((b) => b.setAttribute("aria-expanded", String(!p.classList.contains("hidden"))));
+      if (!p.classList.contains("hidden")) $("load-text").focus();
+    },
+    "load-input"() {
+      const text = $("load-text").value;
+      try { startFromSource({ type: "text", text }); } catch (e) {
+        if (e instanceof PR.BadInput) { flash("load-msg", "err", "Bad input: " + e.message); return; }
+        throw e;
+      }
+      flash("load-msg", "ok", "Loaded. Good luck.");
+      S.msg = null;
+      try { history.replaceState(null, "", location.pathname); } catch (e) { /* ignore */ }
+      render();
+    },
+    card(el) {
+      const id = Number(el.dataset.id);
+      const i = S.sel.indexOf(id);
+      if (i >= 0) S.sel.splice(i, 1);
+      else if (S.sel.length < 5) S.sel.push(id);
+      else { S.msg = { kind: "err", text: "At most 5 cards: deselect one first." }; renderKeepFocus(); return; }
+      S.msg = null;
+      renderKeepFocus();
+    },
+    "clear-sel"() { S.sel = []; render(); },
+    play() { doMove("play " + S.sel.join(" ")); },
+    discard() { doMove("discard " + S.sel.join(" ")); },
+    end() { doMove("end"); },
+    buy(el) { doMove("buy " + el.dataset.v); },
+    sell(el) { doMove("sell " + el.dataset.v); },
+    level(el) { doMove("level " + el.dataset.v); },
+    reroll() { doMove("reroll"); },
+    discards() { doMove("discards"); },
+    handsize() { doMove("handsize"); },
+    next() { doMove("next"); },
+    "deck-pick"(el) {
+      const v = el.dataset.id !== undefined ? Number(el.dataset.id) : null;
+      S.deckPick = v === null || v === S.deckPick ? null : v;
+      renderKeepFocus();
+    },
+    remove() { if (S.deckPick !== null) doMove("remove " + S.deckPick); },
+    paint(el) { if (S.deckPick !== null) doMove(`paint ${S.deckPick} ${PR.SUITS[Number(el.dataset.v)]}`); },
+    promote() { if (S.deckPick !== null) doMove("promote " + S.deckPick); },
+    undo() { undo(); },
+    copy() {
+      const text = outputText();
+      const done = () => flash("export-msg", "ok", "Copied to the clipboard.");
+      const fallback = () => {
+        const ta = $("export-text"); ta.focus(); ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        if (ok) done(); else flash("export-msg", "err", "Couldn't copy automatically: the text is selected, press Ctrl/Cmd+C.");
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+      else fallback();
+    },
+    download() {
+      const blob = new Blob([outputText()], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = S.source.type === "seed" ? `poker_run_seed${S.source.seed}_out.txt` : "poker_run_out.txt";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      flash("export-msg", "ok", `Saved ${a.download}.`);
+    },
+    "rp-seed"() {
+      const s = Number($("rp-seed").value);
+      if (!Number.isSafeInteger(s)) { $("rp-verdict").innerHTML = '<div class="err">The seed must be a whole number.</div>'; return; }
+      $("rp-input").value = PR.formatInstance(PR.generate(s));
+    },
+    "rp-run"() { runReplay(); },
+    "rp-from-play"() {
+      $("rp-input").value = S.inputText;
+      $("rp-output").value = outputText();
+      S.mode = "replay";
+      render();
+      runReplay();
+      S.rpStep = S.rp && S.rp.states ? S.rp.states.length - 1 : 0;
+      renderReplay();
+    },
+    "rp-step"(el) {
+      if (!S.rp || !S.rp.states) return;
+      const n = S.rp.states.length - 1, v = el.dataset.v;
+      S.rpStep = v === "first" ? 0 : v === "last" ? n : Math.max(0, Math.min(n, S.rpStep + Number(v)));
+      renderReplay();
+    },
+    "rp-continue"() {
+      if (!S.rp || !S.rp.states) return;
+      const text = $("rp-input").value;
+      try { startFromSource({ type: "text", text }, S.rp.moves.slice(0, S.rpStep)); } catch (e) {
+        if (e instanceof PR.BadInput) return;
+        throw e;
+      }
+      S.mode = "play";
+      S.msg = { kind: "ok", text: `Loaded ${S.moves.length} moves from the replay.` };
+      render();
+    },
+  };
+
+  document.addEventListener("click", (ev) => {
+    const el = ev.target.closest("[data-act]");
+    if (el && !el.disabled && actions[el.dataset.act]) { actions[el.dataset.act](el); return; }
+    const li = ev.target.closest("#rp-log li[data-step]");
+    if (li) { S.rpStep = Number(li.dataset.step); renderReplay(); }
+  });
+  document.addEventListener("change", (ev) => {
+    if (ev.target.id === "sort-hand") { S.sort = ev.target.value; save(); render(); }
+  });
+  $("seed").addEventListener("keydown", (ev) => { if (ev.key === "Enter") actions.deal(); });
+  $("rp-slider").addEventListener("input", (ev) => { S.rpStep = Number(ev.target.value); renderReplay(); });
+  $("load-file").addEventListener("change", (ev) => readFile(ev.target, (t) => {
+    if (t === null) flash("load-msg", "err", "Couldn't read that file.");
+    else { $("load-text").value = t; flash("load-msg", "ok", "File read. Press “Start with this input”."); }
+  }));
+  $("rp-input-file").addEventListener("change", (ev) => readFile(ev.target, (t) => { if (t !== null) $("rp-input").value = t; }));
+  $("rp-output-file").addEventListener("change", (ev) => readFile(ev.target, (t) => { if (t !== null) $("rp-output").value = t; }));
+
+  // ---------- boot
+  const hashSeed = /(?:^#|&)seed=(-?\d+)/.exec(location.hash);
+  const saved = restore();
+  if (saved && saved.sort) S.sort = saved.sort;
+  try {
+    if (hashSeed) {
+      const seed = Number(hashSeed[1]);
+      const same = saved && saved.source && saved.source.type === "seed" && saved.source.seed === seed;
+      startFromSource({ type: "seed", seed }, same ? saved.moves : []);
+    } else if (saved && saved.source) startFromSource(saved.source, saved.moves || []);
+    else startFromSource({ type: "seed", seed: 1 });
+  } catch (e) {
+    startFromSource({ type: "seed", seed: 1 });
+  }
+  $("rp-seed").value = $("seed").value;
+  render();
+}
+
+if (typeof document !== "undefined") startApp(PokerRun);
+if (typeof module === "object" && module.exports) module.exports = UI;
+</script>
+</body>
+</html>

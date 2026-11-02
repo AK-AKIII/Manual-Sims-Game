@@ -1,0 +1,17 @@
+8 8 4 3 5 12
+300 600 1200 2400 4800 9600 19200 38400
+26 51 9 19 33 2 36 21 12 18 50 45 38 28 24 5 6 41 1 35 47 46 0 39 8 13 37 7 22 10 14 31 30 25 17 40 44 20 34 42 15 32 29 27 43 3 23 49 4 11 16 48
+3 47 11 14 5 22 7 16 6 10 37 13 24 42 38 1 33 26 17 27 45 21 4 34 50 35 31 40 8 36 30 20 41 2 29 51 18 9 49 28 19 15 46 12 44 25 32 43 23 0 48 39
+3 0 13 4 30 50 2 8 25 19 48 28 11 37 9 26 47 14 20 39 42 24 23 35 7 10 21 43 16 18 27 33 22 45 17 32 41 29 1 36 40 15 49 12 6 38 51 5 34 46 44 31
+50 25 19 32 38 5 44 46 22 34 7 31 48 18 43 20 10 37 0 12 40 49 51 9 16 39 4 3 2 1 27 11 47 41 14 23 17 33 21 13 45 28 15 8 26 42 35 6 36 30 29 24
+26 1 10 11 20 19 38 15 2 9 48 27 6 3 35 24 39 5 51 49 0 16 43 31 17 21 23 14 18 28 4 36 13 44 42 30 12 8 22 40 45 33 47 34 32 7 41 29 37 25 50 46
+12 10 44 40 41 26 50 34 45 23 47 46 51 43 2 17 35 32 27 1 8 6 7 9 29 3 25 0 14 20 30 33 28 22 18 21 42 24 39 37 19 4 48 31 15 49 16 13 36 11 38 5
+32 43 9 47 3 4 21 13 48 44 12 10 15 17 45 35 20 31 23 29 22 6 39 7 24 2 36 41 19 25 38 50 28 14 0 8 33 34 46 5 40 1 42 27 11 51 18 16 26 37 49 30
+32 38 41 21 18 19 6 1 29 8 3 9 44 23 30 12 10 47 13 20 14 49 50 31 51 35 25 45 11 26 27 5 37 46 2 39 36 22 42 43 15 0 4 28 16 34 24 17 33 7 40 48
+ace_dividend full_spread rose_tint high_court thin_deck twin_engine collector momentum mirror odd_job coal_seam savings
+coal_seam even_split last_call mirror odd_job twin_engine momentum ace_dividend spare_hands full_spread rose_tint savings
+low_road collector short_hand spare_hands odd_job full_spread coal_seam mirror twin_engine tricolor last_call thin_deck
+last_call savings thin_deck short_hand twin_engine low_road odd_job even_split full_spread ace_dividend mirror momentum
+short_hand thin_deck coal_seam momentum full_spread collector low_road odd_job rose_tint tricolor spare_hands ace_dividend
+spare_hands last_call twin_engine even_split odd_job low_road thin_deck full_spread mirror high_court momentum ace_dividend
+momentum full_spread savings even_split tricolor mirror rose_tint twin_engine short_hand coal_seam spare_hands high_court

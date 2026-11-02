@@ -1,0 +1,36 @@
+35
+play 49 5 23 20 36
+discard 0 41 19 33 50
+play 14 27 48 25 38
+play 47 44 16 18 42
+play 30 45 11 7 32
+buy even_split
+next
+discard 13 18 32 46 37
+play 12 2 28 20 41
+discard 29 17 45 35 50
+play 51 25 49 11 24
+play 34 6 33 21 7
+play 15 39 48 22 9
+buy twin_engine
+next
+play 7 49 28 23 41
+play 25 32 13 43 39
+play 46 50 36 37 24
+play 21 26 38 35 12
+buy high_court
+next
+discard 11 23 38
+play 29 19 18 5 6
+play 15 4 51 25 2
+play 8 45 43 17 21
+play 14 1 49 42 27
+level TP
+next
+discard 41 42 32 20 23
+play 50 22 24 37 48
+discard 0 3 43 45 46
+play 51 12 35 18 9
+discard 26 15 6 33 10
+play 17 4 8 39 5
+play 1 28 13 25 29

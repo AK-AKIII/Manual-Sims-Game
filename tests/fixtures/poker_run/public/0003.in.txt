@@ -1,0 +1,17 @@
+8 8 4 3 5 12
+300 600 1200 2400 4800 9600 19200 38400
+15 35 47 50 12 2 5 4 21 17 6 20 42 51 33 13 26 38 39 14 44 40 29 10 19 27 41 34 0 31 25 16 45 9 24 43 32 30 18 28 48 8 23 11 7 46 49 36 3 22 1 37
+10 27 22 6 0 28 38 7 5 37 19 35 30 8 23 36 26 42 14 13 3 47 1 24 34 16 25 4 46 11 41 17 15 9 49 12 32 20 51 2 43 40 29 31 39 45 21 48 50 18 33 44
+8 51 33 11 44 49 13 34 14 32 29 16 37 38 10 47 25 19 9 36 31 40 50 35 39 27 15 18 17 3 5 43 26 23 28 22 24 6 0 7 21 46 12 48 30 1 41 20 4 42 2 45
+34 29 17 2 36 49 41 31 23 48 40 39 13 7 47 28 26 21 1 32 20 30 44 25 4 14 8 27 35 45 42 24 46 9 11 51 38 33 37 15 50 22 0 10 18 5 6 12 16 3 19 43
+43 47 29 2 15 34 25 20 0 11 24 46 6 3 36 17 51 21 40 48 44 4 1 5 9 32 41 26 19 33 23 7 22 13 27 12 38 31 16 35 18 45 39 50 14 49 37 8 42 30 10 28
+43 12 27 46 10 31 20 5 37 28 13 33 16 47 0 21 36 24 9 50 23 6 17 8 45 4 14 41 7 22 42 34 19 51 18 15 1 32 44 39 38 35 48 30 40 2 49 25 26 29 11 3
+25 28 7 32 8 10 42 3 36 45 0 19 29 11 31 49 40 37 43 20 6 18 4 14 27 35 44 48 5 23 2 38 30 24 26 50 9 1 51 15 22 16 34 33 12 46 17 13 47 21 39 41
+24 12 11 34 23 29 36 32 15 28 41 17 10 42 33 38 49 25 45 43 47 18 30 39 9 40 31 4 22 37 19 35 26 51 48 46 1 5 20 7 21 27 8 6 2 50 44 16 0 3 13 14
+savings even_split momentum last_call low_road tricolor spare_hands ace_dividend coal_seam full_spread rose_tint twin_engine
+collector savings momentum ace_dividend thin_deck spare_hands tricolor twin_engine high_court short_hand mirror odd_job
+rose_tint low_road thin_deck even_split last_call odd_job collector ace_dividend tricolor coal_seam momentum savings
+even_split odd_job coal_seam full_spread mirror thin_deck savings high_court short_hand rose_tint momentum collector
+odd_job last_call rose_tint low_road high_court short_hand momentum ace_dividend savings even_split collector full_spread
+collector savings high_court even_split full_spread ace_dividend last_call momentum thin_deck tricolor rose_tint low_road
+mirror coal_seam rose_tint ace_dividend short_hand even_split spare_hands collector low_road last_call tricolor savings

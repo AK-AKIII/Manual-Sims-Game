@@ -1,0 +1,17 @@
+8 8 4 3 5 12
+300 600 1200 2400 4800 9600 19200 38400
+23 9 50 17 45 8 26 16 40 33 47 29 39 2 51 43 15 11 49 22 36 12 38 1 46 14 42 28 4 5 27 37 32 35 18 41 13 7 20 30 6 44 31 24 10 21 19 25 34 48 3 0
+5 43 13 17 3 9 21 49 46 20 41 2 36 32 11 39 23 14 10 35 27 24 16 50 12 0 37 48 42 28 51 26 31 30 40 19 4 34 25 33 22 38 45 1 47 29 8 15 44 6 7 18
+10 25 47 7 18 38 33 19 17 37 51 36 26 1 28 2 0 21 9 46 5 3 12 11 13 4 35 43 40 41 15 30 42 20 34 23 27 49 31 8 16 45 24 22 44 6 48 29 39 32 50 14
+18 44 8 37 1 6 12 25 0 48 4 46 26 5 21 2 43 49 30 29 33 10 19 23 47 22 7 15 36 32 39 50 42 28 16 38 9 41 13 17 31 34 45 11 3 35 24 14 51 20 40 27
+28 38 32 3 6 37 21 1 0 35 13 15 27 11 19 49 8 5 42 36 18 20 9 45 7 2 33 26 40 34 43 14 23 4 16 50 51 22 44 29 25 31 30 17 24 12 46 10 47 41 39 48
+14 17 12 44 37 0 6 9 42 50 36 23 32 28 31 41 8 38 51 49 47 48 30 15 27 7 24 20 34 1 25 22 10 26 5 39 43 18 4 19 11 29 33 16 45 3 46 21 2 35 40 13
+6 16 40 9 0 23 13 20 14 1 51 4 30 17 34 43 26 22 50 11 31 37 7 41 39 49 32 19 18 48 21 42 45 28 46 12 44 5 10 36 2 15 24 47 38 33 27 3 25 8 35 29
+30 34 27 18 48 39 11 4 33 51 5 38 16 22 28 44 32 42 45 12 2 31 49 13 7 24 29 8 19 14 0 41 25 23 1 37 17 6 36 43 40 46 9 21 10 20 50 3 47 15 35 26
+savings thin_deck last_call even_split twin_engine momentum coal_seam short_hand ace_dividend full_spread rose_tint odd_job
+ace_dividend thin_deck tricolor savings short_hand odd_job mirror momentum collector full_spread rose_tint last_call
+savings tricolor spare_hands even_split odd_job momentum twin_engine coal_seam high_court rose_tint low_road full_spread
+full_spread odd_job last_call short_hand twin_engine tricolor even_split high_court coal_seam collector ace_dividend savings
+coal_seam ace_dividend even_split low_road savings last_call twin_engine short_hand tricolor high_court collector thin_deck
+coal_seam ace_dividend collector momentum spare_hands high_court even_split thin_deck tricolor short_hand odd_job low_road
+twin_engine rose_tint coal_seam even_split last_call low_road savings full_spread ace_dividend momentum mirror short_hand

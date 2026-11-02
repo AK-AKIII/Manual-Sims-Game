@@ -1,0 +1,24 @@
+23
+discard 26 16 17 45 23
+discard 39 40 29 33 9
+play 50 8 47 2 11
+play 51 49 36 12 38
+play 43 15 1 14 28
+play 46 42 4 5 32
+buy savings
+next
+discard 13 3 5 9 21
+discard 41 2 43 17
+play 49 46 20 36 23
+play 32 11 14 27 24
+play 39 10 50 0 37
+play 35 16 12 48 51
+buy ace_dividend
+next
+discard 18 19 10 47
+play 25 7 38 33 51
+discard 1 17 37 36
+discard 5 46 21 9
+play 2 0 3 12 11
+play 26 28 4 43 41
+play 13 40 15 30 42

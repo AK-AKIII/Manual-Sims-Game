@@ -1,0 +1,46 @@
+45
+play 6 31 20 47 48
+play 2 40 18 17 37
+play 21 13 49 39 43
+play 35 27 19 9 30
+buy high_court
+next
+discard 45 19 22 51
+play 8 20 21 9 35
+discard 39 29 44 32 46
+play 15 25 2 33 7
+play 5 43 11 4 31
+play 47 42 16 18 6
+buy coal_seam
+next
+discard 0 41 42 31 24
+discard 26 30 34 48 10
+discard 39 28 17 50 21
+play 6 12 3 4 11
+play 36 38 22 8 37
+play 19 43 44 47 7
+play 51 13 14 2 15
+buy twin_engine
+next
+discard 39 3 44 19 47
+play 27 24 33 50 46
+play 40 17 5 49 23
+discard 16 32 20 34 22
+play 0 13 9 35 48
+play 38 30 10 45 36
+buy low_road
+next
+play 7 35 29 22 3
+discard 14 28 4 24 9
+play 10 23 21 48 49
+play 39 51 16 42 38
+play 18 50 33 11 44
+level TP
+next
+discard 43 20 33 50
+discard 17 19 8 21
+discard 13 29 34 11
+play 35 48 25 51 12
+play 1 0 23 36 39
+play 44 4 7 42 45
+play 32 10 46 47 27
