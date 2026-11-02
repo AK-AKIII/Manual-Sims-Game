@@ -207,6 +207,45 @@ table.hands tr.lit td { background: var(--gold-soft); }
 details summary { cursor: pointer; color: var(--muted); }
 .kbd { font: 11px var(--mono); padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
 
+/* ---------- feel: soft presses, springy releases, gentle motion */
+:root { --spring: cubic-bezier(0.34, 1.4, 0.64, 1); --glide: cubic-bezier(0.22, 1, 0.36, 1); }
+.btn, .tab {
+  transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.25s ease,
+    transform 0.3s var(--spring);
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28); }
+.btn:active:not(:disabled), .tab:active { transform: scale(0.96); transition-duration: 0.09s; box-shadow: none; }
+.card { transition: transform 0.32s var(--spring), box-shadow 0.3s ease, opacity 0.3s ease; }
+button.card:active { transform: translateY(-5px) scale(0.97); transition-duration: 0.09s; }
+button.card.sel:active { transform: translateY(-10px) scale(0.97); }
+.card.dealt { animation: deal 0.55s var(--glide) backwards; animation-delay: var(--d, 0ms); }
+@keyframes deal { from { transform: translateY(28px) scale(0.92) rotate(-3deg); opacity: 0.2; } }
+.progress .bar { transition: width 0.8s var(--glide); }
+.progress.done .bar { box-shadow: 0 0 14px rgba(242, 193, 78, 0.55); }
+.msg-in { animation: msg 0.35s var(--glide) backwards; }
+@keyframes msg { from { transform: translateY(-4px); opacity: 0; } }
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+#fx .ripple {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(242, 193, 78, 0.42), rgba(242, 193, 78, 0) 70%);
+  animation: ripple 0.6s var(--glide) forwards;
+}
+@keyframes ripple { from { transform: scale(0.4); opacity: 1; } to { transform: scale(5); opacity: 0; } }
+#fx .float {
+  position: absolute; transform: translate(-50%, -50%); font: 800 28px var(--sans); color: var(--gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); white-space: nowrap; animation: float 1.5s var(--glide) forwards;
+}
+#fx .float small { display: block; font-size: 14px; font-weight: 600; color: var(--cream); text-align: center; }
+@keyframes float { from { opacity: 0; margin-top: 6px; } 15% { opacity: 1; } to { opacity: 0; margin-top: -70px; } }
+#fx .mote {
+  position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--gold);
+  box-shadow: 0 0 10px rgba(242, 193, 78, 0.8); animation: mote var(--t, 1.6s) var(--glide) forwards;
+}
+@keyframes mote { from { opacity: 0.95; transform: translate(0, 0) scale(1); } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); } }
+.btn.icon { padding: 7px 9px; line-height: 0; }
+.btn.icon svg { width: 18px; height: 18px; }
+.btn.icon[aria-pressed="false"] { color: var(--muted); }
+
 @media (max-width: 600px) {
   :root { --cw: 54px; }
   .wrap { padding: 10px 10px 30px; }
@@ -236,8 +275,10 @@ details summary { cursor: pointer; color: var(--muted); }
       <button class="btn primary" data-act="deal">Deal</button>
       <button class="btn" data-act="random-seed" title="Deal a random seed">Random</button>
       <button class="btn" data-act="toggle-load" aria-expanded="false" aria-controls="load-panel">Load input…</button>
+      <button class="btn icon" id="sound-btn" data-act="sound" aria-pressed="true" aria-label="Sound" title="Sound on"></button>
     </div>
   </header>
+  <div id="fx" aria-hidden="true"></div>
 
   <section class="panel hidden" id="load-panel" aria-label="Load a custom input">
     <h2>Custom input</h2>
@@ -543,11 +584,235 @@ function startApp(PR) {
     S.moves = kept; S.labels = labels; S.game = g; S.sel = []; S.deckPick = null;
   }
 
+  // ---------- sound: quiet, warm tones on a pentatonic scale, so nothing ever clashes.
+  // Audio starts only after a click (browsers require a gesture) and the header toggle mutes it.
+  const SOUND_KEY = "poker-run:sound";
+  const Sound = (() => {
+    let ctx = null, master = null;
+    let on = true;
+    try { on = localStorage.getItem(SOUND_KEY) !== "off"; } catch (e) { /* storage unavailable */ }
+    const SCALE = [293.66, 329.63, 369.99, 440.0, 493.88]; // D E F# A B
+    const note = (i) => SCALE[((i % 5) + 5) % 5] * Math.pow(2, Math.floor(i / 5));
+
+    function audio() {
+      if (!on) return null;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        master = ctx.createGain();
+        master.gain.value = 0.16;
+        const soften = ctx.createBiquadFilter();
+        soften.type = "lowpass";
+        soften.frequency.value = 3000;
+        master.connect(soften);
+        soften.connect(ctx.destination);
+      }
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    }
+
+    function tone(freq, o) {
+      const c = audio();
+      if (!c) return;
+      o = o || {};
+      const t = c.currentTime + (o.at || 0), dur = o.dur || 0.35, peak = o.gain || 0.5;
+      const osc = c.createOscillator(), env = c.createGain();
+      osc.type = o.type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      env.gain.setValueAtTime(0.0001, t);
+      env.gain.exponentialRampToValueAtTime(peak, t + (o.attack || 0.012));
+      env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(env);
+      env.connect(master);
+      osc.start(t);
+      osc.stop(t + dur + 0.05);
+    }
+
+    function hush(o) { // filtered noise: a soft swish of cards
+      const c = audio();
+      if (!c) return;
+      o = o || {};
+      const t = c.currentTime + (o.at || 0), dur = o.dur || 0.28;
+      const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(), band = c.createBiquadFilter(), env = c.createGain();
+      src.buffer = buf;
+      band.type = "bandpass";
+      band.Q.value = 0.9;
+      band.frequency.setValueAtTime(o.from || 2200, t);
+      band.frequency.exponentialRampToValueAtTime(o.to || 600, t + dur);
+      env.gain.setValueAtTime(0.0001, t);
+      env.gain.exponentialRampToValueAtTime(o.gain || 0.22, t + 0.03);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(band);
+      band.connect(env);
+      env.connect(master);
+      src.start(t);
+    }
+
+    return {
+      get on() { return on; },
+      toggle() {
+        on = !on;
+        try { localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch (e) { /* storage unavailable */ }
+        if (on) this.select(7);
+      },
+      select(rank) { tone(note(rank + 3), { type: "triangle", dur: 0.22, gain: 0.32 }); tone(note(rank + 8), { dur: 0.18, gain: 0.08 }); },
+      deselect(rank) { tone(note(rank), { type: "triangle", dur: 0.16, gain: 0.2 }); },
+      tap() { tone(note(4), { type: "triangle", dur: 0.12, gain: 0.16 }); },
+      play(strength) { // longer, higher arpeggios for stronger hands
+        const n = 2 + Math.min(5, Math.floor(strength / 2));
+        for (let i = 0; i < n; i++) {
+          tone(note(5 + i), { at: i * 0.07, dur: 0.9, gain: 0.3 });
+          tone(note(10 + i), { at: i * 0.07 + 0.01, dur: 0.5, gain: 0.06, type: "triangle" });
+        }
+      },
+      discard() { hush({ from: 2400, to: 700 }); tone(note(1), { at: 0.05, type: "triangle", dur: 0.2, gain: 0.12 }); },
+      coin() { tone(note(12), { dur: 0.25, gain: 0.22 }); tone(note(14), { at: 0.08, dur: 0.45, gain: 0.22 }); },
+      sell() { tone(note(14), { dur: 0.22, gain: 0.18 }); tone(note(11), { at: 0.08, dur: 0.35, gain: 0.18 }); },
+      shuffle() { hush({ from: 1500, to: 3000, dur: 0.22, gain: 0.16 }); hush({ at: 0.12, from: 3000, to: 1200, dur: 0.22, gain: 0.14 }); },
+      clear() { [0, 2, 3, 5, 7].forEach((k, i) => tone(note(k), { at: i * 0.06, dur: 1.8, gain: 0.26, attack: 0.04 })); },
+      next() { tone(note(3), { dur: 0.3, gain: 0.2 }); tone(note(5), { at: 0.1, dur: 0.5, gain: 0.2 }); },
+      lose() { [5, 3, 0].forEach((k, i) => tone(note(k), { at: i * 0.16, dur: 1.0, gain: 0.22, attack: 0.05 })); },
+      oops() { tone(196, { dur: 0.28, gain: 0.24, attack: 0.02 }); },
+    };
+  })();
+
+  // ---------- feel: ripples, floating points, deal-in cards, counting numbers, motes.
+  const Feel = (() => {
+    const calm = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const fx = () => $("fx");
+    let pointer = { x: innerWidth / 2, y: innerHeight / 2 };
+    let seen = null;        // what the last play-mode render showed: { key, hand, nums, pct, round }
+
+    function spawn(cls, x, y, html, style) {
+      if (calm || !fx()) return null;
+      const el = document.createElement("div");
+      el.className = cls;
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      if (style) Object.assign(el.style, style);
+      if (html) el.innerHTML = html;
+      fx().appendChild(el);
+      el.addEventListener("animationend", () => el.remove(), { once: true });
+      setTimeout(() => el.remove(), 3000);
+      return el;
+    }
+
+    function ripple(ev) {
+      pointer = { x: ev.clientX, y: ev.clientY };
+      spawn("ripple", ev.clientX, ev.clientY);
+    }
+
+    function float(text, sub) {
+      // Rise from the round-points box, where the points land; fall back to the click point.
+      const box = document.querySelector('#play-main [data-num="round"]');
+      const r = box ? box.getBoundingClientRect() : null;
+      const x = r && r.width ? r.left + r.width / 2 : pointer.x;
+      const y = r && r.width ? r.top + 8 : pointer.y - 30;
+      spawn("float", x, y, `${esc(text)}${sub ? `<small>${esc(sub)}</small>` : ""}`);
+    }
+
+    function motes(count) {
+      const bar = document.querySelector("#play-main .progress");
+      if (!bar) return;
+      const r = bar.getBoundingClientRect();
+      for (let i = 0; i < count; i++) {
+        const x = r.left + Math.random() * r.width, y = r.top + r.height / 2;
+        spawn("mote", x, y, "", {
+          "--dx": `${(Math.random() - 0.5) * 120}px`, "--dy": `${-60 - Math.random() * 140}px`,
+          "--t": `${1.2 + Math.random() * 0.9}s`, animationDelay: `${Math.random() * 0.35}s`,
+        });
+      }
+    }
+
+    function countUp(el, from, to, prefix) {
+      if (calm || from === to || to < from) return;
+      const start = performance.now(), dur = 650;
+      const step = (now) => {
+        const k = Math.min(1, (now - start) / dur), e = 1 - Math.pow(1 - k, 3);
+        el.textContent = prefix + UI.num(Math.round(from + (to - from) * e));
+        if (k < 1 && el.isConnected) requestAnimationFrame(step);
+      };
+      el.textContent = prefix + UI.num(from);
+      requestAnimationFrame(step);
+    }
+
+    // Called after every play-mode render: animate what changed since the previous one.
+    function afterRender(g) {
+      const key = S.inputText + "|" + S.moves.length;
+      const hand = g.phase === "play" ? g.hand.slice() : [];
+      const nums = { round: Number(g.round_score), money: Number(g.money), total: Number(g.total) };
+      const target = Number(g.target);
+      const pct = target > 0 ? Math.min(100, (100 * Number(g.round_score)) / target) : 100;
+      const fresh = !seen || seen.input !== S.inputText;
+      if (seen && seen.key === key) { seen.hand = hand; return; } // a selection change, nothing moved
+      const known = new Set(fresh ? [] : seen.hand);
+      let k = 0;
+      document.querySelectorAll('#play-main [data-act="card"]').forEach((el) => {
+        if (!known.has(Number(el.dataset.id))) {
+          el.classList.add("dealt");
+          el.style.setProperty("--d", `${(k++) * 55}ms`);
+        }
+      });
+      if (!fresh) {
+        document.querySelectorAll("#play-main [data-num]").forEach((el) => {
+          const name = el.dataset.num;
+          countUp(el, seen.nums[name], nums[name], el.dataset.prefix || "");
+        });
+        const bar = document.querySelector("#play-main .progress .bar");
+        if (bar && !calm && seen.round === g.round && seen.phase === "play") {
+          bar.style.width = seen.pct + "%";
+          bar.getBoundingClientRect();
+          bar.style.width = pct + "%";
+        }
+      }
+      const msg = document.querySelector("#play-msg > div, #play-main .err, #play-main .okmsg");
+      if (msg) msg.classList.add("msg-in");
+      seen = { key, input: S.inputText, hand, nums, pct, round: g.round, phase: g.phase };
+    }
+
+    // Called after a legal move: the sound and the moment that go with it.
+    function afterMove(line, before, after) {
+      const cmd = line.split(" ")[0];
+      if (cmd === "play") {
+        const res = before.evaluate(UI.moveCards(line));
+        Sound.play(PR.HAND_CODES.indexOf(res.hand));
+        float(`+${UI.num(res.points)}`, PR.HAND_NAMES[res.hand]);
+      } else if (cmd === "discard") Sound.discard();
+      else if (cmd === "reroll") Sound.shuffle();
+      else if (cmd === "sell") Sound.sell();
+      else if (cmd === "next") Sound.next();
+      else if (["buy", "level", "paint", "promote", "remove", "discards", "handsize"].includes(cmd)) Sound.coin();
+      if (before.phase === "play" && after.phase !== "play") {
+        const cleared = after.cleared > before.cleared;
+        setTimeout(() => {
+          if (cleared) { Sound.clear(); motes(after.phase === "over" ? 40 : 22); } else Sound.lose();
+        }, cmd === "play" ? 420 : 0);
+      }
+    }
+
+    return { ripple, afterRender, afterMove };
+  })();
+
+  function soundIcon() {
+    const b = $("sound-btn");
+    if (!b) return;
+    const waves = Sound.on ? '<path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      : '<path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>${waves}</svg>`;
+    b.setAttribute("aria-pressed", String(Sound.on));
+    b.title = Sound.on ? "Sound on" : "Sound off";
+  }
+
   function doMove(line) {
+    const before = S.game;
     const g = S.game.clone();
     const label = UI.describe(S.game, line);
     try { g.apply(line); } catch (e) {
-      if (e instanceof PR.IllegalMove) { S.msg = { kind: "err", text: `${line}: ${e.message}` }; renderKeepFocus(); return false; }
+      if (e instanceof PR.IllegalMove) { S.msg = { kind: "err", text: `${line}: ${e.message}` }; Sound.oops(); renderKeepFocus(); return false; }
       throw e;
     }
     S.game = g;
@@ -559,6 +824,7 @@ function startApp(PR) {
     if (S.deckPick !== null && (!g.in_deck[S.deckPick] || g.phase !== "shop")) S.deckPick = null;
     save();
     renderKeepFocus();
+    Feel.afterMove(line, before, g);
     return true;
   }
 
@@ -614,12 +880,12 @@ function startApp(PR) {
       <div class="toolbar" style="margin-bottom:10px"><h2 style="margin:0">Round ${g.round + 1} of ${R}</h2><span class="phase-tag">${phase}</span></div>
       <div class="stats">
         <div class="stat"><div class="k">Target</div><div class="v">${UI.num(g.target)}</div></div>
-        <div class="stat"><div class="k">Round pts</div><div class="v">${UI.num(g.round_score)}</div></div>
+        <div class="stat"><div class="k">Round pts</div><div class="v" data-num="round">${UI.num(g.round_score)}</div></div>
         <div class="stat"><div class="k">Plays</div><div class="v">${g.phase === "play" ? g.plays_left : "–"}<small> / ${g.inst.plays}</small></div></div>
         <div class="stat"><div class="k">Discards</div><div class="v">${g.phase === "play" ? g.discards_left : "–"}<small> / ${g.inst.discards + g.extra_discards}</small></div></div>
         <div class="stat"><div class="k">Hand size</div><div class="v">${g.hand_size}</div></div>
-        <div class="stat money"><div class="k">Money</div><div class="v">$${g.money}</div></div>
-        <div class="stat"><div class="k">Total score</div><div class="v gold">${UI.num(g.total)}</div></div>
+        <div class="stat money"><div class="k">Money</div><div class="v" data-num="money" data-prefix="$">$${g.money}</div></div>
+        <div class="stat"><div class="k">Total score</div><div class="v gold" data-num="total">${UI.num(g.total)}</div></div>
       </div>
       <div class="progress${done ? " done" : ""}" role="progressbar" aria-label="Round points" aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${g.round_score}">
         <div class="bar" style="width:${pct}%"></div>
@@ -826,6 +1092,7 @@ function startApp(PR) {
     }
     $("play-main").innerHTML = main;
     $("play-side").innerHTML = sideHTML(g);
+    Feel.afterRender(g);
   }
 
   // ---------- replay
@@ -960,8 +1227,8 @@ function startApp(PR) {
   }
 
   const actions = {
-    mode(el) { S.mode = el.dataset.v; render(); },
-    deal() { dealSeed(Number($("seed").value)); },
+    mode(el) { S.mode = el.dataset.v; Sound.tap(); render(); },
+    deal() { Sound.shuffle(); dealSeed(Number($("seed").value)); },
     "random-seed"() { const s = Math.floor(Math.random() * 1000000) + 1; S.mode = "play"; dealSeed(s); },
     "toggle-load"() {
       const p = $("load-panel"); p.classList.toggle("hidden");
@@ -982,13 +1249,14 @@ function startApp(PR) {
     card(el) {
       const id = Number(el.dataset.id);
       const i = S.sel.indexOf(id);
-      if (i >= 0) S.sel.splice(i, 1);
-      else if (S.sel.length < 5) S.sel.push(id);
-      else { S.msg = { kind: "err", text: "At most 5 cards: deselect one first." }; renderKeepFocus(); return; }
+      if (i >= 0) { S.sel.splice(i, 1); Sound.deselect(S.game.rank[id]); }
+      else if (S.sel.length < 5) { S.sel.push(id); Sound.select(S.game.rank[id]); }
+      else { S.msg = { kind: "err", text: "At most 5 cards: deselect one first." }; Sound.oops(); renderKeepFocus(); return; }
       S.msg = null;
       renderKeepFocus();
     },
-    "clear-sel"() { S.sel = []; render(); },
+    "clear-sel"() { S.sel = []; Sound.tap(); render(); },
+    sound() { Sound.toggle(); soundIcon(); },
     play() { doMove("play " + S.sel.join(" ")); },
     discard() { doMove("discard " + S.sel.join(" ")); },
     end() { doMove("end"); },
@@ -1049,6 +1317,7 @@ function startApp(PR) {
       if (!S.rp || !S.rp.states) return;
       const n = S.rp.states.length - 1, v = el.dataset.v;
       S.rpStep = v === "first" ? 0 : v === "last" ? n : Math.max(0, Math.min(n, S.rpStep + Number(v)));
+      Sound.tap();
       renderReplay();
     },
     "rp-continue"() {
@@ -1064,6 +1333,10 @@ function startApp(PR) {
     },
   };
 
+  document.addEventListener("pointerdown", (ev) => {
+    const el = ev.target.closest("[data-act], .tab");
+    if (el && !el.disabled) Feel.ripple(ev);
+  });
   document.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-act]");
     if (el && !el.disabled && actions[el.dataset.act]) { actions[el.dataset.act](el); return; }
@@ -1097,6 +1370,7 @@ function startApp(PR) {
     startFromSource({ type: "seed", seed: 1 });
   }
   $("rp-seed").value = $("seed").value;
+  soundIcon();
   render();
 }
 
