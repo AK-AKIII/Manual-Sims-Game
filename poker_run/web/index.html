@@ -242,6 +242,40 @@ button.card.sel:active { transform: translateY(-10px) scale(0.97); }
   box-shadow: 0 0 10px rgba(242, 193, 78, 0.8); animation: mote var(--t, 1.6s) var(--glide) forwards;
 }
 @keyframes mote { from { opacity: 0.95; transform: translate(0, 0) scale(1); } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); } }
+/* ---------- scroll: panels settle in as they arrive, a progress line, a compact score bar */
+@supports (animation-timeline: view()) {
+  #view-play .panel, #view-replay .panel {
+    animation: settle linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+  @keyframes settle { from { transform: translateY(34px) scale(0.985); opacity: 0.35; } }
+}
+#scroll-line {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; pointer-events: none;
+  background: linear-gradient(90deg, #c99a2e, var(--gold)); transform-origin: 0 50%; transform: scaleX(0);
+  box-shadow: 0 0 8px rgba(242, 193, 78, 0.6);
+}
+#mini {
+  position: fixed; top: 10px; left: 50%; z-index: 55; display: flex; align-items: center; gap: 14px;
+  padding: 8px 16px; border-radius: 999px; cursor: pointer; font: 600 14px var(--sans); color: var(--cream);
+  background: rgba(10, 34, 26, 0.78); border: 1px solid rgba(242, 193, 78, 0.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -140%); opacity: 0; transition: transform 0.45s var(--glide), opacity 0.35s ease;
+  white-space: nowrap; max-width: calc(100vw - 24px); overflow: hidden;
+}
+#mini.show { transform: translate(-50%, 0); opacity: 1; }
+#mini .k { color: var(--muted); font-weight: 500; margin-right: 4px; }
+#mini .gold { color: var(--gold); }
+#mini .meter { width: 90px; height: 6px; border-radius: 3px; background: rgba(244, 239, 227, 0.12); overflow: hidden; }
+#mini .meter i { display: block; height: 100%; background: linear-gradient(90deg, #c99a2e, var(--gold)); transition: width 0.6s var(--glide); }
+@media (max-width: 600px) { #mini .opt { display: none; } }
+.card::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%);
+  transition: opacity 0.3s ease; mix-blend-mode: soft-light;
+}
+button.card:hover::after { opacity: 1; }
 .btn.icon { padding: 7px 9px; line-height: 0; }
 .btn.icon svg { width: 18px; height: 18px; }
 .btn.icon[aria-pressed="false"] { color: var(--muted); }
@@ -279,6 +313,8 @@ button.card.sel:active { transform: translateY(-10px) scale(0.97); }
     </div>
   </header>
   <div id="fx" aria-hidden="true"></div>
+  <div id="scroll-line" aria-hidden="true"></div>
+  <button type="button" id="mini" aria-label="Back to the round status" tabindex="-1"></button>
 
   <section class="panel hidden" id="load-panel" aria-label="Load a custom input">
     <h2>Custom input</h2>
@@ -797,6 +833,54 @@ function startApp(PR) {
     return { ripple, afterRender, afterMove };
   })();
 
+  // ---------- scroll: a progress line, a compact score bar once the status panel is out of
+  // view, and a sheen on cards that follows the mouse. Updates run at most once per frame.
+  const Scroll = (() => {
+    const calm = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let queued = false;
+
+    function update() {
+      queued = false;
+      const max = document.documentElement.scrollHeight - innerHeight;
+      $("scroll-line").style.transform = `scaleX(${max > 0 ? Math.min(1, scrollY / max) : 0})`;
+      const status = document.querySelector('#play-main [aria-label="Round status"]');
+      const show = S.mode === "play" && !!status && status.getBoundingClientRect().bottom < 0;
+      $("mini").classList.toggle("show", show);
+      $("mini").tabIndex = show ? 0 : -1;
+    }
+
+    function request() {
+      if (!queued) { queued = true; requestAnimationFrame(update); }
+    }
+
+    function fill(g) {
+      const target = Number(g.target);
+      const pct = target > 0 ? Math.min(100, (100 * Number(g.round_score)) / target) : 100;
+      const phase = g.phase === "play" ? "" : g.phase === "shop" ? " · shop" : " · run over";
+      const live = g.phase === "play";
+      $("mini").innerHTML = `<span><span class="k">Round</span>${g.round + 1}/${g.inst.rounds}${phase}</span>
+        <span class="meter" aria-hidden="true"><i style="width:${pct}%"></i></span>
+        <span>${UI.num(g.round_score)}<span class="k"> / ${UI.num(g.target)}</span></span>
+        <span class="opt"><span class="k">Plays</span>${live ? g.plays_left : "–"}</span>
+        <span class="opt"><span class="k">Discards</span>${live ? g.discards_left : "–"}</span>
+        <span class="gold">$${g.money}</span>
+        <span><span class="k">Total</span><b class="gold">${UI.num(g.total)}</b></span>`;
+      request();
+    }
+
+    addEventListener("scroll", request, { passive: true });
+    addEventListener("resize", request, { passive: true });
+    $("mini").addEventListener("click", () => scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" }));
+    document.addEventListener("pointermove", (ev) => {
+      const card = ev.target.closest && ev.target.closest("button.card");
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty("--mx", `${((ev.clientX - r.left) / r.width) * 100}%`);
+      card.style.setProperty("--my", `${((ev.clientY - r.top) / r.height) * 100}%`);
+    }, { passive: true });
+    return { fill, request };
+  })();
+
   function soundIcon() {
     const b = $("sound-btn");
     if (!b) return;
@@ -1093,6 +1177,7 @@ function startApp(PR) {
     $("play-main").innerHTML = main;
     $("play-side").innerHTML = sideHTML(g);
     Feel.afterRender(g);
+    Scroll.fill(g);
   }
 
   // ---------- replay
@@ -1188,6 +1273,7 @@ function startApp(PR) {
     $("tab-replay").setAttribute("aria-selected", String(S.mode === "replay"));
     $("source-bar").classList.toggle("hidden", S.mode !== "play");
     if (S.mode === "play") renderPlay(); else renderReplay();
+    Scroll.request();
   }
 
   const cssEsc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&"));
