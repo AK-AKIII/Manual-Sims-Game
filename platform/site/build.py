@@ -11,6 +11,7 @@ asset URLs carry a content hash (?v=...) so browsers never see stale files.
 Layout of the output:
     /                     landing page            (pages/index.html)
     /problem/             statement + generator   (rendered from poker_run/problem/*.md)
+    /modes/               game modes + rulesets   (rendered from poker_run/web/MULTIPLAYER.md, problem/balanced.md)
     /contest/             contest hub             (pages/contest/index.html)
     /contest/leaderboard/ leaderboard             (pages/contest/leaderboard/index.html)
     /play/                the browser game        (copied from poker_run/web/)
@@ -38,6 +39,8 @@ PAGES = os.path.join(SITE, "pages")
 ASSETS = os.path.join(SITE, "assets")
 WEB = os.path.join(ROOT, "poker_run", "web")
 PROBLEM = os.path.join(ROOT, "poker_run", "problem")
+MULTIPLAYER_MD = os.path.join(WEB, "MULTIPLAYER.md")
+BALANCED_MD = os.path.join(PROBLEM, "balanced.md")
 STARTER = os.path.join(ROOT, "poker_run", "starters", "starter.py")
 VIDEO = os.path.join(ROOT, "video")
 FIXTURES = os.path.join(ROOT, "tests", "fixtures", "poker_run", "public")
@@ -112,6 +115,41 @@ def split_row(line):
 
 SEP_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
 LIST_RE = re.compile(r"^(\s*)([-*+]|\d+[.)])\s+(.*)$")
+
+
+SKIP_RE = re.compile(r"^\s*<!--\s*site:skip\b.*?-->\s*$")
+COMMENT_RE = re.compile(r"^\s*<!--.*?-->\s*$")
+
+
+def strip_site_skips(md):
+    """Drop repository-only parts of a doc from the site. A line `<!-- site:skip ... -->`
+    right before a heading removes that heading's whole section (up to the next heading
+    of the same or a higher level); other whole-line HTML comments are dropped too."""
+    lines = md.replace("\r\n", "\n").split("\n")
+    out, i, n = [], 0, len(lines)
+    while i < n:
+        if SKIP_RE.match(lines[i]):
+            i += 1
+            while i < n and not lines[i].strip():
+                i += 1
+            h = re.match(r"^(#{1,6})\s", lines[i]) if i < n else None
+            if not h:
+                continue
+            level, fence = len(h.group(1)), False
+            i += 1
+            while i < n:
+                if re.match(r"^\s*(```|~~~)", lines[i]):
+                    fence = not fence
+                elif not fence:
+                    h2 = re.match(r"^(#{1,6})\s", lines[i])
+                    if h2 and len(h2.group(1)) <= level:
+                        break
+                i += 1
+            continue
+        if not COMMENT_RE.match(lines[i]):
+            out.append(lines[i])
+        i += 1
+    return "\n".join(out)
 
 
 def render_markdown(md, used_ids, link_map, shift=0, drop_h1=False, toc=None):
@@ -247,6 +285,8 @@ def link_map(href):
         "statement.md": "/problem/",
         "generator.md": "/problem/#generator",
         "starter.py": "/downloads/starter.py",
+        "MULTIPLAYER.md": "/modes/#multiplayer-modes",
+        "balanced.md": "/modes/#the-balanced-ruleset",
     }
     return known.get(name)
 
@@ -281,7 +321,7 @@ def human_size(n):
     return "%.1f MB" % (n / 1024 / 1024)
 
 
-NAV_ITEMS = [("play", "/play/", "Play"), ("problem", "/problem/", "Problem"),
+NAV_ITEMS = [("play", "/play/", "Play"), ("modes", "/modes/", "Modes"), ("problem", "/problem/", "Problem"),
              ("contest", "/contest/", "Contest"), ("leaderboard", "/contest/leaderboard/", "Leaderboard")]
 
 HEAD = """<meta charset="utf-8">
@@ -299,7 +339,7 @@ FOOTER = """<footer class="site-footer">
   <div class="wrap">
     <div><span class="brand" style="font-size:15px">POKER <b>RUN</b></span><br><span>An 8-round poker puzzle where the input reveals everything.</span></div>
     <nav aria-label="Footer">
-      <a href="/play/">Play</a><a href="/problem/">Problem</a><a href="/contest/">Contest</a><a href="/contest/leaderboard/">Leaderboard</a><a href="/downloads/starter.py" download>starter.py</a><a href="/?intro=1" data-replay-intro>Replay intro</a>
+      <a href="/play/">Play</a><a href="/modes/">Modes &amp; rules</a><a href="/problem/">Problem</a><a href="/contest/">Contest</a><a href="/contest/leaderboard/">Leaderboard</a><a href="/downloads/starter.py" download>starter.py</a><a href="/?intro=1" data-replay-intro>Replay intro</a>
     </nav>
   </div>
 </footer>"""
@@ -378,18 +418,36 @@ def build_problem(out, asset_hashes, sizes):
     generator = ""
     if os.path.exists(gen_path):
         generator = render_markdown(read(gen_path), used, link_map, shift=1, toc=toc)
-    items = []
-    for level, hid, text in toc:
-        items.append('<li class="%s"><a href="#%s">%s</a></li>' % ("sub" if level == 3 else "", hid, text))
-    toc_html = "<ol>%s</ol>" % "".join(items)
     page = read(os.path.join(PAGES, "problem", "index.html"))
     m = re.search(r"time limit is \*\*(.+?)\*\*", read(os.path.join(PROBLEM, "statement.md")))
     page = page.replace("<!--#time_limit-->", m.group(1) if m else "2 seconds")
-    page = page.replace("<!--#toc-->", toc_html).replace("<!--#statement-->", statement).replace("<!--#generator-->", generator)
+    page = page.replace("<!--#toc-->", toc_html(toc)).replace("<!--#statement-->", statement).replace("<!--#generator-->", generator)
     page = re.sub(r"<!--#size:([\w.]+)-->", lambda mm: human_size(sizes.get(mm.group(1), 0)), page)
     if not generator:
         page = re.sub(r'\s*<article class="prose doc-part" id="generator-doc">\s*</article>', "", page)
     write(os.path.join(out, "problem", "index.html"), fill_partials(page, asset_hashes))
+
+
+def toc_html(toc):
+    items = ['<li class="%s"><a href="#%s">%s</a></li>' % ("sub" if level == 3 else "", hid, text) for level, hid, text in toc]
+    return "<ol>%s</ol>" % "".join(items)
+
+
+def doc_for_site(path):
+    """A repository doc as the site shows it: site:skip sections removed, and its
+    title without the "Poker Run: " prefix (the page already says Poker Run)."""
+    md = strip_site_skips(read(path))
+    return re.sub(r"^# Poker Run: (\w)", lambda m: "# " + m.group(1).upper(), md, count=1, flags=re.M)
+
+
+def build_modes(out, asset_hashes):
+    """/modes/: the browser game's multiplayer modes and the optional balanced ruleset."""
+    used, toc = set(), []
+    multi = render_markdown(doc_for_site(MULTIPLAYER_MD), used, link_map, shift=1, toc=toc)
+    balanced = render_markdown(doc_for_site(BALANCED_MD), used, link_map, shift=1, toc=toc)
+    page = read(os.path.join(PAGES, "modes", "index.html"))
+    page = page.replace("<!--#toc-->", toc_html(toc)).replace("<!--#multiplayer-->", multi).replace("<!--#balanced-->", balanced)
+    write(os.path.join(out, "modes", "index.html"), fill_partials(page, asset_hashes))
 
 
 def build_play(out):
@@ -442,11 +500,12 @@ def build(out):
     media = build_media(tmp)
     build_play(tmp)
     build_problem(tmp, asset_hashes, sizes)
+    build_modes(tmp, asset_hashes)
 
     for dirpath, _, files in sorted(os.walk(PAGES)):
         for name in sorted(files):
             rel = os.path.relpath(os.path.join(dirpath, name), PAGES).replace(os.sep, "/")
-            if rel == "problem/index.html":
+            if rel in ("problem/index.html", "modes/index.html"):
                 continue
             src = os.path.join(dirpath, name)
             if name.endswith(".html"):

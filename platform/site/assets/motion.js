@@ -48,7 +48,7 @@
   // ---------------------------------------------------------------- reveals
   const REVEAL_SELECTOR = [
     "[data-reveal]", ".section .eyebrow", ".section h2.big", ".section .lead", ".step", ".story-step", ".fact",
-    ".video-frame", ".video-meta", ".cta-band", ".split > *", ".snippet", ".dl", ".prose > *", ".auth-aside", ".auth > .panel",
+    ".video-frame", ".video-meta", ".cta-band", ".ways-more", ".split > *", ".snippet", ".dl", ".prose > *", ".auth-aside", ".auth > .panel",
     ".side-card", ".page-head", ".status-bar", ".lb-tools", ".table-scroll", ".site-footer .wrap > *",
   ].join(",");
   let revealIO = null;

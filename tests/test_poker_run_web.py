@@ -552,6 +552,7 @@ out.reward = UI.roundReward(r.states[2]);
 const b = UI.buildGame(inst, ["discard 26 16 17 45", "play 33 8 9 23 50", "end", "buy constructor"]);
 out.build = { applied: b.applied, error: b.error, money: b.game.money };
 out.pile = UI.nextRoundPile(r.states[3]).length;
+out.hash = ["#seed=7", "#seed=7&rules=balanced", "#mode=bot", "#mode=Draft&seed=12&rules=balanced", "#rules=balanced", "", "#x=1&mode=hotseat"].map(UI.parseHash);
 process.stdout.write(JSON.stringify(out));
 """
 
@@ -584,6 +585,16 @@ class TestWebPage(unittest.TestCase):
         self.assertEqual(out["reward"], g.money - money)
         self.assertEqual(out["build"], {"applied": 3, "error": "constructor is not on offer", "money": g.money})
         self.assertEqual(out["pile"], 52)
+        # the /play/ URL hash: #seed= and #rules= for the solo game, #mode= for the landing page's mode links
+        self.assertEqual(out["hash"], [
+            {"seed": 7, "rules": None, "mode": None},
+            {"seed": 7, "rules": "balanced", "mode": None},
+            {"seed": None, "rules": None, "mode": "bot"},
+            {"seed": 12, "rules": "balanced", "mode": "draft"},
+            {"seed": None, "rules": "balanced", "mode": None},
+            {"seed": None, "rules": None, "mode": None},
+            {"seed": None, "rules": None, "mode": "hotseat"},
+        ])
 
 
 if __name__ == "__main__":

@@ -363,6 +363,124 @@ button.card.sel:hover { transform: translateY(-16px); }
 .cta-band p { color: var(--muted); }
 .cta-band .btn-row { justify-content: center; margin-top: 18px; }
 
+/* ---------- landing: ways to play (mode cards link into /play/#mode=...) */
+.modes-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.mode-card { --accent: var(--gold); position: relative; overflow: hidden; isolation: isolate; display: flex; flex-direction: column; min-width: 0;
+  color: var(--cream); text-decoration: none; border-radius: 18px; border: 1px solid rgba(242, 193, 78, 0.2);
+  background: linear-gradient(180deg, rgba(0, 0, 0, .18), rgba(0, 0, 0, .32)), var(--panel);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .04);
+  transition: transform .3s var(--spring), border-color .25s ease, box-shadow .3s ease; }
+.mode-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--accent); opacity: .75; transition: opacity .25s; z-index: 1; }
+.mode-card:hover { color: var(--cream); transform: translateY(-5px); border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow: 0 22px 44px rgba(0, 0, 0, .36), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
+.mode-card:hover::before { opacity: 1; }
+.mode-card:active { transform: translateY(-2px) scale(.99); transition-duration: .09s; }
+.mode-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 18px; }
+.mode-vis { position: relative; height: 128px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 35%, rgba(24, 84, 64, .95), rgba(8, 32, 24, .9) 75%); border-bottom: 1px solid var(--line-2); }
+.mode-vis::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%); opacity: .7; transition: opacity .3s; }
+.mode-card:hover .mode-vis::after { opacity: 1; }
+.mode-body { padding: 16px 18px 6px; flex: 1; }
+.mode-body h3 { font-size: 19px; margin-bottom: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.mode-body p { color: var(--muted); font-size: 15px; margin: 0; }
+.mode-tag { font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent, var(--gold)); border: 1px solid currentColor; border-radius: 999px; padding: 2px 7px; opacity: .9; white-space: nowrap; }
+.mode-go { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin: 12px 18px 18px; padding: 7px 13px; border-radius: 9px; font-weight: 700; font-size: 14px;
+  background: rgba(244, 239, 227, 0.08); border: 1px solid rgba(244, 239, 227, 0.2); transition: background .22s, color .22s, border-color .22s; }
+.mode-go .arrow { transition: transform .2s var(--ease); }
+.mode-card:hover .mode-go { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.mode-card:hover .mode-go .arrow { transform: translateX(3px); }
+/* solo: a fan of three cards that opens on hover */
+.vis-solo .fan { position: absolute; left: 50%; top: 50%; margin: -31px 0 0 -22px; transform: translate(var(--x), var(--y, 0px)) rotate(var(--r)); transition: transform .45s var(--spring); }
+.vis-solo .card.mini { --w: 44px; display: block; border-radius: 6px; }
+.vis-solo .card.mini .mid { display: grid; font-size: 24px; padding-top: 6px; }
+.mode-card:hover .vis-solo .fan { transform: translate(calc(var(--x) * 1.35), calc(var(--y, 0px) - 6px)) rotate(calc(var(--r) * 1.4)); }
+/* vs bot: two lanes racing */
+.vis-bot { flex-direction: column; gap: 12px; }
+.vis-bot .race { display: grid; grid-template-columns: auto 150px; gap: 7px 10px; align-items: center; }
+.vis-bot .who { font-size: 12px; font-weight: 800; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 6px; }
+.vis-bot .who::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--pc); }
+.vis-bot .lane { height: 8px; border-radius: 5px; background: rgba(0, 0, 0, .45); overflow: hidden; }
+.vis-bot .lane i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, rgba(255,255,255,.15), var(--gold)); transform-origin: 0 50%; transform: scaleX(calc(var(--w) * .7)); transition: transform .7s var(--spring); }
+.vis-bot .who + .lane i { background: linear-gradient(90deg, #c99a2e, var(--gold)); }
+.vis-bot .lane:last-child i { background: linear-gradient(90deg, #3e8f9c, #6fd0e0); transition-delay: .08s; }
+.mode-card:hover .vis-bot .lane i { transform: scaleX(var(--w)); }
+.vis-bot .levels { display: flex; gap: 4px; background: rgba(0, 0, 0, .3); border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
+.vis-bot .levels b { font-size: 11px; font-weight: 700; color: var(--muted); padding: 3px 8px; border-radius: 6px; }
+.vis-bot .levels b.on { background: var(--accent); color: var(--ink); }
+/* pass & play: four seats, the turn moves on */
+.vis-hotseat { flex-direction: column; gap: 14px; }
+.vis-hotseat .seats { display: flex; gap: 12px; }
+.vis-hotseat .seats i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 14px; color: var(--ink); background: var(--pc);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .35); opacity: .55; transform: scale(.92); transition: opacity .3s, transform .35s var(--spring), box-shadow .3s; }
+.vis-hotseat .seats i:nth-child(2) { opacity: 1; transform: scale(1.06); box-shadow: 0 0 0 3px rgba(244, 239, 227, .9), 0 6px 14px rgba(0, 0, 0, .4); }
+.mode-card:hover .vis-hotseat .seats i { animation: seat-turn 2.4s var(--ease) infinite; animation-delay: calc(var(--k) * .6s - .6s); }
+.vis-hotseat .pass { font-size: 12px; font-weight: 700; color: var(--muted); background: rgba(0, 0, 0, .3); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.vis-hotseat .pass b { color: var(--accent); }
+@keyframes seat-turn { 0%, 30% { opacity: 1; transform: scale(1.06); box-shadow: 0 0 0 3px rgba(244, 239, 227, .9), 0 6px 14px rgba(0, 0, 0, .4); } 40%, 100% { opacity: .55; transform: scale(.92); box-shadow: 0 4px 10px rgba(0, 0, 0, .35); } }
+/* draft: a shop window where one offer is already taken */
+.vis-draft { gap: 8px; padding: 0 14px; }
+.vis-draft .offer { position: relative; flex: 1 1 0; max-width: 78px; min-height: 84px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; padding: 8px 7px;
+  background: linear-gradient(160deg, rgba(122, 31, 43, 0.75), rgba(60, 14, 22, 0.75)); border: 1px solid rgba(242, 193, 78, 0.35); border-radius: 10px;
+  transform: translateY(calc((var(--i) - 1) * -3px)) rotate(calc((var(--i) - 1) * 3deg)); transition: transform .4s var(--spring); }
+.vis-draft .offer b { font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
+.vis-draft .offer em { font-style: normal; color: var(--gold); font-weight: 800; font-size: 14px; }
+.vis-draft .offer.taken { filter: saturate(.4); }
+.vis-draft .stamp { position: absolute; left: 50%; top: 50%; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); border: 2px solid currentColor; border-radius: 5px; padding: 2px 5px; background: rgba(8, 32, 24, .82);
+  transform: translate(-50%, -50%) rotate(-14deg); transition: transform .35s var(--spring); white-space: nowrap; }
+.mode-card:hover .vis-draft .offer { transform: translateY(-4px) rotate(calc((var(--i) - 1) * 5deg)); }
+.mode-card:hover .vis-draft .stamp { transform: translate(-50%, -50%) rotate(-8deg) scale(1.12); }
+/* rules strip */
+.rules-strip { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: stretch;
+  padding: 16px; border-radius: 18px; background: radial-gradient(ellipse at 0% 0%, rgba(242, 193, 78, .1), transparent 60%), var(--panel); border: 1px solid var(--line); }
+.rs-head { padding: 6px 8px; }
+.rs-head h3 { font-size: 19px; margin-bottom: 6px; }
+.rs-head p, .rs-opt p { color: var(--muted); font-size: 14.5px; margin: 0; }
+.rs-head p b { color: var(--cream); }
+.rs-opt { background: var(--panel-2); border: 1px solid var(--line-2); border-left: 3px solid var(--gold); border-radius: 12px; padding: 12px 14px; }
+.rs-opt.alt { border-left-color: var(--blue); --accent: var(--blue); }
+.rs-opt code { white-space: nowrap; font-size: 12.5px; color: #fbe7b3; background: rgba(0, 0, 0, .3); padding: 1px 5px; border-radius: 4px; }
+.rs-name { font-weight: 800; font-size: 16px; margin-bottom: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.badge-contest { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--gold); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.ways-more { margin-top: 16px; }
+@media (max-width: 1000px) {
+  .modes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rules-strip { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rs-head { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .modes-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .mode-card { display: grid; grid-template-columns: 112px minmax(0, 1fr); grid-template-rows: 1fr auto; }
+  .mode-vis { grid-row: 1 / span 2; height: auto; min-height: 150px; border-bottom: 0; border-right: 1px solid var(--line-2); }
+  .mode-body { padding: 14px 14px 4px; }
+  .mode-body h3 { font-size: 17px; }
+  .mode-body p { font-size: 14px; }
+  .mode-go { margin: 10px 14px 14px; padding: 6px 11px; font-size: 13px; }
+  .vis-solo .fan { transform: translate(calc(var(--x) * .55), var(--y, 0px)) rotate(var(--r)); }
+  .mode-card:hover .vis-solo .fan { transform: translate(calc(var(--x) * .7), calc(var(--y, 0px) - 4px)) rotate(calc(var(--r) * 1.2)); }
+  .vis-solo .card.mini { --w: 38px; }
+  .vis-solo .card.mini .mid { font-size: 20px; }
+  .vis-bot .race { grid-template-columns: auto 52px; gap: 6px; }
+  .vis-bot .levels { flex-direction: column; gap: 2px; }
+  .vis-bot .levels b { padding: 2px 6px; font-size: 10px; text-align: center; }
+  .vis-hotseat .seats { display: grid; grid-template-columns: repeat(2, 30px); gap: 8px; }
+  .vis-hotseat .seats i { width: 30px; height: 30px; font-size: 12px; }
+  .vis-hotseat .pass { display: none; }
+  .vis-draft { flex-direction: column; gap: 4px; padding: 10px; }
+  .vis-draft .offer { flex: none; width: 84px; max-width: none; min-height: 0; flex-direction: row; align-items: center; padding: 5px 7px; transform: none; }
+  .mode-card:hover .vis-draft .offer { transform: translateX(2px); }
+  .vis-draft .offer b { font-size: 10.5px; }
+  .vis-draft .offer em { font-size: 11px; }
+  .vis-draft .stamp { font-size: 8.5px; padding: 1px 4px; }
+  .rules-strip { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .rs-head { padding: 4px; }
+}
+/* problem and modes pages: which rules the contest uses */
+.rules-note { display: flex; gap: 10px; align-items: baseline; margin: 16px 0 0; padding: 10px 14px; border-radius: 12px; font-size: 14.5px; color: #e7e2d6;
+  background: var(--gold-soft); border: 1px solid rgba(242, 193, 78, 0.35); max-width: 62em; }
+.rules-note .badge-contest { flex: none; position: relative; top: -1px; }
+.rules-note b { color: var(--cream); }
+@media (max-width: 1000px) { .downloads.jump { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .downloads.jump .dl { padding: 8px 10px; gap: 10px; } .downloads.jump .ic { width: 30px; height: 30px; } .downloads.jump .d { font-size: 11.5px; } }
+
 /* reveal: elements are visible by default. JS only adds a one-shot entrance
  * animation to sections that start below the fold. */
 .reveal.pop { animation: rise .7s var(--ease) both; }
@@ -696,6 +814,8 @@ tr.me .user::after { content: "you"; margin-left: 8px; font-size: 10px; font-wei
   .ripple { animation: fadeout .45s ease forwards !important; transform: scale(1) !important; opacity: .35; }
   .btn, .card, .step, .dl, .v, .brand .pip, .expander .chev, .toggle .track::after { transition-property: background, color, border-color, box-shadow, opacity !important; }
   .btn:hover:not(:disabled), .btn:active:not(:disabled), button.card:hover, button.card:active, .step:hover, .dl:hover, .v:hover, .brand:hover .pip, .dropzone.over { transform: none !important; }
+  .mode-card, .mode-card *:not(.ripple), .mode-card *::before, .mode-card::before { transition-property: background, color, border-color, box-shadow, opacity !important; animation: none !important; }
+  .mode-card:hover, .mode-card:active, .mode-card:hover .mode-go .arrow { transform: none !important; }
   .card.sel, button.card.sel:hover { transform: none; }
   .card.fly { transform: none !important; }
   .progress.indet .bar { animation: pulse-gold 1.6s ease-in-out infinite !important; width: 100% !important; transform: none !important; opacity: .6; }

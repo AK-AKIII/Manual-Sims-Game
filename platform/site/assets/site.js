@@ -98,9 +98,9 @@
 
   // ---------- ripple + soft tick on every button
   document.addEventListener("pointerdown", (ev) => {
-    const btn = ev.target.closest && ev.target.closest(".btn, .tabs button, .segmented button");
+    const btn = ev.target.closest && ev.target.closest(".btn, .tabs button, .segmented button, .mode-card");
     if (!btn || btn.disabled) return;
-    if (!btn.classList.contains("btn")) return; // ripple only where overflow is clipped
+    if (!btn.classList.contains("btn") && !btn.classList.contains("mode-card")) return; // ripple only where overflow is clipped
     const r = btn.getBoundingClientRect();
     const size = Math.max(r.width, r.height) * 2.2;
     const rp = document.createElement("span");
@@ -112,7 +112,7 @@
     setTimeout(() => rp.remove(), 500);
   }, { passive: true });
   document.addEventListener("click", (ev) => {
-    const el = ev.target.closest && ev.target.closest("button, a.btn, [role=tab]");
+    const el = ev.target.closest && ev.target.closest("button, a.btn, a.mode-card, [role=tab]");
     if (!el || el.disabled || el.hasAttribute("data-sound-toggle") || el.hasAttribute("data-quiet")) return;
     const snd = S();
     if (snd) snd.tick();

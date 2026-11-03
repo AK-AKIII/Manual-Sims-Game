@@ -682,7 +682,15 @@ const UI = (function (PR) {
     return "";
   }
 
-  return { SUIT_GLYPH, SUIT_LETTER, esc, rankLabel, faceText, isRed, isModified, num, prettyMod, rulesTitle, rulesChanges,
+  // The page's URL hash: "#seed=7", "#seed=7&rules=balanced", "#mode=bot", "#mode=draft&seed=12".
+  // Values are returned as written (seed as a number); the app checks them against its modes and rulesets.
+  function parseHash(hash) {
+    const get = (re) => { const m = re.exec(String(hash || "")); return m ? m[1] : null; };
+    const seed = get(/(?:^#|&)seed=(-?\d+)/), rules = get(/(?:^#|&)rules=(\w+)/), mode = get(/(?:^#|&)mode=(\w+)/);
+    return { seed: seed === null ? null : Number(seed), rules, mode: mode === null ? null : mode.toLowerCase() };
+  }
+
+  return { SUIT_GLYPH, SUIT_LETTER, esc, rankLabel, faceText, isRed, isModified, num, prettyMod, rulesTitle, rulesChanges, parseHash,
     buildGame, replayStates, moveCards, describe, roundReward, preview, formula, verdictText, outcome, nextRoundPile, sortedHand, deckOrder, modState };
 })(typeof PokerRun !== "undefined" ? PokerRun : require("./engine.js"));
 
@@ -2235,18 +2243,23 @@ function startApp(PR) {
   $("rp-output-file").addEventListener("change", (ev) => readFile(ev.target, (t) => { if (t !== null) $("rp-output").value = t; }));
 
   // ---------- boot
-  const hashSeed = /(?:^#|&)seed=(-?\d+)/.exec(location.hash);
-  const hashRules = /(?:^#|&)rules=(\w+)/.exec(location.hash);
+  // #seed= and #rules= set up the solo game; #mode=solo|bot|hotseat|draft picks the mode.
+  // A multiplayer #mode= link leaves the solo game alone: its seed and rules preset that mode's setup.
+  const hash = UI.parseHash(location.hash);
+  const hashKind = hash.mode !== null && Object.prototype.hasOwnProperty.call(KINDS, hash.mode) ? hash.mode : null;
+  const mpLink = hashKind !== null && hashKind !== "solo";
+  const hashSeed = !mpLink && hash.seed !== null && Number.isSafeInteger(hash.seed) ? hash.seed : null;
+  const hashRules = mpLink ? null : hash.rules;
   const saved = restore();
   if (saved && saved.sort) S.sort = saved.sort;
   const known = (r) => typeof r === "string" && Object.prototype.hasOwnProperty.call(PR.RULESETS, r);
   const savedRules = saved && known(saved.rules) ? saved.rules : "classic";
-  S.rules = hashRules && known(hashRules[1]) ? hashRules[1] : hashSeed ? "classic" : savedRules;
+  S.rules = known(hashRules) ? hashRules : hashSeed !== null ? "classic" : savedRules;
   // Saved moves only make sense with the rules they were played by.
   if (saved && savedRules !== S.rules) saved.moves = [];
   try {
-    if (hashSeed) {
-      const seed = Number(hashSeed[1]);
+    if (hashSeed !== null) {
+      const seed = hashSeed;
       const same = saved && saved.source && saved.source.type === "seed" && saved.source.seed === seed;
       startFromSource({ type: "seed", seed }, same ? saved.moves : []);
     } else if (saved && saved.source) startFromSource(saved.source, saved.moves || []);
@@ -2259,8 +2272,17 @@ function startApp(PR) {
   restoreMP();
   let kind = "solo";
   try { kind = localStorage.getItem(KIND_KEY) || "solo"; } catch (e) { /* storage unavailable */ }
-  if (hashSeed || !Object.prototype.hasOwnProperty.call(KINDS, kind)) kind = "solo";   // a #seed= link opens solo
+  if (hashSeed !== null || !Object.prototype.hasOwnProperty.call(KINDS, kind)) kind = "solo";   // a #seed= link opens solo
+  if (hashKind) kind = hashKind;
+  if (mpLink) {
+    // Open the mode's setup (a match still being played is resumed, a finished one makes way).
+    if (known(hash.rules)) M.rules = hash.rules;
+    if (hash.seed !== null && Number.isSafeInteger(hash.seed)) M.setups[hashKind].seed = hash.seed;
+    if (M.games[hashKind] && M.games[hashKind].match.over) M.games[hashKind] = null;
+    saveMP();
+  }
   setKind(kind, true);
+  if (hashKind) { try { localStorage.setItem(KIND_KEY, kind); } catch (e) { /* storage unavailable */ } }   // remembered like a click on Mode
   soundIcon();
   render();
 

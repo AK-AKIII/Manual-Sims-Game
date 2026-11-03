@@ -82,6 +82,7 @@ every player's moves are legal in a solo game too: each move list is a valid
 output for the seed, checked by `PokerRun.check` and by
 `python3 -m poker_run check`.
 
+<!-- site:skip (the website's /modes/ page leaves out this repository-only section) -->
 ## Code
 
 * `bot.js` (`PokerBot`): `bestPlay(game)`, `roundMoves(game, level, hands)`,

@@ -154,6 +154,39 @@ class TestPlayPageScripts(unittest.TestCase):
                 self.assertEqual((Path(tmp) / "play" / name).read_bytes(), (WEB / name).read_bytes())
             self.assertFalse((Path(tmp) / "play" / "multiplayer_driver.js").exists())
 
+    def test_site_modes_page_and_links(self):
+        """The site renders /modes/ from MULTIPLAYER.md and balanced.md, links it everywhere,
+        and every #mode= link on the site names a mode the game knows."""
+        spec = importlib.util.spec_from_file_location("site_build", ROOT / "platform" / "site" / "build.py")
+        build = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build)
+        # the skip marker drops a whole section, up to the next heading of its level
+        md = "# T\n\nkeep\n\n<!-- site:skip -->\n## Code\n\nx\n\n### sub\n\ny\n\n## After\n\nz\n<!-- note -->\n"
+        self.assertEqual(build.strip_site_skips(md), "# T\n\nkeep\n\n## After\n\nz\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = build.build(str(Path(tmp) / "dist"))
+            modes = (Path(out) / "modes" / "index.html").read_text(encoding="utf-8")
+            for hid in ("multiplayer-modes", "vs-bot", "the-balanced-ruleset", "every-difference-from-classic"):
+                self.assertIn(f'id="{hid}"', modes)
+                self.assertIn(f'href="#{hid}"', modes)                  # in the table of contents
+            self.assertNotIn("multiplayer_driver.js", modes)            # the repo-only Code section is skipped
+            self.assertNotIn("site:skip", modes)
+            self.assertIn('aria-current="page">Modes<', modes)
+            kinds = set(re.search(r"const KINDS = \{([^}]*)\}", (WEB / "index.html").read_text(encoding="utf-8")).group(1).replace('"', "").split(","))
+            kinds = {k.split(":")[0].strip() for k in kinds}
+            self.assertEqual(kinds, {"solo", "bot", "hotseat", "draft"})
+            landing = (Path(out) / "index.html").read_text(encoding="utf-8")
+            problem = (Path(out) / "problem" / "index.html").read_text(encoding="utf-8")
+            self.assertEqual(sorted(set(re.findall(r'href="/play/#mode=(\w+)"', landing))), sorted(kinds))
+            self.assertIn('href="/modes/"', landing)
+            self.assertIn('href="/modes/"', problem)
+            self.assertIn("judged with the <b>classic</b> rules", problem)
+            for page in (landing, problem, modes):
+                for mode in re.findall(r"#mode=(\w+)", page):
+                    self.assertIn(mode, kinds)
+                self.assertIn('<a href="/modes/">Modes</a>', page.replace(' aria-current="page"', ""))   # nav
+                self.assertIn('<a href="/modes/">Modes &amp; rules</a>', page)                        # footer
+
 
 if __name__ == "__main__":
     unittest.main()

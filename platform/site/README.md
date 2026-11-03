@@ -18,6 +18,7 @@ across runs. What it assembles:
 | --- | --- |
 | `/` | `pages/index.html` (landing, live demo, scroll story, opening intro) |
 | `/problem/` | `pages/problem/index.html` + `poker_run/problem/statement.md` and `generator.md`, rendered by build.py's own Markdown renderer |
+| `/modes/` | `pages/modes/index.html` + `poker_run/web/MULTIPLAYER.md` and `poker_run/problem/balanced.md` (a `<!-- site:skip -->` line before a heading leaves that section out) |
 | `/contest/` | `pages/contest/index.html` (sign in / register, submit, my submissions, admin) |
 | `/contest/leaderboard/` | `pages/contest/leaderboard/index.html` |
 | `/play/` | `poker_run/web/index.html` + every script it loads (`engine.js`, `bot.js`, `multiplayer.js`; the title becomes a link home) |

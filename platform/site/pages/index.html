@@ -78,6 +78,83 @@
     </div>
   </section>
 
+  <section class="section ways" id="ways" aria-labelledby="ways-title">
+    <div class="wrap">
+      <span class="eyebrow">Ways to play</span>
+      <h2 class="big" id="ways-title">Alone, against a bot, or around one screen</h2>
+      <p class="lead">The browser game has four modes. In every one, all players get the same deal, and each player's moves are a valid output file for that seed. Pick a table and you're dealt in.</p>
+      <div class="modes-grid">
+        <a class="mode-card" href="/play/#mode=solo" style="--accent:#f2c14e" data-reveal>
+          <div class="mode-vis vis-solo" aria-hidden="true">
+            <span class="fan" style="--r:-14deg;--x:-34px"><span class="card mini"><span class="tl">A<i>♠︎</i></span><span class="mid">♠︎</span></span></span>
+            <span class="fan" style="--r:0deg;--x:0px;--y:-6px"><span class="card mini red"><span class="tl">K<i>♥︎</i></span><span class="mid">♥︎</span></span></span>
+            <span class="fan" style="--r:14deg;--x:34px"><span class="card mini red"><span class="tl">Q<i>♦︎</i></span><span class="mid">♦︎</span></span></span>
+          </div>
+          <div class="mode-body">
+            <h3>Solo <span class="mode-tag">the contest's game</span></h3>
+            <p>Just you and the deck: eight rounds, every draw known in advance. The default mode.</p>
+          </div>
+          <span class="mode-go">Play solo <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
+        <a class="mode-card" href="/play/#mode=bot" style="--accent:#6fd0e0" data-reveal>
+          <div class="mode-vis vis-bot" aria-hidden="true">
+            <div class="race">
+              <span class="who" style="--pc:#f2c14e">You</span><span class="lane"><i style="--w:.72"></i></span>
+              <span class="who" style="--pc:#6fd0e0">Bot</span><span class="lane"><i style="--w:.58"></i></span>
+            </div>
+            <div class="levels"><b>Easy</b><b class="on">Normal</b><b>Hard</b></div>
+          </div>
+          <div class="mode-body">
+            <h3>vs Bot</h3>
+            <p>Race a computer player (Easy, Normal or Hard) on the same deal, revealed round by round.</p>
+          </div>
+          <span class="mode-go">Play vs Bot <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
+        <a class="mode-card" href="/play/#mode=hotseat" style="--accent:#f08a76" data-reveal>
+          <div class="mode-vis vis-hotseat" aria-hidden="true">
+            <div class="seats"><i style="--pc:#f2c14e;--k:0">1</i><i style="--pc:#6fd0e0;--k:1">2</i><i style="--pc:#f08a76;--k:2">3</i><i style="--pc:#b8a4f4;--k:3">4</i></div>
+            <span class="pass">Pass to Player 2 <b>→</b></span>
+          </div>
+          <div class="mode-body">
+            <h3>Pass &amp; play</h3>
+            <p>2 to 4 players on one device, taking turns round by round with a pass screen in between.</p>
+          </div>
+          <span class="mode-go">Play pass &amp; play <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
+        <a class="mode-card" href="/play/#mode=draft" style="--accent:#b8a4f4" data-reveal>
+          <div class="mode-vis vis-draft" aria-hidden="true">
+            <span class="offer" style="--i:0"><b>mirror</b><em>$6</em></span>
+            <span class="offer taken" style="--i:1"><b>tricolor</b><em>$6</em><span class="stamp">Drafted</span></span>
+            <span class="offer" style="--i:2"><b>collector</b><em>$6</em></span>
+          </div>
+          <div class="mode-body">
+            <h3>Draft</h3>
+            <p>2 to 4 humans or bots share one shop: a modifier someone owns can't be bought by the others. Lowest total shops first.</p>
+          </div>
+          <span class="mode-go">Play the draft <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
+      </div>
+      <div class="rules-strip" data-reveal>
+        <div class="rs-head">
+          <h3>Classic or Balanced rules</h3>
+          <p>Pick with the <b>Rules</b> switch in the game's top bar. Same inputs, same targets; only the scoring and the shop change.</p>
+        </div>
+        <div class="rs-opt">
+          <div class="rs-name">Classic <span class="badge-contest">Contest</span></div>
+          <p>The default, and the only ruleset the contest's judge uses.</p>
+        </div>
+        <div class="rs-opt alt">
+          <div class="rs-name">Balanced <span class="mode-tag">optional</span></div>
+          <p>Full House toned down, Flush and Three of a Kind up, cheaper deck edits and stronger niche modifiers. Bots can use it locally with <code>--rules balanced</code>.</p>
+        </div>
+      </div>
+      <div class="btn-row ways-more">
+        <a class="btn" href="/modes/">Every mode and rule, in full <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn ghost" href="/modes/#every-difference-from-classic">Classic vs Balanced, side by side</a>
+      </div>
+    </div>
+  </section>
+
   <section class="section story" id="how" aria-labelledby="how-title">
     <div class="wrap">
       <span class="eyebrow">How it works</span>
