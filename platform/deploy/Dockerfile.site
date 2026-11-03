@@ -30,7 +30,7 @@ RUN set -eu; \
     d=platform/site/dist; \
     test -f "$d/index.html" || { echo "build.py did not produce $d/index.html" >&2; exit 1; }; \
     if [ ! -f "$d/play/index.html" ]; then \
-        mkdir -p "$d/play"; cp poker_run/web/index.html poker_run/web/engine.js "$d/play/"; \
+        mkdir -p "$d/play"; cp poker_run/web/index.html poker_run/web/engine.js poker_run/web/bot.js poker_run/web/multiplayer.js "$d/play/"; \
     fi; \
     mkdir -p "$d/media"; \
     for f in video/poker_run_explainer.mp4 video/poker_run_explainer.webm; do \

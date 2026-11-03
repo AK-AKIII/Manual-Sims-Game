@@ -394,8 +394,13 @@ def build_problem(out, asset_hashes, sizes):
 
 def build_play(out):
     dst = os.path.join(out, "play")
-    copy(os.path.join(WEB, "engine.js"), os.path.join(dst, "engine.js"))
     page = read(os.path.join(WEB, "index.html"))
+    # The scripts the page loads (engine.js, bot.js, multiplayer.js), not the test drivers.
+    scripts = re.findall(r'<script src="([\w.-]+\.js)"></script>', page)
+    if "engine.js" not in scripts:
+        raise SystemExit("poker_run/web/index.html no longer loads engine.js")
+    for name in scripts:
+        copy(os.path.join(WEB, name), os.path.join(dst, name))
     # Make the game's title a link back to the site, if the markup is the one we know.
     title = "<h1>POKER <span>RUN</span></h1>"
     if title in page:

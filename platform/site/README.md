@@ -20,7 +20,7 @@ across runs. What it assembles:
 | `/problem/` | `pages/problem/index.html` + `poker_run/problem/statement.md` and `generator.md`, rendered by build.py's own Markdown renderer |
 | `/contest/` | `pages/contest/index.html` (sign in / register, submit, my submissions, admin) |
 | `/contest/leaderboard/` | `pages/contest/leaderboard/index.html` |
-| `/play/` | `poker_run/web/index.html` + `engine.js` (the title becomes a link home) |
+| `/play/` | `poker_run/web/index.html` + every script it loads (`engine.js`, `bot.js`, `multiplayer.js`; the title becomes a link home) |
 | `/assets/` | `assets/` (references get `?v=<content hash>` for cache busting) |
 | `/media/` | `video/poker_run_explainer.mp4` (+ `.webm` if present) |
 | `/downloads/` | `starter.py`, `statement.md`, `poker_run_public.zip` (inputs for seeds 1-10 from `generate`/`format_instance`, plus the baseline outputs and verdicts from `tests/fixtures/poker_run/public/`) |

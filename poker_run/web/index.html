@@ -289,6 +289,81 @@ button.card:hover::after { opacity: 1; }
 .btn.icon svg { width: 18px; height: 18px; }
 .btn.icon[aria-pressed="false"] { color: var(--muted); }
 
+
+/* ---------- multiplayer: setup, turn bar, hand-off, race, results */
+.source.mp > :not(#sound-btn) { display: none; }
+.kind-pick .tab { padding: 6px 11px; }
+.pdot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--pc, var(--gold)); box-shadow: 0 0 8px var(--pc, var(--gold)); vertical-align: 0.05em; }
+.pname { color: var(--pc, var(--gold)); font-weight: 800; overflow-wrap: anywhere; }
+.turnbar { border-left: 4px solid var(--pc, var(--gold)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 14px; }
+.turnbar .who { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.turnbar .what { color: var(--muted); font-size: 14px; }
+.turnbar .tags { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+.mp-chip { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: rgba(244, 239, 227, 0.08); border: 1px solid var(--line); white-space: nowrap; }
+.mp-chip b { color: var(--cream); }
+.board { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.board th { text-align: right; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.board th:first-child, .board td:first-child { text-align: left; }
+.board td { padding: 5px 6px; border-bottom: 1px solid rgba(244, 239, 227, 0.06); text-align: right; white-space: nowrap; }
+.board td.out { color: #ffb4a8; }
+.board td.wait { color: rgba(244, 239, 227, 0.25); }
+.board tr.me td { background: rgba(244, 239, 227, 0.05); }
+.board td.tot { font-weight: 800; color: var(--gold); }
+.board .place { display: inline-block; width: 1.4em; color: var(--muted); font-weight: 700; }
+.handoff { text-align: center; padding: 30px 16px 26px; position: relative; overflow: hidden; }
+.handoff .kicker, .results .kicker { color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; font-size: 12px; font-weight: 700; }
+.handoff .to { font-size: 15px; color: var(--muted); margin-top: 14px; }
+.handoff .big-name { font-size: clamp(30px, 7vw, 46px); font-weight: 800; color: var(--pc, var(--gold)); line-height: 1.1; overflow-wrap: anywhere; text-shadow: 0 0 28px color-mix(in srgb, var(--pc, var(--gold)) 35%, transparent); }
+.handoff .task { margin: 6px 0 18px; color: var(--cream); }
+.handoff .btn.primary { font-size: 16px; padding: 11px 20px; background: var(--pc, var(--gold)); border-color: var(--pc, var(--gold)); }
+.fan { display: flex; justify-content: center; height: 92px; margin: 18px 0 8px; }
+.card.back { --w: 54px; background: repeating-linear-gradient(45deg, #7a1f2b 0 6px, #63161f 6px 12px); border: 3px solid var(--card); margin: 0 -10px; transform-origin: 50% 120%; animation: breathe 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.card.back::before { content: ""; position: absolute; inset: 6px; border-radius: 4px; border: 1px solid rgba(242, 193, 78, 0.45); }
+@keyframes breathe { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
+.recap { display: grid; gap: 6px; text-align: left; max-width: 640px; margin: 20px auto 0; }
+.recap .ev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: baseline; background: var(--panel-2); border-radius: 10px; padding: 8px 12px; border-left: 3px solid var(--pc, var(--gold)); animation: msg 0.5s var(--glide) backwards; animation-delay: var(--d, 0ms); }
+.recap .ev .t { font-size: 14px; overflow-wrap: anywhere; }
+.recap .ev .s { grid-column: 2; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.recap h3 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+.race .lane { display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto; gap: 10px; align-items: center; margin: 8px 0; }
+.race .lane .nm { display: flex; gap: 7px; align-items: center; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.race .track { height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); overflow: hidden; }
+.race .track i { display: block; height: 100%; width: 0; border-radius: 6px; background: var(--pc, var(--gold)); transition: width 0.9s var(--glide); }
+.race .score { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 5ch; text-align: right; }
+.pips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pip { min-width: 30px; padding: 2px 5px; border-radius: 6px; font: 600 11px/1.3 var(--mono); text-align: center; background: rgba(0, 0, 0, 0.3); color: rgba(244, 239, 227, 0.3); }
+.pip.ok { background: color-mix(in srgb, var(--pc, var(--gold)) 22%, transparent); color: var(--cream); }
+.pip.bad { background: rgba(226, 88, 76, 0.25); color: #ffb4a8; }
+.pip.pop { animation: pop 0.6s var(--spring) backwards; animation-delay: var(--d, 0ms); }
+@keyframes pop { from { transform: scale(0.4); opacity: 0; } }
+.reveal { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; margin-top: 10px; border-left: 3px solid var(--pc, var(--gold)); }
+.reveal.fresh { animation: msg 0.6s var(--glide) backwards; }
+.reveal .plays { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.movelist { margin: 6px 0 0; padding-left: 0; list-style: none; font: 12px var(--mono); max-height: 220px; overflow: auto; columns: 2 14em; }
+.movelist li { break-inside: avoid; padding: 1px 0; overflow-wrap: anywhere; }
+.setup .grid { display: grid; gap: 10px; }
+.setup .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.setup .row > label.k { min-width: 5.5em; color: var(--muted); font-size: 13px; font-weight: 600; }
+.setup .seat { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--panel-2); border-radius: 10px; padding: 8px 10px; border-left: 3px solid var(--pc); }
+.setup .seat input[type="text"] { flex: 1 1 9em; min-width: 0; font-family: var(--sans); font-size: 15px; }
+.setup .seat .tabs .tab { padding: 4px 10px; font-size: 13px; }
+.setup .lead { margin: 4px 0 12px; color: var(--muted); }
+.mode-rules { margin: 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+.mode-rules li { margin: 4px 0; }
+.mode-rules b { color: var(--cream); }
+.results .winner { font-size: clamp(30px, 6vw, 44px); font-weight: 800; color: var(--pc, var(--gold)); line-height: 1.15; margin: 6px 0 4px; overflow-wrap: anywhere; }
+.podium { display: grid; gap: 8px; max-width: 560px; margin: 16px auto 4px; text-align: left; }
+.podium .pl { display: grid; grid-template-columns: 2em minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; background: var(--panel-2); border-radius: 12px; padding: 10px 14px; border-left: 4px solid var(--pc); animation: msg 0.55s var(--glide) backwards; animation-delay: var(--d, 0ms); }
+.podium .pl.first { box-shadow: 0 0 0 1px color-mix(in srgb, var(--pc) 60%, transparent), 0 0 24px color-mix(in srgb, var(--pc) 22%, transparent); }
+.podium .place { font-size: 20px; font-weight: 800; color: var(--muted); }
+.podium .pts { font-size: 22px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+.podium .sub { grid-column: 2 / -1; font-size: 13px; color: var(--muted); }
+.plist .pr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 10px; border-bottom: 1px solid rgba(244, 239, 227, 0.06); line-height: 1.3; }
+.plist .pr.now { background: color-mix(in srgb, var(--pc) 12%, transparent); }
+.outputs details { background: var(--panel-2); border-radius: 10px; padding: 8px 12px; margin-top: 8px; border-left: 3px solid var(--pc); }
+.outputs summary { color: var(--cream); }
+.outputs textarea { min-height: 120px; font-size: 12px; margin-top: 8px; }
+
 @media (max-width: 600px) {
   :root { --cw: 54px; }
   .wrap { padding: 10px 10px 30px; }
@@ -297,6 +372,11 @@ button.card:hover::after { opacity: 1; }
   .hand { gap: 6px; }
   .stat .v { font-size: 17px; }
   .card .tag { font-size: 8px; }
+}
+@media (max-width: 600px) {
+  .turnbar .tags { margin-left: 0; }
+  .race .lane { grid-template-columns: minmax(0, 6.5em) minmax(0, 1fr) auto; gap: 8px; }
+  .kind-pick .tab { padding: 6px 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
@@ -316,6 +396,13 @@ button.card:hover::after { opacity: 1; }
       <span class="lbl" aria-hidden="true">Rules</span>
       <button class="tab" role="radio" aria-checked="true" data-act="rules" data-v="classic" title="Classic rules: the contest's">Classic</button>
       <button class="tab" role="radio" aria-checked="false" data-act="rules" data-v="balanced" title="Balanced rules: an optional variant with rebalanced hands, modifiers and prices">Balanced</button>
+    </div>
+    <div class="tabs rules-pick kind-pick" role="radiogroup" aria-label="Players" id="kind-pick">
+      <span class="lbl" aria-hidden="true">Mode</span>
+      <button class="tab" role="radio" aria-checked="true" data-act="kind" data-v="solo" title="Play alone (the contest)">Solo</button>
+      <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="bot" title="Race a computer player on the same deal">vs Bot</button>
+      <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="hotseat" title="2 to 4 players on one device, taking turns round by round">Pass &amp; play</button>
+      <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="draft" title="Pass and play with one shared shop: what someone buys is gone for everyone else">Draft</button>
     </div>
     <div class="source" id="source-bar">
       <label for="seed">Seed</label>
@@ -399,6 +486,8 @@ button.card:hover::after { opacity: 1; }
 </div>
 
 <script src="engine.js"></script>
+<script src="bot.js"></script>
+<script src="multiplayer.js"></script>
 <script>
 "use strict";
 /* ======================================================================
@@ -620,11 +709,28 @@ function startApp(PR) {
     msg: null,           // {kind: 'err'|'ok', text}
     rp: null,            // replay state
     rpStep: 0,
+    kind: "solo",        // solo | bot | hotseat | draft (multiplayer modes, see M below)
+    who: "",             // "" for the solo game, "<kind>:<seat>" while a multiplayer player is shown
+  };
+
+  // Multiplayer state. While a multiplayer player's game is on screen, S.source/inputText/inst/
+  // moves/labels/game/sel/deckPick/msg are theirs and the solo game waits in M.stash.
+  const M = {
+    stash: null,
+    rules: "classic",    // ruleset for new multiplayer matches
+    setups: {
+      bot: { seed: 1, name: "You", level: "normal" },
+      hotseat: { seed: 1, n: 2, players: [1, 2, 3, 4].map((i) => ({ name: `Player ${i}`, bot: null })) },
+      draft: { seed: 1, n: 3, players: [1, 2, 3, 4].map((i) => ({ name: i <= 2 ? `Player ${i}` : `Bot ${i}`, bot: i <= 2 ? null : "normal" })) },
+    },
+    games: { bot: null, hotseat: null, draft: null },  // the match of each mode (see mpStart)
   };
 
   // ---------- persistence (per-viewer convenience only)
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ source: S.source, moves: S.moves, sort: S.sort, rules: S.rules })); } catch (e) { /* storage unavailable */ }
+    const solo = M.stash || S;   // always the solo game, even while a multiplayer one is shown
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ source: solo.source, moves: solo.moves, sort: S.sort, rules: S.rules })); } catch (e) { /* storage unavailable */ }
+    if (S.kind !== "solo") saveMP();
   }
   function restore() {
     try {
@@ -644,13 +750,17 @@ function startApp(PR) {
     S.inst = inst;
     setMoves(moves || []);
     if (source.type === "seed") $("seed").value = String(source.seed);
-    if (source.type === "seed") {
-      const hash = "seed=" + source.seed + (S.rules !== "classic" ? "&rules=" + S.rules : "");
-      try { history.replaceState(null, "", "#" + hash); } catch (e) {
-        try { location.hash = hash; } catch (e2) { /* no URL updates here */ }
-      }
-    }
+    soloHash();
     save();
+  }
+
+  // The solo game's seed and rules in the URL (multiplayer modes leave the URL bare).
+  function soloHash() {
+    if (S.source.type !== "seed") return;
+    const hash = "seed=" + S.source.seed + (S.rules !== "classic" ? "&rules=" + S.rules : "");
+    try { history.replaceState(null, "", "#" + hash); } catch (e) {
+      try { location.hash = hash; } catch (e2) { /* no URL updates here */ }
+    }
   }
 
   function setMoves(moves) {
@@ -795,8 +905,8 @@ function startApp(PR) {
       spawn("float", x, y, `${esc(text)}${sub ? `<small>${esc(sub)}</small>` : ""}`);
     }
 
-    function motes(count) {
-      const bar = document.querySelector("#play-main .progress");
+    function motes(count, el) {
+      const bar = el || document.querySelector("#play-main .progress");
       if (!bar) return;
       const r = bar.getBoundingClientRect();
       for (let i = 0; i < count; i++) {
@@ -822,12 +932,13 @@ function startApp(PR) {
 
     // Called after every play-mode render: animate what changed since the previous one.
     function afterRender(g) {
-      const key = S.inputText + "|" + S.moves.length;
+      const key = S.inputText + "|" + S.who + "|" + S.moves.length;
+      const input = S.inputText + "|" + S.who;   // a different player's game counts as a fresh deal
       const hand = g.phase === "play" ? g.hand.slice() : [];
       const nums = { round: Number(g.round_score), money: Number(g.money), total: Number(g.total) };
       const target = Number(g.target);
       const pct = target > 0 ? Math.min(100, (100 * Number(g.round_score)) / target) : 100;
-      const fresh = !seen || seen.input !== S.inputText;
+      const fresh = !seen || seen.input !== input;
       if (seen && seen.key === key) { seen.hand = hand; return; } // a selection change, nothing moved
       const known = new Set(fresh ? [] : seen.hand);
       let k = 0;
@@ -851,7 +962,7 @@ function startApp(PR) {
       }
       const msg = document.querySelector("#play-msg > div, #play-main .err, #play-main .okmsg");
       if (msg) msg.classList.add("msg-in");
-      seen = { key, input: S.inputText, hand, nums, pct, round: g.round, phase: g.phase };
+      seen = { key, input, hand, nums, pct, round: g.round, phase: g.phase };
     }
 
     // Called after a legal move: the sound and the moment that go with it.
@@ -874,7 +985,7 @@ function startApp(PR) {
       }
     }
 
-    return { ripple, afterRender, afterMove };
+    return { ripple, afterRender, afterMove, countUp, motes, calm };
   })();
 
   // ---------- scroll: a progress line, a compact score bar once the status panel is out of
@@ -902,7 +1013,8 @@ function startApp(PR) {
       const pct = target > 0 ? Math.min(100, (100 * Number(g.round_score)) / target) : 100;
       const phase = g.phase === "play" ? "" : g.phase === "shop" ? " · shop" : " · run over";
       const live = g.phase === "play";
-      $("mini").innerHTML = `<span><span class="k">Round</span>${g.round + 1}/${g.inst.rounds}${phase}</span>
+      const who = mpWho();
+      $("mini").innerHTML = `${who ? `<span class="pname" style="--pc:${who.color}">${esc(who.name)}</span>` : ""}<span><span class="k">Round</span>${g.round + 1}/${g.inst.rounds}${phase}</span>
         <span class="meter" aria-hidden="true"><i style="width:${pct}%"></i></span>
         <span>${UI.num(g.round_score)}<span class="k"> / ${UI.num(g.target)}</span></span>
         <span class="opt"><span class="k">Plays</span>${live ? g.plays_left : "–"}</span>
@@ -936,6 +1048,7 @@ function startApp(PR) {
   }
 
   function doMove(line) {
+    if (M.stash) return mpMove(line);
     const before = S.game;
     const g = S.game.clone();
     const label = UI.describe(S.game, line);
@@ -957,6 +1070,7 @@ function startApp(PR) {
   }
 
   function undo() {
+    if (M.stash) { mpUndo(); return; }
     if (!S.moves.length) return;
     const last = S.moves[S.moves.length - 1];
     setMoves(S.moves.slice(0, -1));
@@ -1129,15 +1243,21 @@ function startApp(PR) {
   function shopHTML(g) {
     const prices = g.prices();
     const queue = g.inst.offers[g.round];
-    const slots = g.visibleSlots();
-    const offers = slots.map(({ name, taken }) => {
+    const st = M.stash ? mpCur() : null, seat = st ? st.viewer : -1;   // a multiplayer player's shop
+    const slots = st ? st.match.shopSlots(seat) : g.visibleSlots();
+    const offers = slots.map(({ name, taken, owner }) => {
       const [price, fx] = g.rules.modifiers[name];
       if (taken) return `<div class="offer sold"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Bought</div></div>`;
-      const err = g.tryMove("buy " + name);
+      if (owner >= 0) return `<div class="offer sold" style="--pc:${COLORS[owner]}"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Drafted by <span class="pname">${esc(st.match.players[owner].name)}</span></div></div>`;
+      const err = st ? st.match.tryMove("buy " + name, seat) : g.tryMove("buy " + name);
       return `<div class="offer"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">${esc(fx)}</div>
         <div class="row"><span class="cost">$${price}</span>${btn("Buy", "buy", { v: name, cls: "primary small", err, aria: `Buy ${name} for $${price}` })}</div></div>`;
     }).join("");
-    const later = queue.slice(g.offer_pos + g.rules.shop_window).map((m) => `<span class="chip" title="${esc(g.rules.modifiers[m] ? `$${g.rules.modifiers[m][0]}: ${g.rules.modifiers[m][1]}` : "")}">${esc(UI.prettyMod(m))}</span>`).join("");
+    const later = queue.slice(g.offer_pos + g.rules.shop_window).map((m) => {
+      const owner = st ? st.match.ownerOf(m, seat) : -1;
+      const tip = owner >= 0 ? `drafted by ${st.match.players[owner].name}` : g.rules.modifiers[m] ? `$${g.rules.modifiers[m][0]}: ${g.rules.modifiers[m][1]}` : "";
+      return `<span class="chip" title="${esc(tip)}"${owner >= 0 ? ' style="opacity:.45;text-decoration:line-through"' : ""}>${esc(UI.prettyMod(m))}</span>`;
+    }).join("");
     const pick = S.deckPick;
     let deckActions = '<span class="muted">Pick a card below to remove, paint or promote it.</span>';
     if (pick !== null && g.in_deck[pick]) {
@@ -1154,8 +1274,8 @@ function startApp(PR) {
       : cardHTML(g, c, { size: "deckc", cls: "gone", aria: "removed" })).join("");
     return `<section class="panel" aria-label="Shop">
       <div class="toolbar"><h2 style="margin:0">Shop after round ${g.round + 1}</h2>
-        <div class="actions">${btn("Next round →", "next", { cls: "primary", err: g.tryMove("next") })}</div></div>
-      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + g.rules.shop_window, queue.length)} of ${queue.length} in this shop's queue.</p>
+        <div class="actions">${btn(st && st.match.mode === "draft" ? "Done shopping →" : st && st.match.mode === "rounds" ? "Next round · end turn →" : "Next round →", "next", { cls: "primary", err: g.tryMove("next") })}</div></div>
+      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + g.rules.shop_window, queue.length)} of ${queue.length} in this shop's queue.${st && st.match.mode === "draft" ? ` ${esc(draftNote(st, seat))}` : ""}</p>
       <div class="offers">${offers || '<p class="muted">No offers.</p>'}</div>
       <div class="actions" style="margin-top:10px">
         ${btn("Reroll", "reroll", { price: prices.reroll, err: g.tryMove("reroll") })}
@@ -1204,7 +1324,7 @@ function startApp(PR) {
       : "";
     return `${modsHTML(g, true)}${rulesBoxHTML(g.rules)}
       <section class="panel" aria-label="Moves">
-        <div class="toolbar"><h2 style="margin:0">Moves (${S.moves.length})</h2>${btn("Undo", "undo", { err: S.moves.length ? "" : "Nothing to undo", title: "Undo the last move" })}</div>
+        <div class="toolbar"><h2 style="margin:0">Moves (${S.moves.length})</h2>${btn("Undo", "undo", { err: undoErr(), title: "Undo the last move" })}</div>
         <div style="margin-top:8px">${logHTML(S.moves, S.labels, 0, 0)}</div>
       </section>
       <section class="panel export" aria-label="Export">
@@ -1219,8 +1339,10 @@ function startApp(PR) {
   function sourceLabel() { return S.source.type === "seed" ? `seed ${S.source.seed}` : "custom input"; }
 
   function renderPlay() {
+    if (S.kind !== "solo" && mpRender()) return;
     const g = S.game;
-    let main = statusHTML(g);
+    const st = M.stash ? mpCur() : null;
+    let main = (st ? mpTopHTML(st) : "") + statusHTML(g);
     if (g.phase === "play") {
       main += playPanelHTML(g, true);
       const nextN = S.sel.length ? Math.min(S.sel.length, g.pile.length) : 0;
@@ -1235,9 +1357,10 @@ function startApp(PR) {
       main += handTableHTML(g, false, null);
     }
     $("play-main").innerHTML = main;
-    $("play-side").innerHTML = sideHTML(g);
+    $("play-side").innerHTML = (st ? mpSideHTML(st) : "") + sideHTML(g);
     Feel.afterRender(g);
     Scroll.fill(g);
+    if (st) mpAfterRender(st);
   }
 
   // ---------- replay
@@ -1328,12 +1451,17 @@ function startApp(PR) {
 
   // ---------- top-level render
   function render() {
+    if (S.mode !== "play" || S.kind === "solo") useSolo();
     $("view-play").classList.toggle("hidden", S.mode !== "play");
     $("view-replay").classList.toggle("hidden", S.mode !== "replay");
     $("tab-play").setAttribute("aria-selected", String(S.mode === "play"));
     $("tab-replay").setAttribute("aria-selected", String(S.mode === "replay"));
     $("source-bar").classList.toggle("hidden", S.mode !== "play");
-    document.querySelectorAll('[data-act="rules"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === S.rules)));
+    $("source-bar").classList.toggle("mp", S.kind !== "solo");
+    $("kind-pick").classList.toggle("hidden", S.mode !== "play");
+    const rules = curRules();
+    document.querySelectorAll('[data-act="rules"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === rules)));
+    document.querySelectorAll('[data-act="kind"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === S.kind)));
     if (S.mode === "play") renderPlay(); else renderReplay();
     Scroll.request();
   }
@@ -1355,6 +1483,517 @@ function startApp(PR) {
   function flash(id, kind, text) {
     const el = $(id);
     if (el) el.innerHTML = `<div class="${kind === "err" ? "err" : "okmsg"}">${esc(text)}</div>`;
+  }
+
+  // ======================================================================
+  // Multiplayer: vs Bot, pass-and-play and the shared-shop draft (bot.js, multiplayer.js).
+  // Each mode keeps one match (M.games[kind]); the solo game is never touched.
+  // ======================================================================
+  const MP_KEY = "poker-run:mp:v1", KIND_KEY = "poker-run:kind";
+  const KINDS = { solo: "Solo", bot: "vs Bot", hotseat: "Pass & play", draft: "Draft" };
+  const MODE_OF = { bot: "race", hotseat: "rounds", draft: "draft" };
+  const COLORS = ["#f2c14e", "#6fd0e0", "#f08a76", "#b8a4f4"];
+  const LEVEL_NAMES = { easy: "Easy", normal: "Normal", hard: "Hard" };
+  const isRules = (r) => typeof r === "string" && Object.prototype.hasOwnProperty.call(PR.RULESETS, r);
+  const ordinal = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th");
+  const randomSeed = () => Math.floor(Math.random() * 1000000) + 1;
+  const scrollTop = () => { try { scrollTo({ top: 0, behavior: Feel.calm ? "auto" : "smooth" }); } catch (e) { /* old browsers */ } };
+
+  function mpCur() { return S.kind !== "solo" ? M.games[S.kind] : null; }
+  function curRules() {
+    if (S.mode !== "play" || S.kind === "solo") return S.rules;
+    const st = mpCur();
+    return st && !st.match.over ? st.match.rules : M.rules;
+  }
+  function mpWho() {
+    const st = M.stash ? mpCur() : null;
+    return st ? { name: st.match.players[st.viewer].name, color: COLORS[st.viewer] } : null;
+  }
+  function undoErr() {
+    if (!M.stash) return S.moves.length ? "" : "Nothing to undo";
+    return mpCur().match.canUndo() ? "" : "Only moves made in this turn can be undone";
+  }
+
+  // ---- persistence: setups and each mode's match (its seed and move log), per viewer
+  function saveMP() {
+    const games = {};
+    for (const [k, st] of Object.entries(M.games)) {
+      if (st) games[k] = { seed: st.seed, match: st.match.toJSON(), screen: st.screen, viewer: st.viewer, revealed: st.revealed, from: st.from };
+    }
+    try { localStorage.setItem(MP_KEY, JSON.stringify({ rules: M.rules, setups: M.setups, games })); } catch (e) { /* storage unavailable */ }
+  }
+
+  function restoreMP() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(MP_KEY) || "null"); } catch (e) { raw = null; }
+    if (!raw || typeof raw !== "object") return;
+    if (isRules(raw.rules)) M.rules = raw.rules;
+    const su = raw.setups || {};
+    if (su.bot && typeof su.bot === "object") {
+      if (typeof su.bot.name === "string") M.setups.bot.name = su.bot.name.slice(0, 24);
+      if (LEVEL_NAMES[su.bot.level]) M.setups.bot.level = su.bot.level;
+      if (Number.isSafeInteger(su.bot.seed)) M.setups.bot.seed = su.bot.seed;
+    }
+    for (const k of ["hotseat", "draft"]) {
+      const s = su[k];
+      if (!s || typeof s !== "object") continue;
+      if ([2, 3, 4].includes(s.n)) M.setups[k].n = s.n;
+      if (Number.isSafeInteger(s.seed)) M.setups[k].seed = s.seed;
+      (Array.isArray(s.players) ? s.players : []).slice(0, 4).forEach((p, i) => {
+        if (p && typeof p.name === "string") M.setups[k].players[i].name = p.name.slice(0, 24);
+        if (p && (p.bot === null || LEVEL_NAMES[p.bot])) M.setups[k].players[i].bot = p.bot;
+      });
+    }
+    for (const k of Object.keys(M.games)) {
+      const g = raw.games && raw.games[k];
+      if (!g || !Number.isSafeInteger(g.seed) || !g.match) continue;
+      try {
+        const st = newMatch(k, g.seed, g.match);
+        st.screen = ["turn", "handoff", "results"].includes(g.screen) ? g.screen : "handoff";
+        st.viewer = Number.isInteger(g.viewer) ? g.viewer : -1;
+        st.revealed = Number.isInteger(g.revealed) ? g.revealed : 0;
+        st.from = Number.isInteger(g.from) ? g.from : -1;
+        st.celebrated = st.screen === "results";
+        M.games[k] = st;
+      } catch (e) { M.games[k] = null; /* a stale or broken save: start over */ }
+    }
+  }
+
+  function newMatch(kind, seed, opts) {
+    const inst = PR.generate(seed);
+    const match = new PokerMulti.Match(inst, opts);
+    if (match.mode !== MODE_OF[kind]) throw new Error("mode mismatch");
+    return { kind, seed, text: PR.formatInstance(inst), match, screen: "handoff", viewer: -1, revealed: 0, from: -1, labels: {}, celebrated: false };
+  }
+
+  function mpStart(kind, seed) {
+    const su = M.setups[kind];
+    const players = kind === "bot"
+      ? [{ name: su.name.trim() || "You" }, { name: "Bot", bot: su.level }]
+      : su.players.slice(0, su.n).map((p, i) => ({ name: p.name.trim() || `Player ${i + 1}`, bot: p.bot || null }));
+    const st = newMatch(kind, seed, { mode: MODE_OF[kind], rules: M.rules, players });
+    const mt = st.match, humans = players.filter((p) => !p.bot).length;
+    if (mt.over) st.screen = "results";
+    else if (kind === "bot" || (humans === 1 && !mt.history.length)) { st.screen = "turn"; st.viewer = mt.turn.seat; }
+    su.seed = seed;
+    M.games[kind] = st;
+    S.who = "";   // a new match: every hand is dealt fresh
+    saveMP();
+    return st;
+  }
+
+  // ---- whose game is on screen
+  function useSeat(st, seat) {
+    if (!M.stash) M.stash = { source: S.source, inputText: S.inputText, inst: S.inst, moves: S.moves, labels: S.labels, game: S.game, sel: S.sel, deckPick: S.deckPick, msg: S.msg, who: S.who };
+    const who = `${st.kind}:${seat}`;
+    if (S.who !== who) { S.sel = []; S.deckPick = null; S.msg = null; S.who = who; }
+    const pl = st.match.players[seat];
+    S.source = { type: "seed", seed: st.seed };
+    S.inputText = st.text;
+    S.inst = st.match.inst;
+    S.game = pl.game;
+    S.moves = pl.moves.slice();
+    S.labels = labelsOf(st, seat);
+  }
+  function useSolo() { if (M.stash) { Object.assign(S, M.stash); M.stash = null; } }
+
+  function labelsOf(st, seat) {
+    const pl = st.match.players[seat], key = pl.moves.join("\n");
+    const c = st.labels[seat];
+    if (c && c.key === key) return c.labels;
+    const g = new PR.Game(st.match.inst, st.match.rules), labels = [];
+    for (const m of pl.moves) { labels.push(UI.describe(g, m)); g.apply(m); }
+    st.labels[seat] = { key, labels };
+    return labels;
+  }
+
+  function setKind(k, quiet) {
+    if (!KINDS[k] || k === S.kind) return;
+    S.kind = k;
+    try { localStorage.setItem(KIND_KEY, k); } catch (e) { /* storage unavailable */ }
+    if (!quiet) Sound.tap();
+    if (k === "solo") { useSolo(); soloHash(); } else {
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* no URL updates here */ }
+    }
+    if (!quiet) render();
+  }
+
+  // ---- moves
+  function mpMove(line) {
+    const st = mpCur(), mt = st.match, seat = st.viewer;
+    const err = mt.tryMove(line, seat);
+    if (err) { S.msg = { kind: "err", text: `${line}: ${err}` }; Sound.oops(); renderKeepFocus(); return false; }
+    const before = S.game.clone(), n0 = mt.history.length;
+    mt.apply(line, seat);   // the bots move now too, if their turn comes
+    const after = mt.players[seat].game;
+    const others = mt.history.slice(n0 + 1).some((h) => h.seat !== seat);
+    S.msg = null;
+    S.sel = after.phase === "play" ? S.sel.filter((c) => after.hand.includes(c)) : [];
+    if (S.deckPick !== null && (!after.in_deck[S.deckPick] || after.phase !== "shop")) S.deckPick = null;
+    st.from = seat;
+    if (mt.over) st.screen = "results";
+    else if (mt.mode !== "race" && (mt.turn.seat !== seat || others)) st.screen = "handoff";
+    saveMP();
+    renderKeepFocus();
+    Feel.afterMove(line, before, after);
+    if (st.screen !== "turn") scrollTop();
+    return true;
+  }
+
+  function mpUndo() {
+    const st = mpCur(), mt = st.match;
+    if (!mt.canUndo()) { S.msg = { kind: "err", text: "Only moves made in this turn can be undone." }; Sound.oops(); render(); return; }
+    const last = mt.history[mt.history.length - 1].move;
+    mt.undo();
+    S.sel = []; S.deckPick = null;
+    S.msg = { kind: "ok", text: `Undid "${last}".` };
+    saveMP();
+    render();
+  }
+
+  function mpRules(v) {
+    if (!isRules(v) || v === curRules()) return;
+    const st = mpCur();
+    const live = st && !st.match.over && st.match.history.some((h) => !st.match.players[h.seat].bot);
+    if (live && !window.confirm(`Switch to the ${UI.rulesTitle(v)} rules? This match starts again on the same seed.`)) return;
+    M.rules = v;
+    Sound.shuffle();
+    if (st && !st.match.over) mpStart(S.kind, st.seed);
+    saveMP();
+    render();
+  }
+
+  // ---- what to show
+  // Renders setup, hand-off or results and returns true; or points S at the player whose turn it is.
+  function mpRender() {
+    const st = mpCur();
+    if (!st) { useSolo(); $("play-main").innerHTML = setupHTML(S.kind); $("play-side").innerHTML = setupSideHTML(S.kind); Scroll.request(); return true; }
+    const mt = st.match;
+    if (mt.over) st.screen = "results";
+    if (st.screen === "results") { useSolo(); renderResults(st); Scroll.request(); return true; }
+    const t = mt.turn;
+    if (mt.mode === "race") { st.viewer = t.seat; st.screen = "turn"; }
+    if (st.screen !== "turn" || st.viewer !== t.seat) {
+      st.screen = "handoff";
+      useSolo();
+      $("play-main").innerHTML = handoffHTML(st) + boardHTML(st, t.seat);
+      $("play-side").innerHTML = mpSideHTML(st);
+      const go = document.querySelector('[data-act="mp-reveal"]');
+      if (go) go.focus({ preventScroll: true });   // Enter or Space shows the next hand
+      Scroll.request();
+      return true;
+    }
+    useSeat(st, t.seat);
+    return false;
+  }
+
+  function stageText(st, t) {
+    const mt = st.match, R = mt.inst.rounds;
+    if (t.stage === "play") return `plays round ${t.round + 1} of ${R}`;
+    if (mt.mode === "draft") {
+      const order = mt.shopOrder(t.round), k = order.indexOf(t.seat) + 1;
+      return `picks ${ordinal(k)} of ${order.length} in the shared shop after round ${t.round + 1}`;
+    }
+    return `shops after round ${t.round + 1}`;
+  }
+
+  function draftNote(st, seat) {
+    const order = st.match.shopOrder(st.match.players[seat].game.round);
+    const k = order.indexOf(seat) + 1;
+    return `Shared shop: you pick ${ordinal(k)} of ${order.length} (lowest total first). A modifier another player owns is gone for you; one they sell comes back.`;
+  }
+
+  function chipsHTML(st) {
+    const mt = st.match;
+    const lvl = mt.mode === "race" ? ` (${LEVEL_NAMES[mt.players[1].bot]})` : "";
+    return `<span class="mp-chip">${esc(KINDS[st.kind])}${lvl}</span><span class="mp-chip">seed <b>${st.seed}</b></span>` +
+      (mt.rules !== "classic" ? `<span class="rules-tag" style="margin:0">${esc(UI.rulesTitle(mt.rules))} rules</span>` : "");
+  }
+
+  // The turn indicator above the game, and (vs Bot) the race.
+  function mpTopHTML(st) {
+    const mt = st.match, t = mt.turn, pl = mt.players[t.seat];
+    const what = mt.mode === "race" ? (t.stage === "play" ? `round ${t.round + 1} of ${mt.inst.rounds}` : `shop after round ${t.round + 1}`) : stageText(st, t);
+    const bar = `<section class="panel turnbar" style="--pc:${COLORS[t.seat]}" aria-label="Whose turn">
+      <span class="who"><span class="pdot"></span><span class="pname">${esc(pl.name)}</span></span><span class="what">${esc(what)}</span>
+      <span class="tags">${chipsHTML(st)}</span></section>`;
+    return bar + (mt.mode === "race" ? raceHTML(st) : "");
+  }
+
+  // vs Bot: how many of the bot's rounds are shown (one per round the player has finished).
+  function revealCount(st) {
+    const me = st.match.players[0];
+    return me.game.over ? st.match.inst.rounds : me.rounds.filter((r) => r.cleared !== null).length;
+  }
+  const roundsTotal = (pl, n) => pl.rounds.slice(0, n).reduce((a, r) => a + r.score, 0);
+
+  function pipsHTML(pl, n, fresh) {
+    const R = pl.game.inst.rounds, out = [];
+    for (let r = 0; r < R; r++) {
+      const rec = r < n ? pl.rounds[r] : null;
+      const done = rec && rec.cleared !== null;
+      const cls = done ? (rec.cleared ? "ok" : "bad") : "";
+      const pop = done && fresh && r >= fresh[0] && r < fresh[1] ? ` pop" style="--d:${(r - fresh[0]) * 140}ms` : "";
+      out.push(`<span class="pip ${cls}${pop}" title="Round ${r + 1}${done ? `: ${rec.cleared ? "cleared" : "out"} with ${UI.num(rec.score)}` : ""}">${done ? (rec.cleared ? "✓" : "✗") + "&#8239;" + (r + 1) : r + 1}</span>`);
+    }
+    return out.join("");
+  }
+
+  function playsChips(rec) {
+    return rec.plays.map((p) => `<span class="chip">${esc(PR.HAND_NAMES[p.hand])} ${UI.num(p.points)}</span>`).join("");
+  }
+
+  // One player's moves of one round (and its shop), with descriptions.
+  function roundMovesHTML(st, seat, r) {
+    const pl = st.match.players[seat], labels = labelsOf(st, seat);
+    let off = 0;
+    for (let k = 0; k < r; k++) off += pl.rounds[k] ? pl.rounds[k].moves.length + pl.rounds[k].shop.length : 0;
+    const rec = pl.rounds[r], n = rec.moves.length + rec.shop.length;
+    const items = pl.moves.slice(off, off + n).map((m, i) => `<li><span>${esc(m)}</span> <span class="muted">${esc(labels[off + i] || "")}</span></li>`).join("");
+    return `<details><summary>Moves (${n})</summary><ol class="movelist">${items}</ol></details>`;
+  }
+
+  function raceHTML(st) {
+    const mt = st.match, me = mt.players[0], bot = mt.players[1];
+    const n = revealCount(st);
+    const fresh = n > st.revealed ? [st.revealed, n] : null;
+    const myTotal = me.game.total, botTotal = roundsTotal(bot, n);
+    const max = Math.max(1, myTotal, botTotal);
+    const lane = (pl, total, shown, f) => `<div class="lane" style="--pc:${COLORS[pl.seat]}"><span class="nm"><span class="pdot"></span>${esc(pl.name)}</span>
+      <span class="track"><i data-race-bar="${pl.seat}" style="width:${(100 * total) / max}%"></i></span><span class="score" data-race="${pl.seat}">${UI.num(total)}</span></div>
+      <div class="pips" style="--pc:${COLORS[pl.seat]};margin:-2px 0 10px">${pipsHTML(pl, shown, f)}</div>`;
+    const diff = myTotal - botTotal;
+    const lead = diff > 0 ? `${esc(me.name)} ${me.name === "You" ? "lead" : "leads"} by ${UI.num(diff)}` : diff < 0 ? `Bot leads by ${UI.num(-diff)}` : "Level";
+    let reveal = `<p class="muted" style="margin:8px 0 0;font-size:13px">The bot plays the same deal. Its round ${me.game.round + 1} shows up when you finish yours.</p>`;
+    const r = n - 1, rec = r >= 0 ? bot.rounds[r] : null;
+    if (rec) {
+      const head = rec.cleared ? `cleared round ${r + 1}: <b>${UI.num(rec.score)}</b> / ${UI.num(mt.inst.targets[r])}` : `went out in round ${r + 1}: ${UI.num(rec.score)} / ${UI.num(mt.inst.targets[r])}`;
+      const buys = rec.shop.filter((m) => m.startsWith("buy ")).map((m) => UI.prettyMod(m.slice(4)));
+      reveal = `<div class="reveal${fresh ? " fresh" : ""}" style="--pc:${COLORS[1]}"><div><span class="pname">Bot</span> ${head}</div>
+        <div class="plays">${playsChips(rec)}${buys.length ? `<span class="chip on">bought ${esc(buys.join(", "))}</span>` : ""}</div>
+        ${roundMovesHTML(st, 1, r)}</div>`;
+    } else if (n > 0 && bot.game.over) {
+      reveal = `<div class="reveal" style="--pc:${COLORS[1]}"><span class="pname">Bot</span> went out in round ${bot.game.round + 1}; you're racing its final ${UI.num(bot.game.total)}.</div>`;
+    }
+    return `<section class="panel race" aria-label="Race against the bot">
+      <div class="toolbar"><h2 style="margin:0">Race</h2><span class="muted" style="font-size:13px">${lead}</span></div>
+      ${lane(me, myTotal, n, null)}${lane(bot, botTotal, n, fresh)}${reveal}</section>`;
+  }
+
+  // After a vs Bot render: animate the bot's newly revealed rounds.
+  function mpAfterRender(st) {
+    if (st.match.mode !== "race") return;
+    const n = revealCount(st);
+    if (n <= st.revealed) return;
+    const bot = st.match.players[1], from = roundsTotal(bot, st.revealed), to = roundsTotal(bot, n);
+    st.revealed = n;
+    saveMP();
+    const el = document.querySelector('[data-race="1"]');
+    if (el) Feel.countUp(el, from, to, "");
+    const bar = document.querySelector('[data-race-bar="1"]');
+    if (bar && !Feel.calm) {
+      const w = bar.style.width, max = Math.max(1, st.match.players[0].game.total, to);
+      bar.style.width = `${(100 * from) / max}%`;
+      bar.getBoundingClientRect();
+      bar.style.width = w;
+    }
+    setTimeout(() => Sound.next(), 650);
+  }
+
+  // Round-by-round scores of everyone. In a race, the bot's unrevealed rounds stay hidden.
+  function boardHTML(st, current, all) {
+    const mt = st.match, R = mt.inst.rounds;
+    const rows = mt.standings(), place = Object.fromEntries(rows.map((r) => [r.seat, r.place]));
+    const shown = (pl) => (all || mt.mode !== "race" || !pl.bot ? R : revealCount(st));
+    const done = Math.max(0, ...mt.players.map((p) => Math.min(shown(p), p.rounds.filter((r) => r.cleared !== null).length)));
+    const head = [...Array(R).keys()].map((r) => `<th>R${r + 1}</th>`).join("");
+    const body = mt.players.map((pl) => {
+      const n = shown(pl);
+      const cells = [...Array(R).keys()].map((r) => {
+        const rec = r < n ? pl.rounds[r] : null;
+        if (rec && rec.cleared === true) return `<td>${UI.num(rec.score)}</td>`;
+        if (rec && rec.cleared === false) return `<td class="out" title="out">✗ ${UI.num(rec.score)}</td>`;
+        return `<td class="wait">${pl.game.over && r < n ? "" : "·"}</td>`;
+      }).join("");
+      const total = mt.mode === "race" && pl.bot && !all ? roundsTotal(pl, n) : pl.game.total;
+      return `<tr class="${pl.seat === current ? "me" : ""}" style="--pc:${COLORS[pl.seat]}"><td><span class="place">${all || mt.over ? place[pl.seat] : ""}</span><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span>${pl.bot ? ` <span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[pl.bot])} bot</span>` : ""}</td>${cells}<td class="tot">${UI.num(total)}</td></tr>`;
+    }).join("");
+    return `<section class="panel" aria-label="Standings"><div class="toolbar"><h2 style="margin:0">Standings</h2><span class="muted" style="font-size:13px">${done ? `after round ${done}` : "no rounds played yet"}</span></div>
+      <div class="scroll-x" style="margin-top:8px"><table class="board"><thead><tr><th>Player</th>${head}<th>Total</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+  }
+
+  // Everything other players did since `seat` last moved, one line per turn.
+  function recapHTML(st, seat) {
+    const mt = st.match;
+    let from = 0;
+    for (let i = mt.history.length - 1; i >= 0; i--) if (mt.history[i].seat === seat) { from = i + 1; break; }
+    const groups = [];
+    for (let i = from; i < mt.history.length; i++) {
+      const h = mt.history[i], last = groups[groups.length - 1];
+      if (last && last.seat === h.seat && last.round === h.round && last.phase === h.phase) last.moves.push(h.move);
+      else groups.push({ seat: h.seat, round: h.round, phase: h.phase, moves: [h.move] });
+    }
+    if (!groups.length) return "";
+    const items = groups.slice(-12).map((gr, i) => {
+      const pl = mt.players[gr.seat], rec = pl.rounds[gr.round];
+      let t, sub = "";
+      if (gr.phase === "play") {
+        const target = UI.num(mt.inst.targets[gr.round]);
+        t = rec.cleared === null ? `is playing round ${gr.round + 1}` : rec.cleared ? `cleared round ${gr.round + 1}: <b>${UI.num(rec.score)}</b> / ${target}` : `went out in round ${gr.round + 1}: ${UI.num(rec.score)} / ${target}`;
+        sub = rec.plays.map((p) => `${PR.HAND_NAMES[p.hand]} ${UI.num(p.points)}`).join(" · ");
+      } else {
+        const buys = gr.moves.filter((m) => m.startsWith("buy ")).map((m) => UI.prettyMod(m.slice(4)));
+        const sells = gr.moves.filter((m) => m.startsWith("sell ")).map((m) => UI.prettyMod(m.slice(5)));
+        t = `shop after round ${gr.round + 1}: ${buys.length ? `bought <b>${esc(buys.join(", "))}</b>` : "bought no modifier"}${sells.length ? `, sold ${esc(sells.join(", "))}` : ""}`;
+        const other = gr.moves.filter((m) => !/^(buy|sell|next)\b/.test(m)).length;
+        sub = other ? `${other} other shop move${other === 1 ? "" : "s"} (levels, deck edits, rerolls)` : "";
+      }
+      return `<div class="ev" style="--pc:${COLORS[gr.seat]};--d:${i * 70}ms"><span class="pdot"></span><span class="t"><span class="pname">${esc(pl.name)}</span> ${t}</span>${sub ? `<span class="s">${esc(sub)}</span>` : ""}</div>`;
+    }).join("");
+    return `<div class="recap"><h3>Since ${esc(mt.players[seat].name)}'s last turn</h3>${items}</div>`;
+  }
+
+  function handoffHTML(st) {
+    const mt = st.match, t = mt.turn, pl = mt.players[t.seat];
+    const humans = mt.players.filter((p) => !p.bot).length;
+    const title = humans > 1 && st.from !== t.seat ? (st.from < 0 && !mt.history.length ? "First up" : "Pass to") : "Your turn,";
+    const backs = [0, 1, 2, 3, 4].map((i) => `<span class="card back" style="rotate:${(i - 2) * 7}deg;--d:${i * 0.18}s"></span>`).join("");
+    const label = humans > 1 ? `I'm ${pl.name}: show my hand` : "Continue";
+    return `<section class="panel handoff" style="--pc:${COLORS[t.seat]}" aria-label="Pass the device">
+      <div class="kicker">${esc(KINDS[st.kind])} · seed ${st.seed} · round ${t.round + 1} of ${mt.inst.rounds}</div>
+      <div class="fan" aria-hidden="true">${backs}</div>
+      <div class="to">${esc(title)}</div>
+      <div class="big-name">${esc(pl.name)}</div>
+      <p class="task">${esc(pl.name)} ${esc(stageText(st, t))}.</p>
+      ${humans > 1 ? `<p class="muted" style="margin:-8px 0 16px;font-size:13px">The other hands are hidden. Press when only ${esc(pl.name)} is looking.</p>` : ""}
+      <button type="button" class="btn primary" data-act="mp-reveal">${esc(label)}</button>
+      ${recapHTML(st, t.seat)}
+    </section>`;
+  }
+
+  function statusOf(st, pl) {
+    const mt = st.match, g = pl.game, t = mt.turn;
+    if (mt.mode === "race" && pl.bot && !mt.over) {
+      const n = revealCount(st);
+      return n ? `round ${Math.min(n, pl.rounds.length)} shown` : "waiting for your round 1";
+    }
+    if (g.over) return g.cleared === mt.inst.rounds ? `cleared all ${mt.inst.rounds} rounds` : `out in round ${g.round + 1}`;
+    if (t && t.seat === pl.seat) return t.stage === "play" ? `playing round ${g.round + 1}` : "in the shop";
+    return g.phase === "shop" ? `waiting to shop (round ${g.round + 1})` : `waiting · round ${g.round + 1}`;
+  }
+
+  function mpSideHTML(st) {
+    const mt = st.match, t = mt.turn;
+    const rows = mt.players.map((pl) => {
+      const total = mt.mode === "race" && pl.bot && !mt.over ? roundsTotal(pl, revealCount(st)) : pl.game.total;
+      return `<div class="pr${t && t.seat === pl.seat ? " now" : ""}" style="--pc:${COLORS[pl.seat]}"><span class="pdot"></span>
+        <span style="min-width:0"><span class="pname">${esc(pl.name)}</span>${pl.bot ? ` <span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[pl.bot])} bot</span>` : ""}<br><span class="muted" style="font-size:12px">${esc(statusOf(st, pl))}</span></span>
+        <span class="gold" style="font-weight:800;font-variant-numeric:tabular-nums">${UI.num(total)}</span></div>`;
+    }).join("");
+    return `<section class="panel" aria-label="Players">
+      <div class="toolbar"><h2 style="margin:0">Players</h2><span class="actions">${chipsHTML(st)}</span></div>
+      <div class="plist" style="margin-top:6px">${rows}</div>
+      <div class="actions" style="margin-top:10px">${btn("Restart match", "mp-restart", { cls: "small", title: "Start this match again on the same seed" })}${btn("New match…", "mp-setup", { cls: "small", title: "Back to the setup" })}</div>
+    </section>`;
+  }
+
+  // ---- setup
+  const MODE_TEXT = {
+    bot: "Race a computer player on the same deal. You both play every round; when you finish a round, the bot's same round is revealed.",
+    hotseat: "2 to 4 players on one device, all on the same deal, each with their own run. Turns go round by round, with a pass screen in between.",
+    draft: "Pass and play with one shared shop: after each round the players visit the shop one at a time, and a modifier someone owns is gone for everyone else.",
+  };
+
+  function modeRulesHTML(kind) {
+    const common = "<li>Everyone gets the <b>same seed and rules</b>: the same draw orders and shop queues. Every player's game is independent, so each move list is a valid output file for that seed.</li><li>Highest total score wins; on a tie, more rounds cleared; otherwise it's shared.</li>";
+    if (kind === "bot") return `<ul class="mode-rules"><li>The bot plays its whole run on its own (it doesn't see your moves). <b>Easy</b> plays its best hand and rarely shops; <b>Normal</b> is the reference greedy bot (<span class="mono">baseline.py</span>); <b>Hard</b> also looks ahead when it discards.</li><li>Its rounds are revealed one at a time: when you finish round r, you see its round r.</li>${common}</ul>`;
+    if (kind === "hotseat") return `<ul class="mode-rules"><li>Turns go <b>round by round</b>: player 1 plays round 1 and the shop after it, then player 2 plays round 1 and its shop, and so on; then round 2.</li><li>Between turns a <b>pass screen</b> hides the hand. You can undo moves of your own turn only.</li><li>A player who goes out is skipped; the others play on.</li>${common}</ul>`;
+    return `<ul class="mode-rules"><li>Every round has two stages. <b>Play</b>: each player plays round r, in seat order. <b>Shop</b>: then the shop after round r is visited one player at a time, <b>lowest total first</b> (catch-up); ties go in seat order starting with a seat that moves on by one each round.</li>
+      <li><b>One pool of modifiers.</b> A modifier another player owns can't be bought: it shows as "drafted by" them, in this round's shop and every later one, wherever it is in the queue.</li>
+      <li>Each player's queue, window of 3 and reroll work as in solo: a drafted offer keeps its place in the window (it isn't replaced), and a reroll shows the next 3 of the queue.</li>
+      <li><b>Selling returns a modifier</b> to the pool: from then on anyone may buy it where it is offered. A player who goes out keeps theirs.</li>
+      <li>Levels, deck edits, +discards and +hand size are private. Bots take part: they buy greedily from what is left.</li>${common}</ul>`;
+  }
+
+  function setupHTML(kind) {
+    const su = M.setups[kind];
+    let seats;
+    if (kind === "bot") {
+      const lv = Object.keys(LEVEL_NAMES).map((l) => `<button class="tab" role="radio" aria-checked="${su.level === l}" data-act="mp-level" data-v="${l}" title="${esc(PokerBot.LEVELS[l])}">${LEVEL_NAMES[l]}</button>`).join("");
+      seats = `<div class="seat" style="--pc:${COLORS[0]}"><span class="pdot"></span><input type="text" maxlength="24" data-mp-name="0" value="${esc(su.name)}" aria-label="Your name" placeholder="You"></div>
+        <div class="seat" style="--pc:${COLORS[1]}"><span class="pdot"></span><span class="pname">Bot</span><span class="tabs" role="radiogroup" aria-label="Bot level">${lv}</span>
+        <span class="muted" style="font-size:13px">${esc(PokerBot.LEVELS[su.level])}</span></div>`;
+    } else {
+      const count = [2, 3, 4].map((n) => `<button class="tab" role="radio" aria-checked="${su.n === n}" data-act="mp-n" data-v="${n}">${n}</button>`).join("");
+      seats = `<div class="row"><label class="k">Players</label><span class="tabs" role="radiogroup" aria-label="Number of players">${count}</span></div>` +
+        su.players.slice(0, su.n).map((p, i) => `<div class="seat" style="--pc:${COLORS[i]}"><span class="pdot"></span>
+          <input type="text" maxlength="24" data-mp-name="${i}" value="${esc(p.name)}" aria-label="Player ${i + 1} name" placeholder="Player ${i + 1}">
+          <select data-mp-type="${i}" aria-label="Player ${i + 1}: human or bot">
+            <option value=""${!p.bot ? " selected" : ""}>Human</option>
+            ${Object.keys(LEVEL_NAMES).map((l) => `<option value="${l}"${p.bot === l ? " selected" : ""}>Bot · ${LEVEL_NAMES[l]}</option>`).join("")}
+          </select></div>`).join("");
+    }
+    const rulesLine = M.rules === "classic" ? "Classic (the contest's)" : `${UI.rulesTitle(M.rules)}: ${UI.rulesChanges(M.rules).length} changes from classic`;
+    return `<section class="panel setup" aria-label="Set up a match">
+      <h2>${esc(KINDS[kind])}</h2>
+      <p class="lead">${esc(MODE_TEXT[kind])}</p>
+      <div class="grid">
+        <div class="row"><label class="k" for="mp-seed">Seed</label><input type="number" id="mp-seed" value="${su.seed}" step="1" inputmode="numeric">${btn("Random", "mp-seed-random")}</div>
+        <div class="row"><span class="k" style="min-width:5.5em;color:var(--muted);font-size:13px;font-weight:600">Rules</span><span>${esc(rulesLine)} <span class="muted" style="font-size:13px">· switch with Rules above</span></span></div>
+        ${seats}
+        <div class="actions" style="margin-top:4px">${btn("Start match", "mp-start", { cls: "primary" })}</div>
+        <div class="msg" id="mp-msg" role="status" aria-live="polite"></div>
+      </div>
+    </section>`;
+  }
+
+  function setupSideHTML(kind) {
+    return `<section class="panel" aria-label="How it works"><h2>How ${esc(KINDS[kind])} works</h2>${modeRulesHTML(kind)}</section>${rulesBoxHTML(M.rules)}`;
+  }
+
+  // ---- results
+  function renderResults(st) {
+    const mt = st.match, rows = mt.standings(), win = mt.winners();
+    let title;
+    if (mt.mode === "race") title = win.length > 1 ? "A tie!" : win[0] === 0 ? `${mt.players[0].name === "You" ? "You win" : mt.players[0].name + " wins"}!` : "The bot wins";
+    else title = win.length > 1 ? `Tie: ${win.map((s) => mt.players[s].name).join(" & ")}` : `${mt.players[win[0]].name} wins!`;
+    const podium = rows.map((r, i) => {
+      const pl = mt.players[r.seat], g = pl.game;
+      const how = g.cleared === mt.inst.rounds ? `cleared all ${mt.inst.rounds} rounds` : `cleared ${g.cleared} of ${mt.inst.rounds}, out in round ${g.round + 1}`;
+      return `<div class="pl${r.place === 1 ? " first" : ""}" style="--pc:${COLORS[r.seat]};--d:${i * 120}ms"><span class="place">${r.place}</span>
+        <span style="min-width:0"><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span>${pl.bot ? ` <span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[pl.bot])} bot</span>` : ""}</span>
+        <span class="pts" data-to="${g.total}">${UI.num(g.total)}</span><span class="sub">${esc(how)} · ${pl.moves.length} moves · $${g.money}</span></div>`;
+    }).join("");
+    const col = COLORS[win[0] || 0];
+    $("play-main").innerHTML = `<section class="panel summary results" style="--pc:${win.length > 1 ? "var(--gold)" : col}" aria-label="Results">
+        <div class="kicker">${esc(KINDS[st.kind])} · seed ${st.seed} · ${esc(UI.rulesTitle(mt.rules))} rules</div>
+        <div class="winner">${esc(title)}</div>
+        <div class="podium">${podium}</div>
+        <div class="actions" style="justify-content:center;margin-top:14px">${btn("Rematch (same seed)", "mp-rematch", { cls: "primary" })}${btn("New seed", "mp-new-seed")}${btn("Change setup", "mp-setup")}</div>
+      </section>${boardHTML(st, -1, true)}`;
+    const outs = mt.players.map((pl) => {
+      const [code, v] = PR.check(st.text, mt.output(pl.seat), mt.rules);
+      const verdict = code === 0 ? `valid · ${UI.num(v.score)}` : "invalid";
+      return `<details style="--pc:${COLORS[pl.seat]}"><summary><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span> <span class="muted">· ${pl.moves.length} moves · ${esc(verdict)}</span></summary>
+        <textarea readonly spellcheck="false" id="mp-out-${pl.seat}" aria-label="${esc(pl.name)}'s output file">${esc(mt.output(pl.seat))}</textarea>
+        <div class="actions" style="margin-top:6px">${btn("Copy", "mp-copy", { v: pl.seat, cls: "small" })}${btn("Download", "mp-download", { v: pl.seat, cls: "small" })}</div>
+        <div class="msg" id="mp-out-msg-${pl.seat}" role="status" aria-live="polite"></div></details>`;
+    }).join("");
+    $("play-side").innerHTML = `<section class="panel outputs" aria-label="Move lists"><h2>Move lists</h2>
+      <p class="muted" style="margin:0;font-size:13px">Each is an output file for seed ${st.seed}${mt.rules !== "classic" ? `, scored with <span class="mono">--rules ${esc(mt.rules)}</span>` : ""}; check it with <span class="mono">python -m poker_run check</span> or the Replay tab.</p>${outs}</section>`;
+    if (!st.celebrated) {
+      st.celebrated = true;
+      document.querySelectorAll(".podium .pts").forEach((el) => Feel.countUp(el, 0, Number(el.dataset.to), ""));
+      const human = mt.players.some((p) => !p.bot && win.includes(p.seat));
+      setTimeout(() => { if (human || mt.mode !== "race") Sound.clear(); else Sound.lose(); }, 250);
+      const first = document.querySelector(".podium .pl.first");
+      if (first) setTimeout(() => Feel.motes(30, first), 300);
+    }
+  }
+
+  function mpOutputName(st, seat) {
+    const slug = st.match.players[seat].name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `player${seat + 1}`;
+    return `poker_run_seed${st.seed}${st.match.rules !== "classic" ? "_" + st.match.rules : ""}_${slug}_out.txt`;
   }
 
   // ---------- actions
@@ -1381,6 +2020,7 @@ function startApp(PR) {
     },
     rules(el) {
       const v = el.dataset.v;
+      if (S.mode === "play" && S.kind !== "solo") { mpRules(v); return; }
       if (v === S.rules || !Object.prototype.hasOwnProperty.call(PR.RULESETS, v)) return;
       if (S.moves.length && !S.game.over &&
           !window.confirm(`Switch to the ${UI.rulesTitle(v)} rules? Your current run (${S.moves.length} moves) starts again from the first move.`)) return;
@@ -1484,9 +2124,68 @@ function startApp(PR) {
       Sound.tap();
       renderReplay();
     },
+    kind(el) { setKind(el.dataset.v); },
+    "mp-level"(el) {
+      if (!LEVEL_NAMES[el.dataset.v]) return;
+      M.setups.bot.level = el.dataset.v; saveMP(); Sound.tap(); renderKeepFocus();
+    },
+    "mp-n"(el) {
+      const su = M.setups[S.kind];
+      if (!su || !su.players) return;
+      su.n = Number(el.dataset.v); saveMP(); Sound.tap(); renderKeepFocus();
+    },
+    "mp-seed-random"() { $("mp-seed").value = String(randomSeed()); Sound.shuffle(); },
+    "mp-start"() {
+      const seed = Number($("mp-seed").value);
+      if (!Number.isSafeInteger(seed)) { flash("mp-msg", "err", "The seed must be a whole number."); Sound.oops(); return; }
+      mpStart(S.kind, seed); Sound.shuffle(); render(); scrollTop();
+    },
+    "mp-reveal"() {
+      const st = mpCur();
+      if (!st || !st.match.turn) return;
+      st.viewer = st.match.turn.seat; st.screen = "turn"; saveMP();
+      Sound.next(); render(); scrollTop();
+    },
+    "mp-rematch"() { const st = mpCur(); if (st) { mpStart(S.kind, st.seed); Sound.shuffle(); render(); scrollTop(); } },
+    "mp-new-seed"() { mpStart(S.kind, randomSeed()); Sound.shuffle(); render(); scrollTop(); },
+    "mp-restart"() {
+      const st = mpCur();
+      if (!st || !window.confirm("Restart this match from round 1 on the same seed?")) return;
+      mpStart(S.kind, st.seed); Sound.shuffle(); render(); scrollTop();
+    },
+    "mp-setup"() {
+      const st = mpCur();
+      if (st && !st.match.over && !window.confirm("Leave this match for the setup? It can't be resumed.")) return;
+      M.games[S.kind] = null; saveMP(); Sound.tap(); render(); scrollTop();
+    },
+    "mp-copy"(el) {
+      const seat = Number(el.dataset.v), ta = $("mp-out-" + seat);
+      if (!ta) return;
+      const done = () => flash("mp-out-msg-" + seat, "ok", "Copied to the clipboard.");
+      const fallback = () => {
+        ta.focus(); ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        if (ok) done(); else flash("mp-out-msg-" + seat, "err", "Couldn't copy automatically: the text is selected, press Ctrl/Cmd+C.");
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, fallback);
+      else fallback();
+    },
+    "mp-download"(el) {
+      const st = mpCur(), seat = Number(el.dataset.v);
+      if (!st || !st.match.players[seat]) return;
+      const blob = new Blob([st.match.output(seat)], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = mpOutputName(st, seat);
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      flash("mp-out-msg-" + seat, "ok", `Saved ${a.download}.`);
+    },
     "rp-continue"() {
       if (!S.rp || !S.rp.states) return;
       const text = $("rp-input").value;
+      if (S.kind !== "solo") setKind("solo", true);
       try { startFromSource({ type: "text", text }, S.rp.moves.slice(0, S.rpStep)); } catch (e) {
         if (e instanceof PR.BadInput) return;
         throw e;
@@ -1509,6 +2208,22 @@ function startApp(PR) {
   });
   document.addEventListener("change", (ev) => {
     if (ev.target.id === "sort-hand") { S.sort = ev.target.value; save(); render(); }
+    const type = ev.target.dataset && ev.target.dataset.mpType;
+    if (type !== undefined && M.setups[S.kind] && M.setups[S.kind].players) {
+      const v = ev.target.value;
+      M.setups[S.kind].players[Number(type)].bot = LEVEL_NAMES[v] ? v : null;
+      saveMP(); Sound.tap();
+    }
+  });
+  document.addEventListener("input", (ev) => {
+    const i = ev.target.dataset && ev.target.dataset.mpName;
+    if (i === undefined || !M.setups[S.kind]) return;
+    const su = M.setups[S.kind], name = ev.target.value.slice(0, 24);
+    if (S.kind === "bot") su.name = name; else su.players[Number(i)].name = name;
+    saveMP();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && ev.target.id === "mp-seed") actions["mp-start"]();
   });
   $("seed").addEventListener("keydown", (ev) => { if (ev.key === "Enter") actions.deal(); });
   $("rp-slider").addEventListener("input", (ev) => { S.rpStep = Number(ev.target.value); renderReplay(); });
@@ -1540,8 +2255,24 @@ function startApp(PR) {
     startFromSource({ type: "seed", seed: 1 });
   }
   $("rp-seed").value = $("seed").value;
+  for (const k of Object.keys(M.setups)) M.setups[k].seed = S.source.type === "seed" ? S.source.seed : 1;
+  restoreMP();
+  let kind = "solo";
+  try { kind = localStorage.getItem(KIND_KEY) || "solo"; } catch (e) { /* storage unavailable */ }
+  if (hashSeed || !Object.prototype.hasOwnProperty.call(KINDS, kind)) kind = "solo";   // a #seed= link opens solo
+  setKind(kind, true);
   soundIcon();
   render();
+
+  // A small handle for automated browser tests: make a move as if clicked, read the state.
+  window.PokerRunApp = {
+    move: (line) => doMove(line),
+    game: () => S.game,
+    kind: () => S.kind,
+    match: () => { const st = mpCur(); return st ? st.match : null; },
+    screen: () => { const st = mpCur(); return S.kind === "solo" ? "solo" : st ? st.screen : "setup"; },
+    viewer: () => { const st = mpCur(); return st ? st.viewer : -1; },
+  };
 }
 
 if (typeof document !== "undefined") startApp(PokerRun);

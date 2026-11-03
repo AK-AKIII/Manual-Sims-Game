@@ -100,7 +100,7 @@ poker_run/rules.py, instance.py, sim.py   the rules, the generator and input for
 poker_run/checker.py                      scores an output (the judge)
 poker_run/baseline.py                     reference greedy solver: proves the problem isn't trivial
 poker_run/__main__.py                     gen / check / batch command line
-poker_run/web/                            browser game: play by hand, replay any output, pick seeds (same rules, ported to JS)
+poker_run/web/                            browser game: play by hand, replay any output, pick seeds (same rules, ported to JS); vs Bot, pass-and-play and draft modes
 poker_run/solvers/                        example solvers for students: beam search, Monte Carlo, MCTS, tuned heuristic
 poker_run/starters/starter.py             single-file Python starter: input parsing, the judge's simulator, an empty solve()
 poker_run/problem/                        statement and generator doc
@@ -118,7 +118,7 @@ python3 -m poker_run batch --seeds 1-10 --solver "python3 my_solver.py"         
 python3 -m poker_run batch --seeds 1-10 --solver "python3 my_solver.py" --json --verbose
 ```
 
-To play by hand, open [poker_run/web/index.html](poker_run/web/index.html) in a browser. It runs from `file://` and works offline. It can also replay a solver's output move by move.
+To play by hand, open [poker_run/web/index.html](poker_run/web/index.html) in a browser. It runs from `file://` and works offline. It can also replay a solver's output move by move. Its Mode switch adds multiplayer on one device: a race against a bot, pass-and-play for 2-4 players, and a draft with a shared shop ([poker_run/web/MULTIPLAYER.md](poker_run/web/MULTIPLAYER.md)).
 
 To write a solver, copy [poker_run/starters/starter.py](poker_run/starters/starter.py) and fill in `solve()`. It contains an exact copy of the judge's simulator, so `game.clone()` and `game.apply(move)` let you try moves before committing to them. After changing the rules, rebuild it with `python3 poker_run/starters/build_starter.py`; a test fails if it is stale.
 
@@ -128,7 +128,7 @@ To write a solver, copy [poker_run/starters/starter.py](poker_run/starters/start
 python3 -m unittest discover -s tests -t .
 ```
 
-These cover the rules and scoring, the shop, the checker's exit codes, the public fixtures, the starter against the judge, and the browser engine against the Python engine. The browser test needs Node and is skipped without it.
+These cover the rules and scoring, the shop, the checker's exit codes, the public fixtures, the starter against the judge, the browser engine against the Python engine, and the browser bots and multiplayer modes. The browser tests need Node and are skipped without it.
 
 Regenerate the public fixtures after a rule change:
 
