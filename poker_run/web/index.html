@@ -47,7 +47,13 @@ header.top h1 span { color: var(--gold); }
 .tab { background: transparent; border: 0; color: var(--muted); padding: 6px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
 .tab[aria-selected="true"], .tab[aria-checked="true"] { background: var(--gold); color: #1b1a14; }
 .rules-pick { align-items: center; }
-.rules-pick .lbl { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 6px 0 8px; }
+.rules-pick .lbl { display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; cursor: help; font: inherit; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 6px 0 8px; }
+.rules-pick .lbl .i { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; font: italic 700 10px/1 Georgia, serif; text-transform: none; letter-spacing: 0; }
+.rules-pick .lbl:hover, .rules-pick .lbl[aria-expanded="true"] { color: var(--cream); }
+#explain-panel .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 8px 0 10px; }
+#explain-panel .opt { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; }
+#explain-panel .opt b { color: var(--cream); }
+#explain-panel .opt p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 .rules-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(127, 209, 164, 0.16); color: var(--ok); margin-right: 6px; }
 table.hands td.changed { color: var(--ok); }
 .rules-notes { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
@@ -433,17 +439,17 @@ label.check { display: inline-flex; align-items: center; gap: 6px; color: var(--
 <div class="wrap">
   <header class="top">
     <h1>POKER <span>RUN</span></h1>
-    <div class="tabs" role="tablist" aria-label="Mode">
+    <div class="tabs" role="tablist" aria-label="View">
       <button class="tab" role="tab" id="tab-play" aria-selected="true" aria-controls="view-play" data-act="mode" data-v="play">Play</button>
       <button class="tab" role="tab" id="tab-replay" aria-selected="false" aria-controls="view-replay" data-act="mode" data-v="replay">Replay</button>
     </div>
     <div class="tabs rules-pick" role="radiogroup" aria-label="Rules" id="rules-pick">
-      <span class="lbl" aria-hidden="true">Rules</span>
+      <button type="button" class="lbl" data-act="explain" data-v="rules" aria-expanded="false" aria-controls="explain-panel" title="What are Classic and Balanced?">Rules <span class="i" aria-hidden="true">i</span></button>
       <button class="tab" role="radio" aria-checked="true" data-act="rules" data-v="classic" title="Classic rules: the contest's">Classic</button>
       <button class="tab" role="radio" aria-checked="false" data-act="rules" data-v="balanced" title="Balanced rules: an optional variant with rebalanced hands, modifiers and prices">Balanced</button>
     </div>
     <div class="tabs rules-pick kind-pick" role="radiogroup" aria-label="Players" id="kind-pick">
-      <span class="lbl" aria-hidden="true">Mode</span>
+      <button type="button" class="lbl" data-act="explain" data-v="kind" aria-expanded="false" aria-controls="explain-panel" title="What are Solo, vs Bot and Online?">Mode <span class="i" aria-hidden="true">i</span></button>
       <button class="tab" role="radio" aria-checked="true" data-act="kind" data-v="solo" title="Play alone (the contest)">Solo</button>
       <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="bot" title="Race a computer player on the same deal">vs Bot</button>
       <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="online" title="Play people on their own devices: rooms with a code (needs an account)">Online</button>
@@ -473,6 +479,8 @@ label.check { display: inline-flex; align-items: center; gap: 6px; color: var(--
     </div>
     <div class="msg" id="load-msg" role="status" aria-live="polite"></div>
   </section>
+
+  <section class="panel hidden" id="explain-panel" aria-live="polite"></section>
 
   <main id="view-play" role="tabpanel" aria-labelledby="tab-play">
     <div class="layout">
@@ -2667,6 +2675,27 @@ function startApp(PR) {
     },
     deal() { Sound.shuffle(); dealSeed(Number($("seed").value)); },
     "random-seed"() { const s = Math.floor(Math.random() * 1000000) + 1; S.mode = "play"; dealSeed(s); },
+    explain(el) {
+      const v = el.dataset.v, p = $("explain-panel");
+      const open = !p.classList.contains("hidden") && p.dataset.topic === v;
+      document.querySelectorAll('[data-act="explain"]').forEach((b) => b.setAttribute("aria-expanded", String(!open && b.dataset.v === v)));
+      if (open) { p.classList.add("hidden"); return; }
+      const nBal = UI.rulesChanges("balanced").length;
+      const topics = {
+        rules: ["Rules: which scoring rules to play with", "Pick one with the <b>Classic</b> / <b>Balanced</b> buttons next to “Rules”.",
+          [["Classic", "The contest's rules and the default. The judge scores every contest submission with these."],
+           ["Balanced", `An optional variant: ${nBal} changes, e.g. Full House toned down, Flush and Three of a Kind up, cheaper deck edits. For practice and fun; it never counts in the contest.`]]],
+        kind: ["Mode: who you play with", "Pick one with the <b>Solo</b> / <b>vs Bot</b> / <b>Online</b> buttons next to “Mode”.",
+          [["Solo", "Just you and the deck: the contest's game."],
+           ["vs Bot", "Race a computer player (Easy, Normal or Hard) on the same deal, round by round."],
+           ["Online", "Play people on their own devices: create a room, share the code, they join with their account."]]],
+      };
+      const [title, how, opts] = topics[v];
+      p.dataset.topic = v;
+      p.innerHTML = `<h2>${title}</h2><p class="muted" style="margin:0">${how}</p><div class="opts">${opts.map(([n, d]) => `<div class="opt"><b>${n}</b><p>${d}</p></div>`).join("")}</div>`
+        + `<div class="actions"><a class="btn" href="/modes/" target="_blank" rel="noopener">All modes and rules</a><button class="btn" data-act="explain" data-v="${v}">Close</button></div>`;
+      p.classList.remove("hidden");
+    },
     "toggle-load"() {
       const p = $("load-panel"); p.classList.toggle("hidden");
       document.querySelectorAll('[data-act="toggle-load"]').forEach((b) => b.setAttribute("aria-expanded", String(!p.classList.contains("hidden"))));
