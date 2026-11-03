@@ -51,7 +51,7 @@ fi
 # ---- packages, automatic security updates
 apt-get update -y
 apt-get -y -o Dpkg::Options::=--force-confold upgrade
-apt-get install -y ca-certificates curl git unzip sqlite3 python3 cron unattended-upgrades openssh-client
+apt-get install -y ca-certificates curl git unzip sqlite3 python3 make cron unattended-upgrades openssh-client
 cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
