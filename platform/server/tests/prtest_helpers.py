@@ -59,9 +59,11 @@ class PlatformTest(unittest.TestCase):
         c.headers.update({"X-Requested-With": "fetch"})
         return c
 
-    def register(self, username, password="password123", client=None, invite=""):
+    def register(self, username, password="password123", client=None, invite="", email=None):
         client = client or self.client
-        r = client.post("/api/register", json={"username": username, "password": password, "invite": invite})
+        email = email if email is not None else f"{username}@example.com"
+        r = client.post("/api/register", json={"username": username, "password": password, "invite": invite,
+                                               "email": email})
         self.assertEqual(r.status_code, 201, r.text)
         return r
 

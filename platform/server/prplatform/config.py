@@ -109,6 +109,9 @@ class Settings:
     poll_seconds: float = 1.0
     job_root: str = ""
     secret_generated: bool = field(default=False, compare=False)
+    # Only set from the admin panel (prplatform.overrides), never from the environment.
+    announcement: str = ""
+    announcement_on: bool = False
 
     @property
     def max_source_bytes(self):

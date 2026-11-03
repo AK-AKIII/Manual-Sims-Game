@@ -13,7 +13,10 @@ prplatform/
   judge.py     judge one submission (job dir, sandbox run, poker_run.check per test)
   sandbox.py   docker backend (production) and local backend (development only)
   worker.py    claim queued submissions, judge, store; resets 'running' on start
-  manage.py    small admin CLI
+  manage.py    small admin CLI (users, submissions, audit; same rules as the admin API)
+  admin.py     admin operations on users/submissions + audit log (shared by app and manage)
+  overrides.py contest settings edited in the admin panel (DB overrides of the env values)
+  similarity.py token 5-gram Jaccard similarity of students' latest full submissions
 ../judge/      runner.py (runs inside the sandbox) and its Dockerfile
 ```
 
@@ -37,7 +40,7 @@ Then, for example:
 
 ```sh
 H='X-Requested-With: fetch'; CT='Content-Type: application/json'
-curl -c jar -H "$H" -H "$CT" -d '{"username":"me","password":"password123","invite":"sesame"}' localhost:8000/api/register
+curl -c jar -H "$H" -H "$CT" -d '{"username":"me","password":"password123","email":"me@example.com","invite":"sesame"}' localhost:8000/api/register
 python3 -c "import json;print(json.dumps({'kind':'public','source':open('../../poker_run/starters/starter.py').read()}))" > sub.json
 curl -b jar -H "$H" -H "$CT" --data-binary @sub.json localhost:8000/api/submissions
 curl -b jar localhost:8000/api/submissions          # poll: status, tests_done/tests_total, position
@@ -84,6 +87,11 @@ registered user in the DB:
 python -m prplatform.manage set-admin alice          # --off to remove
 python -m prplatform.manage list-users
 python -m prplatform.manage set-password alice       # prompts; logs out their sessions
+python -m prplatform.manage disable alice --reason "..."   # reversible; also: enable
+python -m prplatform.manage delete-user alice --confirm alice
+python -m prplatform.manage delete-submission 123
+python -m prplatform.manage set-email alice alice@example.com
+python -m prplatform.manage audit --limit 20
 ```
 
 Admins may submit full runs outside the contest window, see the live

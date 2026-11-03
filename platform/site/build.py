@@ -14,6 +14,8 @@ Layout of the output:
     /modes/               game modes + rulesets   (rendered from poker_run/web/MULTIPLAYER.md, problem/balanced.md)
     /contest/             contest hub             (pages/contest/index.html)
     /contest/leaderboard/ leaderboard             (pages/contest/leaderboard/index.html)
+    /admin/               admin panel             (pages/admin/index.html; <!--#nav:admin--> marks no nav item current,
+                                                   site.js adds the Admin link for admins only)
     /play/                the browser game        (copied from poker_run/web/)
     /assets/              css, js, images         (assets/)
     /media/               explainer video         (copied from video/)
@@ -346,6 +348,7 @@ FOOTER = """<footer class="site-footer">
 
 
 def nav(current):
+    """The header. `current` is a NAV_ITEMS key; any other key (e.g. "admin") marks nothing current."""
     links = "".join('<li><a href="%s"%s>%s</a></li>' % (href, ' aria-current="page"' if key == current else "", label)
                     for key, href, label in NAV_ITEMS)
     return """<a class="skip" href="#main">Skip to content</a>

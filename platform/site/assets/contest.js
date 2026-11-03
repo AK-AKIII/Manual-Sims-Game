@@ -1,6 +1,7 @@
 /* Contest hub: status + countdown, sign in / register, submit (drag-and-drop or
  * paste, with a highlighted editor), my submissions with live polling and
- * inline details, and the admin "all submissions" table with rejudge. */
+ * inline details, and the admin "all submissions" table with rejudge and delete
+ * (the full admin panel is /admin/). */
 (function () {
   "use strict";
   const { esc, fmtInt, fmtSecs, relTime, fmtDate, toast, countUp, parseTime } = window.UI;
@@ -99,7 +100,7 @@
 
   async function loadContest() {
     try {
-      st.contest = await API.contest();
+      st.contest = await API.contest(st.contest !== null); // the first read shares site.js's request
       renderContest();
       $("rg-invite-field").classList.toggle("hidden", !st.contest.invite_required);
       $("rg-invite").required = !!st.contest.invite_required;
@@ -133,10 +134,11 @@
     }
     show("app");
     $("t-all").classList.toggle("hidden", !st.me.is_admin);
+    renderAccount();
     const h = location.hash.replace("#", "");
     const m = /^sub-(\d+)$/.exec(h);
     if (m) { st.open.mine.add(Number(m[1])); selectTab("mine", false); }
-    else selectTab(h === "mine" || (h === "all" && st.me.is_admin) ? h : "submit", false);
+    else selectTab(h === "mine" || h === "account" || (h === "all" && st.me.is_admin) ? h : "submit", false);
     refreshMine();
     if (st.me.is_admin) refreshAll();
   }
@@ -190,7 +192,7 @@
     st.tab = name;
     const btn = $("t-" + name);
     setSelected(btn.parentElement, btn);
-    ["submit", "mine", "all"].forEach((n) => $("p-" + n).classList.toggle("hidden", n !== name));
+    ["submit", "mine", "account", "all"].forEach((n) => $("p-" + n).classList.toggle("hidden", n !== name));
     if (updateHash !== false) { try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ } }
     if (name === "mine") refreshMine();
     if (name === "all") refreshAll();
@@ -215,7 +217,7 @@
     const f = ev.target, msg = $("li-msg");
     const u = $("li-user").value.trim(), p = $("li-pass").value;
     $("li-user").setAttribute("aria-invalid", "false"); $("li-pass").setAttribute("aria-invalid", "false");
-    if (!u) return fieldErr($("li-user"), msg, "Enter your username.");
+    if (!u) return fieldErr($("li-user"), msg, "Enter your username or email.");
     if (!p) return fieldErr($("li-pass"), msg, "Enter your password.");
     msg.innerHTML = "";
     busyBtn(f, true);
@@ -232,26 +234,66 @@
   }
 
   const USER_RE = /^[A-Za-z0-9_-]{3,20}$/;
+  const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const validEmail = (v) => v.length <= 254 && EMAIL_RE.test(v);
   async function onRegister(ev) {
     ev.preventDefault();
     const f = ev.target, msg = $("rg-msg");
-    const u = $("rg-user").value.trim(), p = $("rg-pass").value, inv = $("rg-invite").value.trim();
-    ["rg-user", "rg-pass", "rg-invite"].forEach((id) => $(id).setAttribute("aria-invalid", "false"));
+    const u = $("rg-user").value.trim(), p = $("rg-pass").value, inv = $("rg-invite").value.trim(), em = $("rg-email").value.trim();
+    ["rg-user", "rg-email", "rg-pass", "rg-invite"].forEach((id) => $(id).setAttribute("aria-invalid", "false"));
     if (!USER_RE.test(u)) return fieldErr($("rg-user"), msg, "Usernames are 3–20 characters: letters, digits, _ or -.");
+    if (!validEmail(em)) return fieldErr($("rg-email"), msg, "Enter a valid email address, like name@example.com.");
     if (p.length < 8) return fieldErr($("rg-pass"), msg, "Passwords need at least 8 characters.");
     if (st.contest && st.contest.invite_required && !inv) return fieldErr($("rg-invite"), msg, "This contest needs an invite code.");
     msg.innerHTML = "";
     busyBtn(f, true);
     try {
-      const me = await API.register(u, p, inv);
+      const me = await API.register(u, p, inv, em);
       toast("ok", `Account created. Welcome, ${me.username}!`);
       $("rg-pass").value = "";
       document.dispatchEvent(new CustomEvent("auth-change", { detail: me }));
     } catch (e) {
       msg.innerHTML = `<div class="err">${esc(e.message)}</div>`;
       if (window.Sound) window.Sound.error();
-      if (e.status === 409) $("rg-user").setAttribute("aria-invalid", "true");
+      if (e.status === 409) $(/email/i.test(e.message) ? "rg-email" : "rg-user").setAttribute("aria-invalid", "true");
+      if (e.status === 400 && /email/i.test(e.message)) $("rg-email").setAttribute("aria-invalid", "true");
       if (e.status === 403) $("rg-invite").setAttribute("aria-invalid", "true");
+    } finally { busyBtn(f, false); }
+  }
+
+  // ------------------------------------------------------------------ account (email)
+  function renderAccount() {
+    if (!st.me) return;
+    const em = st.me.email || null;
+    $("acct-facts").innerHTML = [["Username", st.me.username], ["Email", em || "no email yet — add one"], ["Role", st.me.is_admin ? "admin" : "player"]]
+      .map(([k, v]) => `<div class="fact"><div class="k">${esc(k)}</div><div class="v acct-v${k === "Email" && !em ? " muted" : ""}">${esc(v)}</div></div>`).join("");
+    $("acct-nudge").hidden = !!em;
+    $("account-dot").classList.toggle("hidden", !!em);
+    $("account-dot-sr").classList.toggle("hidden", !!em);
+    $("email-form-title").textContent = em ? "Change your email" : "Add an email";
+    if (document.activeElement !== $("ac-email")) $("ac-email").value = em || "";
+  }
+
+  async function onEmail(ev) {
+    ev.preventDefault();
+    const f = ev.target, msg = $("ac-msg");
+    const em = $("ac-email").value.trim(), pw = $("ac-pass").value;
+    ["ac-email", "ac-pass"].forEach((id) => $(id).setAttribute("aria-invalid", "false"));
+    if (!validEmail(em)) return fieldErr($("ac-email"), msg, "Enter a valid email address, like name@example.com.");
+    if (!pw) return fieldErr($("ac-pass"), msg, "Enter your current password.");
+    msg.innerHTML = "";
+    busyBtn(f, true);
+    try {
+      const me = await API.changeEmail(em, pw);
+      st.me = Object.assign({}, st.me, me);
+      $("ac-pass").value = "";
+      renderAccount();
+      toast("ok", `Email saved: ${me.email || em}.`);
+    } catch (e) {
+      msg.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+      if (window.Sound) window.Sound.error();
+      if (e.status === 401) { $("ac-pass").setAttribute("aria-invalid", "true"); $("ac-pass").select(); }
+      else $("ac-email").setAttribute("aria-invalid", "true");
     } finally { busyBtn(f, false); }
   }
 
@@ -364,7 +406,8 @@
     if (which === "all") {
       return `<td>${exp}</td><td class="user">${esc(s.username || "?")}</td><td class="opt">${kind}</td><td>${badge(s)}</td><td class="r">${scoreCell(s)}</td>` +
         `<td class="r opt">${testsCell(s)}</td><td class="r opt">${when}</td>` +
-        `<td class="r"><button type="button" class="btn sm" data-rejudge="${s.id}" ${ACTIVE(s) ? "disabled" : ""} aria-label="Rejudge submission ${s.id}">Rejudge</button></td>`;
+        `<td class="r nw"><button type="button" class="btn sm" data-rejudge="${s.id}" ${ACTIVE(s) ? "disabled" : ""} aria-label="Rejudge submission ${s.id}">Rejudge</button> ` +
+        `<button type="button" class="btn sm danger" data-delete="${s.id}" ${s.status === "running" ? 'disabled title="Running submissions can\'t be deleted; wait for it to finish."' : ""} aria-label="Delete submission ${s.id}">Delete</button></td>`;
     }
     return `<td>${exp}</td><td>${kind}</td><td>${badge(s)}</td><td class="r">${scoreCell(s)}</td>` +
       `<td class="r opt nw">${testsCell(s)}</td><td class="r opt nw">${fmtSecs(s.max_time)}</td><td class="r opt">${when}</td>`;
@@ -470,7 +513,7 @@
       return;
     }
     const active = document.activeElement;
-    const focusKey = active && active.closest && tbody.contains(active) ? (active.dataset.exp ? "exp" + active.dataset.exp : active.dataset.rejudge ? "rj" + active.dataset.rejudge : null) : null;
+    const focusKey = active && active.closest && tbody.contains(active) ? (active.dataset.exp ? "exp" + active.dataset.exp : active.dataset.rejudge ? "rj" + active.dataset.rejudge : active.dataset.delete ? "dl" + active.dataset.delete : null) : null;
     const want = [];
     for (const s of list) {
       want.push({ key: `${which}-r-${s.id}`, html: rowHTML(s, which), cls: "row" + (st.open[which].has(s.id) ? " open" : ""), s, detail: false });
@@ -510,7 +553,8 @@
     existing.forEach((tr) => { tr.remove(); st.rowHTML.delete(tr.id); });
     Array.from(tbody.children).forEach((tr) => { if (!tr.id) tr.remove(); });
     if (focusKey) {
-      const el = focusKey.startsWith("exp") ? tbody.querySelector(`[data-exp="${focusKey.slice(3)}"]`) : tbody.querySelector(`[data-rejudge="${focusKey.slice(2)}"]`);
+      const el = focusKey.startsWith("exp") ? tbody.querySelector(`[data-exp="${focusKey.slice(3)}"]`)
+        : focusKey.startsWith("dl") ? tbody.querySelector(`[data-delete="${focusKey.slice(2)}"]`) : tbody.querySelector(`[data-rejudge="${focusKey.slice(2)}"]`);
       if (el && el !== document.activeElement) el.focus({ preventScroll: true });
     }
   }
@@ -632,6 +676,24 @@
         }
         return;
       }
+      const del = ev.target.closest("[data-delete]");
+      if (del) {
+        const id = Number(del.dataset.delete);
+        const s = st.all.find((x) => x.id === id);
+        const ok = await window.UI.dialog({
+          title: `Delete submission #${id}?`, danger: true, confirmLabel: "Delete submission",
+          html: `<p>This permanently removes the source and results of <b>#${id}</b>${s && s.username ? ` by <b>${esc(s.username)}</b>` : ""}. Scores are recomputed on the next read. This can't be undone.</p>`,
+          onConfirm: () => API.adminDeleteSubmission(id),
+          returnFocus: () => { const b = $("all-refresh"); if (b) b.focus(); },
+        });
+        if (ok) {
+          toast("ok", `Submission #${id} deleted.`);
+          st.open.all.delete(id); st.open.mine.delete(id); st.details.delete(id);
+          await refreshAll();
+          refreshMine();
+        }
+        return;
+      }
       const reuse = ev.target.closest("[data-reuse]");
       if (reuse) {
         const d = st.details.get(Number(reuse.dataset.reuse));
@@ -665,6 +727,7 @@
     if (!API || !window.Code) return;
     $("form-login").addEventListener("submit", onLogin);
     $("form-register").addEventListener("submit", onRegister);
+    $("email-form").addEventListener("submit", onEmail);
     wireTabs(document.querySelector("#view-auth [role=tablist]"), (b) => selectAuth(b.id === "tab-register" ? "register" : "login"));
     wireTabs(document.querySelector("#view-app [role=tablist]"), (b) => selectTab(b.id.slice(2)));
     $("rg-user").addEventListener("input", () => {
@@ -705,7 +768,7 @@
     window.addEventListener("hashchange", () => {
       if (!st.me) { if (location.hash === "#register") selectAuth("register"); else if (location.hash === "#signin") selectAuth("login"); return; }
       const h = location.hash.slice(1);
-      if (h === "submit" || h === "mine" || (h === "all" && st.me.is_admin)) selectTab(h, false);
+      if (h === "submit" || h === "mine" || h === "account" || (h === "all" && st.me.is_admin)) selectTab(h, false);
     });
     boot();
   });

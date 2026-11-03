@@ -51,7 +51,7 @@
           <button type="button" role="tab" id="tab-register" aria-selected="false" aria-controls="form-register" tabindex="-1">Create account</button>
         </div>
         <form id="form-login" role="tabpanel" aria-labelledby="tab-login" style="margin-top:18px" novalidate>
-          <div class="field"><label for="li-user">Username</label><input id="li-user" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></div>
+          <div class="field"><label for="li-user">Username or email</label><input id="li-user" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></div>
           <div class="field"><label for="li-pass">Password</label><input id="li-pass" name="password" type="password" autocomplete="current-password" required></div>
           <button class="btn primary lg" type="submit" style="width:100%">Sign in</button>
           <div class="msg" id="li-msg" role="alert"></div>
@@ -59,6 +59,8 @@
         <form id="form-register" role="tabpanel" aria-labelledby="tab-register" style="margin-top:18px" class="hidden" novalidate>
           <div class="field"><label for="rg-user">Username <span class="hint">3–20 letters, digits, _ or -</span></label>
             <input id="rg-user" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_\-]{3,20}" aria-describedby="rg-user-note"><span class="hint" id="rg-user-note" aria-live="polite"></span></div>
+          <div class="field"><label for="rg-email">Email <span class="hint">for the organisers only, never shown publicly</span></label>
+            <input id="rg-email" name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" required maxlength="254"></div>
           <div class="field"><label for="rg-pass">Password <span class="hint">at least 8 characters</span></label><input id="rg-pass" name="password" type="password" autocomplete="new-password" required minlength="8"></div>
           <div class="field hidden" id="rg-invite-field"><label for="rg-invite">Invite code <span class="hint">from the organisers</span></label><input id="rg-invite" name="invite" type="text" autocomplete="off" spellcheck="false"></div>
           <button class="btn primary lg" type="submit" style="width:100%">Create account</button>
@@ -72,6 +74,7 @@
       <div class="tabs" role="tablist" aria-label="Contest sections">
         <button type="button" role="tab" id="t-submit" aria-controls="p-submit" aria-selected="true">Submit</button>
         <button type="button" role="tab" id="t-mine" aria-controls="p-mine" aria-selected="false" tabindex="-1">My submissions <span class="count" id="mine-count">0</span></button>
+        <button type="button" role="tab" id="t-account" aria-controls="p-account" aria-selected="false" tabindex="-1">Account <span class="nudge-dot hidden" id="account-dot" aria-hidden="true"></span><span class="sr-only hidden" id="account-dot-sr">(add an email)</span></button>
         <button type="button" role="tab" id="t-all" aria-controls="p-all" aria-selected="false" tabindex="-1" class="hidden">All submissions <span class="count" id="all-count">0</span></button>
       </div>
 
@@ -129,10 +132,28 @@
         </table></div>
       </div>
 
+      <div id="p-account" role="tabpanel" aria-labelledby="t-account" class="tabpanel hidden">
+        <div class="account-grid">
+          <div class="panel">
+            <h2 class="section-title">Your account</h2>
+            <div class="facts" id="acct-facts"></div>
+            <div class="note" id="acct-nudge" style="margin-top:14px" hidden><b>No email on this account yet.</b> Add one so the organisers can reach you about results or a password reset. It's never shown publicly.</div>
+          </div>
+          <form class="panel" id="email-form" novalidate>
+            <h2 class="section-title" id="email-form-title">Add an email</h2>
+            <div class="field"><label for="ac-email">Email</label><input id="ac-email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" required></div>
+            <div class="field"><label for="ac-pass">Current password <span class="hint">to confirm it's you</span></label><input id="ac-pass" type="password" autocomplete="current-password" required></div>
+            <button class="btn primary" type="submit" id="ac-save">Save email</button>
+            <div class="msg" id="ac-msg" role="alert"></div>
+          </form>
+        </div>
+      </div>
+
       <div id="p-all" role="tabpanel" aria-labelledby="t-all" class="tabpanel hidden">
         <div class="lb-tools">
           <span class="updated" id="all-poll"></span>
-          <button type="button" class="btn sm" id="all-refresh">Refresh</button>
+          <span class="btn-row"><a class="btn sm ghost" href="/admin/">Open the admin panel <span class="arrow" aria-hidden="true">→</span></a>
+          <button type="button" class="btn sm" id="all-refresh">Refresh</button></span>
         </div>
         <div class="table-scroll"><table class="data subs" id="all-table">
           <caption class="sr-only">All submissions (admin view), newest first.</caption>

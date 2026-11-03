@@ -16,6 +16,27 @@ SESSION_DAYS = 14
 COOKIE = "pr_session"
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{3,20}$")
 PASSWORD_MIN, PASSWORD_MAX = 8, 256
+EMAIL_MAX = 254
+# Deliberately simple: one @, no spaces, a dot in the domain, no leading/trailing dot.
+EMAIL_RE = re.compile(r"^[^@\s\x00-\x1f\x7f]+@[^@\s\x00-\x1f\x7f.]+(\.[^@\s\x00-\x1f\x7f.]+)+$")
+
+
+def normalise_email(text):
+    """Lowercased, trimmed email, or None if it isn't a plausible address."""
+    if not isinstance(text, str):
+        return None
+    e = text.strip().lower()
+    if not e or len(e) > EMAIL_MAX or not EMAIL_RE.match(e):
+        return None
+    return e
+
+
+def mask_email(e):
+    """'alice@example.com' -> 'a***@example.com' (for audit details)."""
+    if not e:
+        return None
+    local, _, domain = e.partition("@")
+    return (local[:1] + "***@" + domain) if domain else "***"
 
 
 def hash_password(password, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P):
@@ -65,8 +86,9 @@ def session_user(conn, token):
     if not token or len(token) > 200:
         return None
     return conn.execute(
-        "SELECT u.id, u.username, u.is_admin FROM sessions s JOIN users u ON u.id = s.user_id "
-        "WHERE s.token_hash = ? AND s.expires > ?", (token_hash(token), db.now_iso())).fetchone()
+        "SELECT u.id, u.username, u.is_admin, u.email FROM sessions s JOIN users u ON u.id = s.user_id "
+        "WHERE s.token_hash = ? AND s.expires > ? AND u.disabled_at IS NULL",
+        (token_hash(token), db.now_iso())).fetchone()
 
 
 def delete_session(conn, token):

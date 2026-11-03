@@ -15,6 +15,7 @@ import logging
 import signal
 import sys
 import threading
+import time
 import traceback
 
 from . import config, db, judge
@@ -30,6 +31,27 @@ def reset_running(conn):
         conn.execute("DELETE FROM results WHERE submission_id IN "
                      "(SELECT id FROM submissions WHERE status = 'queued')")
     return n
+
+
+HEARTBEAT_KEY = "worker_heartbeat"
+HEARTBEAT_EVERY = 5.0
+_beat_lock = threading.Lock()
+_last_beat = [0.0]
+
+
+def heartbeat(conn, force=False):
+    """Record that a worker is alive (meta.worker_heartbeat), at most every 5 s.
+    Never raises: the heartbeat must not stop judging."""
+    t = time.monotonic()
+    with _beat_lock:
+        if not force and t - _last_beat[0] < HEARTBEAT_EVERY:
+            return
+        _last_beat[0] = t
+    try:
+        conn.execute("INSERT INTO meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                     (HEARTBEAT_KEY, db.now_iso()))
+    except Exception:  # pragma: no cover - e.g. database busy for longer than busy_timeout
+        log.warning("could not write the heartbeat:\n%s", traceback.format_exc())
 
 
 def claim(conn):
@@ -63,9 +85,14 @@ def process(conn, settings, sub_id, sandbox=None, on_progress=None):
 
 def run_once(conn, settings, sandbox=None, on_progress=None):
     """Judge one queued submission if there is one; returns its id or None."""
+    heartbeat(conn)
     sub_id = claim(conn)
     if sub_id is not None:
-        process(conn, settings, sub_id, sandbox=sandbox, on_progress=on_progress)
+        def progress(sid, done, total):
+            heartbeat(conn)
+            if on_progress:
+                on_progress(sid, done, total)
+        process(conn, settings, sub_id, sandbox=sandbox, on_progress=progress)
     return sub_id
 
 

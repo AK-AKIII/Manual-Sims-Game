@@ -1,6 +1,7 @@
 /* Shared UI helpers for every page: formatting, toasts, count-up numbers,
- * button ripples and ticks, the signed-in chip in the header, contest clock,
- * section reveals and the problem page's table-of-contents scrollspy. */
+ * button ripples and ticks, the signed-in chip in the header (plus an Admin link
+ * for admins), the announcement banner, modal dialogs (UI.dialog), the contest
+ * clock and the problem page's table-of-contents scrollspy. */
 (function () {
   "use strict";
   const reduced = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -128,7 +129,9 @@
     box.insertBefore(slot, sound);
     const render = (me) => {
       if (me) {
-        slot.innerHTML = `<span class="user-chip" title="Signed in as ${esc(me.username)}"><span class="avatar" aria-hidden="true">${esc(me.username[0].toUpperCase())}</span>` +
+        const here = /^\/admin(\/|$)/.test(location.pathname);
+        const admin = me.is_admin ? `<a class="nav-admin" href="/admin/"${here ? ' aria-current="page"' : ""}>Admin</a>` : "";
+        slot.innerHTML = admin + `<span class="user-chip" title="Signed in as ${esc(me.username)}"><span class="avatar" aria-hidden="true">${esc(me.username[0].toUpperCase())}</span>` +
           `<span class="name">${esc(me.username)}</span>${me.is_admin ? '<span class="badge-admin">admin</span>' : ""}</span>` +
           `<button type="button" class="btn sm ghost" data-act="logout">Sign out</button>`;
       } else {
@@ -151,6 +154,120 @@
     });
     document.addEventListener("auth-change", (ev) => render(ev.detail));
     try { render(await API.me()); } catch (e) { render(null); }
+  }
+
+  // ---------- announcement banner (from /api/contest; dismissal remembered per text)
+  const DISMISS_KEY = "pr-announce-dismissed";
+  function announcementHTML(text, preview) {
+    return `<div class="wrap"><span class="ic" aria-hidden="true">♦︎</span><p class="announce-text">${esc(text)}</p>` +
+      `<button type="button" class="x" ${preview ? 'tabindex="-1" aria-hidden="true"' : 'aria-label="Dismiss announcement"'} data-quiet>×</button></div>`;
+  }
+  function renderAnnouncement(c) {
+    let bar = document.getElementById("announce");
+    const text = c && typeof c.announcement === "string" ? c.announcement.trim() : "";
+    let dismissed = null;
+    try { dismissed = localStorage.getItem(DISMISS_KEY); } catch (e) { dismissed = null; }
+    if (!text || dismissed === text) { if (bar) bar.remove(); return; }
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "announce";
+      bar.className = "announce";
+      bar.setAttribute("role", "region");
+      bar.setAttribute("aria-label", "Announcement");
+      const nav = document.querySelector(".site-nav");
+      if (nav) nav.insertAdjacentElement("afterend", bar); else document.body.prepend(bar);
+      bar.addEventListener("click", (ev) => {
+        if (!ev.target.closest(".x")) return;
+        try { localStorage.setItem(DISMISS_KEY, bar.dataset.text || ""); } catch (e) { /* private mode: dismiss for this page only */ }
+        const next = document.getElementById("main");
+        bar.classList.add("out");
+        setTimeout(() => bar.remove(), reduced() ? 0 : 260);
+        if (next && bar.contains(document.activeElement)) { next.setAttribute("tabindex", "-1"); next.focus({ preventScroll: true }); }
+      });
+    }
+    if (bar.dataset.text !== text) { bar.dataset.text = text; bar.innerHTML = announcementHTML(text, false); }
+  }
+  function initAnnouncement() {
+    if (!window.API) return;
+    window.API.contest().then(renderAnnouncement, () => { /* no banner without the API */ });
+  }
+  const refreshAnnouncement = () => window.API.contest(true).then(renderAnnouncement, () => {});
+
+  // ---------- modal dialogs (native <dialog>: focus stays inside, Escape closes, focus returns)
+  let dlgSeq = 0;
+  /**
+   * UI.dialog({title, html, confirmLabel, cancelLabel, danger, requireText, initialFocus,
+   *            onOpen(api), onConfirm(api), returnFocus()}) -> Promise(result | null)
+   * onConfirm may be async: a thrown error is shown inline and the dialog stays open;
+   * returning false keeps it open too; anything else closes it and resolves with it.
+   * api = {el, body, ok, cancel, msg, setError(text), close(value)}.
+   */
+  function dialog(opts) {
+    opts = opts || {};
+    return new Promise((resolve) => {
+      const prev = document.activeElement;
+      const tid = "dlg-" + (++dlgSeq);
+      const d = document.createElement("dialog");
+      d.className = "modal" + (opts.danger ? " danger" : "") + (opts.wide ? " wide" : "");
+      d.setAttribute("aria-labelledby", tid + "-t");
+      d.setAttribute("aria-describedby", tid + "-d");
+      const confirm = opts.confirmLabel === null ? "" :
+        `<button type="submit" class="btn ${opts.danger ? "danger solid" : "primary"}" data-dlg="ok">${esc(opts.confirmLabel || "Confirm")}</button>`;
+      d.innerHTML = `<form method="dialog" novalidate>
+        <h2 id="${tid}-t">${esc(opts.title || "Are you sure?")}</h2>
+        <div class="modal-body" id="${tid}-d">${opts.html || ""}</div>
+        ${opts.requireText ? `<div class="field" style="margin:14px 0 0"><label for="${tid}-c">Type <b class="mono">${esc(opts.requireText)}</b> to confirm</label>
+          <input id="${tid}-c" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" data-require></div>` : ""}
+        <div class="msg" role="alert"></div>
+        <div class="modal-actions"><button type="button" class="btn ghost" data-dlg="cancel">${esc(opts.cancelLabel || "Cancel")}</button>${confirm}</div>
+      </form>`;
+      document.body.appendChild(d);
+      const form = d.querySelector("form");
+      const api = {
+        el: d, body: d.querySelector(".modal-body"), ok: d.querySelector("[data-dlg=ok]"), cancel: d.querySelector("[data-dlg=cancel]"),
+        msg: d.querySelector(".msg"),
+        setError(text) { api.msg.innerHTML = text ? `<div class="err">${esc(text)}</div>` : ""; },
+        close(v) { result = v; if (d.open) d.close(); },
+      };
+      let result = null, busy = false;
+      const req = d.querySelector("[data-require]");
+      const reqOk = () => !req || req.value.trim().toLowerCase() === String(opts.requireText).toLowerCase();
+      if (req && api.ok) {
+        api.ok.disabled = true;
+        req.addEventListener("input", () => { api.ok.disabled = !reqOk(); api.setError(""); });
+      }
+      api.cancel.addEventListener("click", () => { if (!busy) api.close(null); });
+      d.addEventListener("cancel", (ev) => { if (busy) ev.preventDefault(); });
+      d.addEventListener("click", (ev) => { if (ev.target === d && !busy) api.close(null); }); // backdrop
+      form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        if (busy || !api.ok || api.ok.disabled || !reqOk()) return;
+        api.setError("");
+        busy = true; api.ok.classList.add("busy"); api.ok.disabled = true; api.cancel.disabled = true;
+        try {
+          const r = opts.onConfirm ? await opts.onConfirm(api) : true;
+          busy = false;
+          if (r !== false) { api.close(r === undefined ? true : r); return; }
+        } catch (e) {
+          busy = false;
+          api.setError(e && e.message ? e.message : String(e));
+          if (S()) S().error();
+        }
+        if (api.ok) { api.ok.classList.remove("busy"); api.ok.disabled = !reqOk(); }
+        api.cancel.disabled = false;
+      });
+      d.addEventListener("close", () => {
+        d.remove();
+        if (prev && prev.isConnected && typeof prev.focus === "function") prev.focus({ preventScroll: true });
+        else if (opts.returnFocus) opts.returnFocus();
+        resolve(result);
+      });
+      if (opts.onOpen) opts.onOpen(api);
+      d.showModal();
+      const first = (opts.initialFocus && d.querySelector(opts.initialFocus)) || req || d.querySelector(".modal-body input, .modal-body textarea") ||
+        (opts.danger ? api.cancel : api.ok || api.cancel);
+      if (first) first.focus();
+    });
   }
 
   // ---------- contest clock
@@ -196,10 +313,12 @@
     for (const id of map.keys()) { const h = document.getElementById(id); if (h) io.observe(h); }
   }
 
-  window.UI = { esc, fmtInt, parseTime, fmtDate, relTime, fmtSecs, toast, countUp, contestPhase, splitDuration, shortDuration, reduced };
+  window.UI = { esc, fmtInt, parseTime, fmtDate, relTime, fmtSecs, toast, countUp, contestPhase, splitDuration, shortDuration, reduced,
+    dialog, announcementHTML, renderAnnouncement, refreshAnnouncement };
 
   document.addEventListener("DOMContentLoaded", () => {
     initNavUser();
+    initAnnouncement();
     initToc();
     const y = document.getElementById("year");
     if (y) y.textContent = String(new Date().getFullYear());

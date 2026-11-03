@@ -12,7 +12,8 @@ class InviteTest(PlatformTest):
         r = self.client.post("/api/register", json={"username": "alice", "password": "password123", "invite": "nope"})
         self.assertEqual(r.status_code, 403)
         self.assertIn("error", r.json())
-        r = self.client.post("/api/register", json={"username": "alice", "password": "password123"})
+        r = self.client.post("/api/register", json={"username": "alice", "password": "password123",
+                                                    "email": "alice@example.com"})
         self.assertEqual(r.status_code, 403)
         self.register("alice", invite="letmein")
         self.assertTrue(self.client.get("/api/contest").json()["invite_required"])
@@ -21,7 +22,7 @@ class InviteTest(PlatformTest):
 class AuthTest(PlatformTest):
     def test_register_login_logout(self):
         r = self.register("alice")
-        self.assertEqual(r.json(), {"username": "alice", "is_admin": False})
+        self.assertEqual(r.json(), {"username": "alice", "is_admin": False, "email": "alice@example.com"})
         cookie = r.headers["set-cookie"].lower()
         self.assertIn("pr_session=", cookie)
         self.assertIn("httponly", cookie)
@@ -49,20 +50,21 @@ class AuthTest(PlatformTest):
         self.assertEqual(r.status_code, 401)
         r = c.post("/api/login", json={"username": "ALICE", "password": "password123"})
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json(), {"username": "alice", "is_admin": False})
+        self.assertEqual(r.json(), {"username": "alice", "is_admin": False, "email": "alice@example.com"})
         self.assertEqual(c.get("/api/me").status_code, 200)
 
     def test_validation_and_conflict(self):
         bad = [("ab", "password123"), ("a" * 21, "password123"), ("bad name", "password123"),
                ("bad/name", "password123"), ("okname", "short")]
         for u, p in bad:
-            r = self.client.post("/api/register", json={"username": u, "password": p})
+            r = self.client.post("/api/register", json={"username": u, "password": p, "email": "x@example.com"})
             self.assertEqual(r.status_code, 400, (u, p))
             self.assertIn("error", r.json())
         r = self.client.post("/api/register", json={"username": 5, "password": "password123"})
         self.assertEqual(r.status_code, 400)
         self.register("alice")
-        r = self.new_client().post("/api/register", json={"username": "Alice", "password": "password123"})
+        r = self.new_client().post("/api/register", json={"username": "Alice", "password": "password123",
+                                                          "email": "other@example.com"})
         self.assertEqual(r.status_code, 409)
 
     def test_admin_from_env(self):

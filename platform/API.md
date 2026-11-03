@@ -81,6 +81,12 @@ The worker checks every test's stdout with `poker_run.check` outside the sandbox
 - `sessions(token_hash PRIMARY KEY, user_id, created, expires)`; the cookie holds a random token, the DB stores its SHA-256.
 - `submissions(id, user_id, kind 'public'|'full', source, created, status 'queued'|'running'|'done'|'error', started, finished, error, raw_total, cleared_total, max_time, tests_ac, tests_total, tests_done)`; `tests_total` is set when the submission is queued.
 - `results(submission_id, seed, verdict, score, cleared, time, message)`; PRIMARY KEY (submission_id, seed).
+- Added later (additive migrations run on every start: `ALTER TABLE ... ADD COLUMN` for missing columns, `CREATE TABLE IF NOT EXISTS` for new tables; nothing is rewritten or dropped):
+  - `users.last_login` (ISO, set on register and login; NULL until the user next signs in), `users.disabled_at` (ISO; NULL = active), `users.disabled_reason`.
+  - `users.email` (lowercase, trimmed; NULL for accounts made before emails existed) with `UNIQUE INDEX users_email ON users(email) WHERE email IS NOT NULL`. Emails are only returned to their owner (`/api/me`) and to admins; never on the leaderboard or in other students' responses. Nothing sends email yet.
+  - `audit(id, created, actor, action, target, details)`: one row per admin action. `actor`/`target` are username text (no foreign key), so entries outlive deleted users. `details` is a JSON object.
+  - `settings(key PRIMARY KEY, value, updated, updated_by)`: contest settings overridden from the admin panel; `value` is JSON. A missing row means "use the environment variable".
+  - `meta(key PRIMARY KEY, value)`: small runtime values; the worker writes `worker_heartbeat` (ISO time) at most every 5 s while it polls or judges.
 
 ## HTTP API
 
@@ -89,17 +95,65 @@ All JSON. Errors: `{"error": "human readable message"}` with a 4xx/5xx status. S
 | Method, path | Body | Response |
 | --- | --- | --- |
 | `GET /api/health` | | `{"ok": true}` |
-| `GET /api/contest` | | `{name, start, end, freeze, now, open: bool, public_seeds: [..], hidden_count, time_limit, full_per_hour, invite_required: bool}` |
-| `POST /api/register` | `{username, password, invite}` | 201 `{username, is_admin}` + cookie. username 3–20 chars `[A-Za-z0-9_-]`, password 8+ chars. 409 if taken, 403 bad invite |
-| `POST /api/login` | `{username, password}` | 200 `{username, is_admin}` + cookie; 401 on bad credentials |
+| `GET /api/contest` | | `{name, start, end, freeze, now, open: bool, public_seeds: [..], hidden_count, time_limit, full_per_hour, invite_required: bool, max_source_kb, announcement: string or null}` (values include admin-panel overrides; `announcement` is null unless an admin turned the banner on with non-empty text) |
+| `POST /api/register` | `{username, password, email, invite}` | 201 `{username, is_admin, email}` + cookie. username 3–20 chars `[A-Za-z0-9_-]`, password 8+ chars, email required (one `@`, a dot in the domain, no spaces, ≤ 254 chars; stored lowercase). 409 "that username is taken" / "email already registered" (case-insensitive), 403 bad invite (checked before the email) |
+| `POST /api/login` | `{username, password}` | `username` may be a username or an email (the key `login` is accepted too). 200 `{username, is_admin, email}` + cookie; 401 on bad credentials; 403 for a disabled account (only after a correct password). The failure limit is keyed on the lowercased identifier |
 | `POST /api/logout` | | 204, clears cookie |
-| `GET /api/me` | | `{username, is_admin}` or 401 |
+| `GET /api/me` | | `{username, is_admin, email}` (email may be null) or 401 |
+| `POST /api/account/email` | `{email, password}` | the signed-in user adds or changes their email; current password required (401 "wrong password"); 400 invalid, 409 taken. 200 `{username, is_admin, email}` |
 | `POST /api/submissions` | `{kind: "public"|"full", source: "<python code>"}` | 202 `{id}`. 401 not logged in; 403 contest closed (full only; public always allowed while logged in); 413 too big; 429 if the user already has a queued/running submission, or exceeded `PR_FULL_PER_HOUR` |
 | `GET /api/submissions` | | `[{id, kind, status, created, started, finished, raw_total, relative_total, tests_ac, tests_done, tests_total, position, max_time, error}]` newest first, own only (`relative_total` null for public; `position` is the place in the queue, null unless queued) |
 | `GET /api/submissions/{id}` | | the row above plus `source` and `results`. For **public** submissions results are per seed `{seed, verdict, score, cleared, time, message}`; for **full** submissions results are anonymised `{test: 1..N, verdict, time}` (no seeds, no scores) so hidden seeds stay hidden. Own submissions only, admins any. `position` = place in queue while queued |
 | `GET /api/leaderboard` | | `{frozen: bool, rows: [{rank, username, relative_total, raw_total, tests_ac, submitted, submissions}]}` |
-| `GET /api/admin/submissions` | | admin only: all submissions with username |
+| `GET /api/admin/submissions` | | admin only: all submissions with username (see Admin API for filters) |
 | `POST /api/admin/rejudge/{id}` | | admin only: back to queued, results cleared. 200 `{id, status}`; 409 while running |
+
+## Admin API
+
+Every `/api/admin/*` endpoint: 401 when signed out, 403 for non-admins, CSRF header on state-changing methods (403 without), 404 `{"error": ...}` for an unknown user or submission id, 400 for invalid input, 409 when a safety rule refuses. Every state-changing admin action writes an `audit` row. The site's admin panel is `/admin/`.
+
+**User row** (`U`): `{id, username, email, created, is_admin, admin_env: bool (listed in PR_ADMINS), status: "active"|"disabled", disabled_at, disabled_reason, last_login, public_submissions, full_submissions, best_relative_total (null without a finished full run), best_submission_id, rank (null when unranked or disabled; same ranks as the live leaderboard), last_submission (ISO or null)}`.
+
+**Admin submission row** (`S`): the `GET /api/submissions` row plus `username, user_id, user_disabled: bool`.
+
+| Method, path | Body / query | Response |
+| --- | --- | --- |
+| `GET /api/admin/overview` | | `{counts: {registered, active, disabled, admins, active_24h, submissions, submissions_24h, full, public, queued, running, errors}, judge: {queue, running: [{id, username, kind, tests_done, tests_total, started}], worker_last_seen (ISO or null), worker_alive: bool (heartbeat within 30 s)}, verdicts: {AC, WA, TLE, RE} (per-test counts over all judged tests), daily: [{date: "YYYY-MM-DD", registrations, submissions, full}] (last 14 UTC days, oldest first), top: [first 5 live leaderboard rows], contest: (same as GET /api/contest)}`. `active_24h` = users who signed in or submitted in the last 24 h |
+| `GET /api/admin/users` | | `{users: [U...] (by id), summary: {registered, active, disabled, admins, with_full}}` |
+| `GET /api/admin/users.csv` | | CSV attachment of the same rows. Text cells starting with `= + - @`, tab or CR are prefixed with `'` (formula-injection guard; usernames may start with `-`) |
+| `GET /api/admin/users/{id}` | | `U` plus `submissions: [S...]` newest first |
+| `POST /api/admin/users/{id}/disable` | `{reason?}` (≤ 200 chars) | `U`. See rules below. Disabling a disabled user is a no-op 200 (no audit row) |
+| `POST /api/admin/users/{id}/enable` | | `U` |
+| `POST /api/admin/users/{id}/password` | `{password}` (8-256 chars, like registration) | `{ok: true, sessions_revoked}`. Revokes all the user's sessions (an admin resetting their own password keeps the current session) |
+| `POST /api/admin/users/{id}/admin` | `{is_admin: bool}` | `U` |
+| `POST /api/admin/users/{id}/email` | `{email}` (null or "" clears it) | `U`; 400 invalid, 409 taken. Audit details mask both values (`a***@example.com`) |
+| `DELETE /api/admin/users/{id}` | `{confirm: "<username>"}` (must equal the username, case-insensitive) | `{deleted: username, submissions: n}`. 400 when `confirm` doesn't match; 409 while one of their submissions is running (disable first, wait, retry) |
+| `GET /api/admin/submissions` | `?user=&kind=public\|full&status=queued\|running\|done\|error&verdict=AC\|WA\|TLE\|RE&since=&until=&limit=1000` | `[S...]` newest first. `user` is an exact username (case-insensitive); `verdict` keeps submissions with at least one test of that verdict; `since`/`until` are ISO times on `created` |
+| `DELETE /api/admin/submissions/{id}` | | `{deleted: id}`; removes the source and results. 409 while it is running (cancel isn't possible mid-run; wait for it to finish). The audit row keeps username, id, kind, status, raw and relative total |
+| `POST /api/admin/submissions/{id}/cancel` | | `S` with status `error` and error `cancelled by an admin`; 409 unless queued |
+| `POST /api/admin/rejudge-bulk` | `{which: "errored"\|"full"}` | `{count, ids}`. `errored`: every submission in status `error` except cancelled ones; `full`: every full submission that is `done` or `error` (not cancelled). Submissions of disabled users are skipped; running/queued ones are left alone |
+| `GET /api/admin/submissions.zip` | `?pick=best\|latest` | ZIP attachment: per student one `<username>.py`: their best finished full submission by relative total (`best`) or their latest full submission (`latest`), plus `manifest.csv` (username, account active/disabled, file, submission_id, created, status, relative_total, raw_total) |
+| `GET /api/admin/leaderboard.csv` | `?view=live\|public` | CSV attachment: `rank, username, relative_total, raw_total, tests_ac, submissions, best_submission_id, best_submitted`. `public` is what students see (frozen during a freeze) |
+| `GET /api/admin/similarity` | `?limit=50` (1-500) | `{pairs: [{a: {username, submission_id}, b: {...}, similarity (0-1), shared, a_size, b_size}], compared, skipped, truncated: bool, method}` most similar first; see Similarity below |
+| `GET /api/admin/settings` | | `{editable: {KEY: {value, env, overridden: bool}}, readonly: {hidden_count, public_seeds, time_limit, memory_mb, max_source_kb, sandbox, workers}}`; keys below |
+| `POST /api/admin/settings` | `{set: {KEY: value}, clear: [KEY]}` | same as GET. Validated together; nothing is saved on a 400 |
+| `POST /api/admin/settings/invite/regenerate` | | same as GET; sets the invite override to a fresh random code (`xxxx-xxxx-xxxx`) |
+| `GET /api/admin/audit` | `?actor=&action=&target=&limit=200` (≤ 2000) | `[{id, created, actor, action, target, details}]` newest first; `actor`, `target` exact (case-insensitive), `action` exact or a prefix ending in `.` (e.g. `user.`) |
+
+Editable settings (env default in brackets): `name` [PR_CONTEST_NAME] 1-80 chars; `start`, `end`, `freeze` [PR_START/PR_END/PR_FREEZE] ISO 8601 or null for "unset" (stored UTC; `start < end`, and `freeze` must be at or after `start` and before `end` when those are set); `invite` [PR_INVITE] "" = open registration, else 4-64 printable characters; `full_per_hour` [PR_FULL_PER_HOUR] integer 0-1000; `announcement` [""] ≤ 500 chars; `announcement_on` [false] bool. Hidden/public seeds, time limit, memory and source size stay env-only (changing them would invalidate scores). The api reads overrides on every request; the worker doesn't use any of them. Audit `details` for `settings.update` is `{KEY: [old, new]}`, with invite codes masked (`ab…yz`, or `(open)`).
+
+Audit actions: `user.disable`, `user.enable`, `user.delete`, `user.password`, `user.admin`, `user.email`, `submission.delete`, `submission.cancel`, `submission.rejudge`, `submission.rejudge_bulk`, `settings.update`, `settings.invite`. The CLI writes them with actor `(cli)`.
+
+### Rules for user actions
+
+- **Disable** (the reversible "remove"): sets `disabled_at`; in the same transaction deletes all the user's sessions and cancels their queued submissions (status `error`, error `cancelled: account disabled`). A submission already running is left to finish (the sandbox can't be stopped cleanly from the api); its result is stored but doesn't count while the user is disabled. A disabled user can't sign in (403 "this account is disabled" after a correct password; 401 for a wrong one) and any leftover session is rejected.
+- **Scoring**: disabled users' submissions are excluded everywhere scores are computed: they don't set the per-seed bests (so a cheater can't depress others' relative scores) and don't appear on the public leaderboard. Admins see them on `GET /api/leaderboard` after the ranked rows with `rank: null, disabled: true`, scored against the active users' bests (so they can exceed 1,000,000 per test). Enabling restores everything, because scores are computed when read.
+- **Delete** (permanent): removes the user, their sessions, submissions and results; scores recompute on the next read. Audit rows stay.
+- **Safety**: an admin can't disable, delete or remove admin from themselves (409). The last active admin (counting PR_ADMINS users who are registered and active) can't be disabled, deleted or de-admined (409). A user listed in PR_ADMINS is an admin whatever the DB flag says, so removing their admin returns 409 "listed in PR_ADMINS; edit PR_ADMINS and restart the api". Disabling or deleting a PR_ADMINS user is allowed (a deleted one would be an admin again on re-registration).
+
+### Similarity
+
+For each active or disabled student with a full submission, take their latest full submission. Tokenise it with Python's `tokenize` (comments, blank lines, indentation and whitespace dropped; string literals become `STR`; identifiers, keywords, numbers and operators kept), form token 5-grams, and remove every 5-gram that also occurs in the official `starter.py`. Similarity of a pair = Jaccard |A∩B| / |A∪B| of their 5-gram sets. The result is cached until the set of latest full submissions changes; a first run over several hundred long solvers takes a few seconds (15 s budget, after which `truncated` is true). Sources that don't tokenise fall back to a regex tokeniser; a student with fewer than 20 remaining 5-grams is counted in `skipped`. At most 600 students (the most recent submitters) are compared; `truncated` says when more exist. Pairs below 0.2 are not returned.
 
 Other rules as built: usernames are unique and log in case-insensitively; 10 failed logins per 15 minutes per (IP, username) gives 429 (uvicorn runs with `--proxy-headers` behind Caddy so it sees real IPs); validation errors are 400; someone else's submission is 404; the hourly limit ignores submissions that ended in `error`; one queued-or-running submission at a time applies to everyone including admins (admins are only exempt from the contest window); admins see seeds and scores in full-run details; during a freeze a student's own list is scored against pre-freeze submissions plus their own.
 
@@ -110,3 +164,5 @@ Other rules as built: usernames are unique and log in case-insensitively; 10 fai
 - `/play/` the browser game (copied from `poker_run/web/`).
 - `/contest/` contest hub: countdown/status from `/api/contest`; login/register forms when logged out; when logged in: submit form (file upload or paste, kind public/full), my submissions table with live polling, submission detail view.
 - `/contest/leaderboard/` the leaderboard.
+- `/admin/` the admin panel (admins only; others see an "admins only" screen): Overview, Students, Submissions, Settings, Leaderboard, Similarity, Activity. The header shows an Admin link only to admins.
+- Every page that loads `site.js` shows the announcement banner from `/api/contest` when it is set.

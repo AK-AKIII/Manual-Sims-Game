@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!--#head-->
+<title>Admin · Poker Run</title>
+<meta name="description" content="Poker Run contest admin panel.">
+<meta name="robots" content="noindex">
+<script defer src="/assets/code.js"></script>
+<script defer src="/assets/admin.js"></script>
+</head>
+<body>
+<!--#nav:admin-->
+<main id="main">
+  <div class="wrap">
+    <div class="page-head adm-head">
+      <div class="row">
+        <div>
+          <span class="eyebrow">Admin panel</span>
+          <h1 id="adm-title">Contest control room</h1>
+          <p class="sub" id="adm-sub">Students, submissions, settings and the judge, in one place.</p>
+        </div>
+        <div class="adm-live" id="adm-live" aria-live="off"><span class="dot-live off" id="adm-live-dot" aria-hidden="true"></span><span id="adm-live-text">Connecting…</span></div>
+      </div>
+    </div>
+
+    <div id="adm-loading" class="panel">
+      <span class="skel" style="width:40%"></span><br><span class="skel" style="width:70%"></span><br><span class="skel" style="width:55%"></span>
+    </div>
+
+    <!-- not an admin -->
+    <section id="adm-denied" class="panel adm-denied hidden" aria-labelledby="adm-denied-h">
+      <span class="big" aria-hidden="true">♠︎</span>
+      <h2 id="adm-denied-h">Admins only</h2>
+      <p class="muted" id="adm-denied-text">This page is for the contest organisers.</p>
+      <div class="btn-row" id="adm-denied-actions"></div>
+    </section>
+
+    <!-- admin -->
+    <div id="adm-app" class="adm hidden">
+      <nav class="adm-nav" aria-label="Admin sections">
+        <div role="tablist" id="adm-tabs" aria-label="Admin sections" aria-orientation="vertical">
+          <button type="button" role="tab" id="at-overview" aria-controls="ap-overview" aria-selected="true"><span class="ic" aria-hidden="true">◆</span>Overview</button>
+          <button type="button" role="tab" id="at-students" aria-controls="ap-students" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">♟</span>Students <span class="count" id="ac-students"></span></button>
+          <button type="button" role="tab" id="at-submissions" aria-controls="ap-submissions" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">⇪</span>Submissions <span class="count" id="ac-submissions"></span></button>
+          <button type="button" role="tab" id="at-settings" aria-controls="ap-settings" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">⚙︎</span>Settings</button>
+          <button type="button" role="tab" id="at-leaderboard" aria-controls="ap-leaderboard" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">♛</span>Leaderboard</button>
+          <button type="button" role="tab" id="at-similarity" aria-controls="ap-similarity" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">≈</span>Similarity</button>
+          <button type="button" role="tab" id="at-activity" aria-controls="ap-activity" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">☰</span>Activity</button>
+        </div>
+        <div class="adm-nav-foot">
+          <a href="/contest/#all">Contest hub</a>
+          <a href="/contest/leaderboard/">Public leaderboard</a>
+        </div>
+      </nav>
+
+      <div class="adm-main">
+        <!-- ============================== overview -->
+        <section id="ap-overview" role="tabpanel" aria-labelledby="at-overview" class="adm-panel tabpanel" tabindex="-1">
+          <div class="adm-section-head"><h2>Overview</h2><span class="updated" id="ov-updated"></span></div>
+          <div class="adm-stats" id="ov-stats"></div>
+          <div class="adm-grid2">
+            <div class="panel" id="ov-judge"><h3 class="section-title">Judge</h3><div id="ov-judge-body"><span class="skel" style="width:60%"></span></div></div>
+            <div class="panel" id="ov-contest"><h3 class="section-title">Contest</h3><div id="ov-contest-body"><span class="skel" style="width:60%"></span></div></div>
+          </div>
+          <div class="panel" id="ov-verdicts"><h3 class="section-title">Verdicts <span class="muted st-note">per judged test</span></h3><div id="ov-verdicts-body"></div></div>
+          <div class="adm-grid2">
+            <div class="panel"><h3 class="section-title">Registrations <span class="muted st-note">last 14 days (UTC)</span></h3><div id="ov-chart-reg" class="chart"></div></div>
+            <div class="panel"><h3 class="section-title">Submissions <span class="muted st-note">last 14 days (UTC)</span></h3><div id="ov-chart-sub" class="chart"></div></div>
+          </div>
+          <div class="panel"><div class="adm-section-head sm"><h3 class="section-title" style="margin:0">Top 5 · live</h3><button type="button" class="btn sm ghost" data-goto="leaderboard">Full leaderboard <span class="arrow" aria-hidden="true">→</span></button></div><div id="ov-top"></div></div>
+        </section>
+
+        <!-- ============================== students -->
+        <section id="ap-students" role="tabpanel" aria-labelledby="at-students" class="adm-panel tabpanel hidden" tabindex="-1">
+          <div class="adm-section-head"><h2>Students</h2><span class="updated" id="us-updated"></span></div>
+          <div class="adm-chips" id="us-summary"></div>
+          <div class="lb-tools">
+            <div class="search"><label for="us-q" class="sr-only">Search students</label><input type="search" id="us-q" placeholder="Search by name or email…" autocomplete="off" spellcheck="false"></div>
+            <div class="btn-row">
+              <label class="sr-only" for="us-filter">Show</label>
+              <select id="us-filter" class="sel-sm"><option value="">Everyone</option><option value="active">Active</option><option value="disabled">Disabled</option><option value="admins">Admins</option><option value="full">With a full run</option><option value="noemail">Without email</option></select>
+              <a class="btn sm" href="/api/admin/users.csv" download>Download CSV</a>
+              <button type="button" class="btn sm" id="us-refresh">Refresh</button>
+            </div>
+          </div>
+          <div class="table-scroll"><table class="data adm-table" id="us-table">
+            <caption class="sr-only">Registered students. Column headers sort; open a row for details and actions.</caption>
+            <thead><tr>
+              <th scope="col" data-sort="username" aria-sort="ascending"><button type="button" class="sort">Student</button></th>
+              <th scope="col" class="opt" data-sort="created"><button type="button" class="sort">Joined</button></th>
+              <th scope="col" class="opt" data-sort="last_login"><button type="button" class="sort">Last login</button></th>
+              <th scope="col" data-sort="status"><button type="button" class="sort">Status</button></th>
+              <th scope="col" class="r opt" data-sort="subs"><button type="button" class="sort">Subs <span class="muted">pub/full</span></button></th>
+              <th scope="col" class="r" data-sort="best"><button type="button" class="sort">Best</button></th>
+              <th scope="col" class="r" data-sort="rank"><button type="button" class="sort">Rank</button></th>
+            </tr></thead>
+            <tbody><tr><td colspan="7"><span class="skel" style="width:70%"></span></td></tr></tbody>
+          </table></div>
+        </section>
+
+        <!-- ============================== submissions -->
+        <section id="ap-submissions" role="tabpanel" aria-labelledby="at-submissions" class="adm-panel tabpanel hidden" tabindex="-1">
+          <div class="adm-section-head"><h2>Submissions</h2><span class="updated" id="sb-updated" aria-live="off"></span></div>
+          <form class="panel tight adm-filters" id="sb-filters" novalidate>
+            <div class="field"><label for="sb-user">User</label><input type="text" id="sb-user" list="sb-users" autocomplete="off" spellcheck="false" placeholder="exact username"><datalist id="sb-users"></datalist></div>
+            <div class="field"><label for="sb-kind">Kind</label><select id="sb-kind"><option value="">Any</option><option value="public">Public</option><option value="full">Full</option></select></div>
+            <div class="field"><label for="sb-status">Status</label><select id="sb-status"><option value="">Any</option><option value="queued">Queued</option><option value="running">Running</option><option value="done">Done</option><option value="error">Error</option></select></div>
+            <div class="field"><label for="sb-verdict">Has verdict</label><select id="sb-verdict"><option value="">Any</option><option>AC</option><option>WA</option><option>TLE</option><option>RE</option></select></div>
+            <div class="field"><label for="sb-since">From <span class="hint tz-hint"></span></label><input type="datetime-local" id="sb-since"></div>
+            <div class="field"><label for="sb-until">To <span class="hint tz-hint"></span></label><input type="datetime-local" id="sb-until"></div>
+            <div class="adm-filter-actions"><button type="submit" class="btn sm primary">Apply</button><button type="button" class="btn sm ghost" id="sb-reset">Reset</button></div>
+          </form>
+          <div class="adm-bulk">
+            <div class="btn-row">
+              <button type="button" class="btn sm" id="sb-bulk-errored">Rejudge all errored</button>
+              <button type="button" class="btn sm" id="sb-bulk-full">Rejudge all full submissions</button>
+            </div>
+            <div class="btn-row">
+              <label for="sb-zip-pick" class="muted" style="font-weight:600">ZIP of sources</label>
+              <select id="sb-zip-pick" class="sel-sm"><option value="best">best per student</option><option value="latest">latest per student</option></select>
+              <a class="btn sm" id="sb-zip" href="/api/admin/submissions.zip?pick=best" download>Download ZIP</a>
+            </div>
+          </div>
+          <div class="table-scroll"><table class="data subs adm-table" id="sb-table">
+            <caption class="sr-only">All submissions, newest first. Expand a row for details.</caption>
+            <thead><tr><th scope="col">Submission</th><th scope="col">User</th><th scope="col" class="opt">Kind</th><th scope="col">Status</th><th scope="col" class="r">Score</th><th scope="col" class="r opt">Tests</th><th scope="col" class="r opt">Submitted</th><th scope="col" class="r"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </section>
+
+        <!-- ============================== settings -->
+        <section id="ap-settings" role="tabpanel" aria-labelledby="at-settings" class="adm-panel tabpanel hidden" tabindex="-1">
+          <div class="adm-section-head"><h2>Settings</h2><span class="updated" id="se-updated"></span></div>
+          <p class="muted adm-lead">Overrides saved here win over the environment variables, apply to the API right away, and are logged in Activity. Times are shown in <b id="se-tz">your timezone</b> and stored in UTC.</p>
+          <form id="se-form" class="adm-settings" novalidate>
+            <div class="panel"><h3 class="section-title">Contest</h3>
+              <div class="set-field" data-key="name"><label for="se-name">Name</label><input type="text" id="se-name" maxlength="80" required><div class="set-meta"></div></div>
+              <div class="set-times">
+                <div class="set-field" data-key="start"><label for="se-start">Start</label><div class="inline-input"><input type="datetime-local" id="se-start"><button type="button" class="btn sm ghost" data-clear-input="se-start" aria-label="Unset start">Unset</button></div><div class="set-meta"></div></div>
+                <div class="set-field" data-key="end"><label for="se-end">End</label><div class="inline-input"><input type="datetime-local" id="se-end"><button type="button" class="btn sm ghost" data-clear-input="se-end" aria-label="Unset end">Unset</button></div><div class="set-meta"></div></div>
+                <div class="set-field" data-key="freeze"><label for="se-freeze">Leaderboard freeze</label><div class="inline-input"><input type="datetime-local" id="se-freeze"><button type="button" class="btn sm ghost" data-clear-input="se-freeze" aria-label="Unset freeze">Unset</button></div><div class="set-meta"></div></div>
+              </div>
+              <div class="set-field" data-key="full_per_hour"><label for="se-fph">Full runs per student per hour</label><input type="number" id="se-fph" min="0" max="1000" step="1" inputmode="numeric" style="max-width:160px"><div class="set-meta"></div></div>
+            </div>
+            <div class="panel"><h3 class="section-title">Registration</h3>
+              <div class="set-field" data-key="invite">
+                <label class="toggle" style="margin-bottom:10px"><input type="checkbox" id="se-open"><span class="track" aria-hidden="true"></span>Open registration (no invite code)</label>
+                <label for="se-invite">Invite code</label>
+                <div class="inline-input"><input type="password" id="se-invite" autocomplete="off" spellcheck="false" maxlength="64">
+                  <button type="button" class="btn sm ghost" id="se-invite-show" aria-pressed="false">Show</button>
+                  <button type="button" class="btn sm ghost" id="se-invite-copy">Copy</button>
+                  <button type="button" class="btn sm" id="se-invite-regen">Regenerate</button></div>
+                <div class="set-meta"></div>
+              </div>
+            </div>
+            <div class="panel"><h3 class="section-title">Announcement banner</h3>
+              <div class="set-field" data-key="announcement_on"><label class="toggle"><input type="checkbox" id="se-ann-on"><span class="track" aria-hidden="true"></span>Show the banner on every page</label><div class="set-meta"></div></div>
+              <div class="set-field" data-key="announcement"><label for="se-ann">Text <span class="hint" id="se-ann-count">0 / 500</span></label><textarea id="se-ann" rows="3" maxlength="500" placeholder="e.g. The judge restarts at 18:00 UTC for a few minutes."></textarea><div class="set-meta"></div></div>
+              <div class="set-preview"><span class="eyebrow">Preview</span><div class="announce preview" id="se-preview" aria-hidden="true"></div><p class="muted st-note" id="se-preview-note"></p></div>
+            </div>
+            <div class="set-savebar">
+              <span class="muted" id="se-dirty" aria-live="polite">No changes</span>
+              <span class="btn-row"><button type="button" class="btn ghost" id="se-revert" disabled>Discard changes</button><button type="submit" class="btn primary" id="se-save" disabled>Save changes</button></span>
+            </div>
+            <div class="msg" id="se-msg" role="alert"></div>
+          </form>
+          <div class="panel"><h3 class="section-title">Environment only <span class="muted st-note">change them in the server's environment and restart</span></h3><div class="facts adm-facts" id="se-readonly"></div></div>
+        </section>
+
+        <!-- ============================== leaderboard -->
+        <section id="ap-leaderboard" role="tabpanel" aria-labelledby="at-leaderboard" class="adm-panel tabpanel hidden" tabindex="-1">
+          <div class="adm-section-head"><h2>Leaderboard <span class="badge running" style="vertical-align:4px">live</span></h2><span class="updated" id="lb-updated"></span></div>
+          <div id="lbx-frozen" class="note frozen hidden" style="margin-bottom:12px"></div>
+          <div class="lb-tools">
+            <div class="search"><label for="lbx-q" class="sr-only">Filter players</label><input type="search" id="lbx-q" placeholder="Filter players…" autocomplete="off" spellcheck="false"></div>
+            <div class="btn-row">
+              <a class="btn sm" href="/api/admin/leaderboard.csv?view=live" download>Export CSV · live</a>
+              <a class="btn sm" href="/api/admin/leaderboard.csv?view=public" download>Export CSV · public view</a>
+              <button type="button" class="btn sm" id="lbx-refresh">Refresh</button>
+            </div>
+          </div>
+          <div class="table-scroll"><table class="data lb adm-table" id="lbx-table">
+            <caption class="sr-only">Live leaderboard, including disabled students after the ranked rows</caption>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="r">Relative total</th><th scope="col" class="r opt">Raw total</th><th scope="col" class="r opt">Valid tests</th><th scope="col" class="r opt">Submissions</th><th scope="col" class="r opt">Best at</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </section>
+
+        <!-- ============================== similarity -->
+        <section id="ap-similarity" role="tabpanel" aria-labelledby="at-similarity" class="adm-panel tabpanel hidden" tabindex="-1">
+          <div class="adm-section-head"><h2>Similarity</h2><span class="updated" id="si-updated"></span></div>
+          <div class="panel tight sim-tools">
+            <p class="muted" style="margin:0">Compares each student's latest full submission with everyone else's. High scores are a reason to look, not proof.</p>
+            <div class="btn-row"><label for="si-limit" class="muted" style="font-weight:600">Show</label>
+              <select id="si-limit" class="sel-sm"><option value="50">top 50 pairs</option><option value="100">top 100</option><option value="500">top 500</option></select>
+              <button type="button" class="btn primary sm" id="si-run">Run check</button></div>
+          </div>
+          <div id="si-meta" class="sim-meta"></div>
+          <div id="si-pairs" class="sim-pairs" role="list" aria-label="Most similar pairs"></div>
+          <div id="si-compare" class="sim-compare hidden" tabindex="-1" aria-live="off"></div>
+        </section>
+
+        <!-- ============================== activity -->
+        <section id="ap-activity" role="tabpanel" aria-labelledby="at-activity" class="adm-panel tabpanel hidden" tabindex="-1">
+          <div class="adm-section-head"><h2>Activity</h2><span class="updated" id="au-updated"></span></div>
+          <form class="panel tight adm-filters" id="au-filters" novalidate>
+            <div class="field"><label for="au-actor">Actor</label><input type="text" id="au-actor" autocomplete="off" spellcheck="false" placeholder="username or (cli)"></div>
+            <div class="field"><label for="au-action">Action</label><select id="au-action">
+              <option value="">Everything</option><option value="user.">Users (all)</option><option value="user.disable">user.disable</option><option value="user.enable">user.enable</option>
+              <option value="user.password">user.password</option><option value="user.admin">user.admin</option><option value="user.email">user.email</option><option value="user.delete">user.delete</option>
+              <option value="submission.">Submissions (all)</option><option value="submission.rejudge">submission.rejudge</option><option value="submission.rejudge_bulk">submission.rejudge_bulk</option>
+              <option value="submission.cancel">submission.cancel</option><option value="submission.delete">submission.delete</option>
+              <option value="settings.">Settings (all)</option></select></div>
+            <div class="field"><label for="au-target">Target</label><input type="text" id="au-target" autocomplete="off" spellcheck="false" placeholder="username"></div>
+            <div class="adm-filter-actions"><button type="submit" class="btn sm primary">Apply</button><button type="button" class="btn sm ghost" id="au-reset">Reset</button></div>
+          </form>
+          <div class="table-scroll"><table class="data adm-table" id="au-table">
+            <caption class="sr-only">Admin actions, newest first</caption>
+            <thead><tr><th scope="col">When</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Target</th><th scope="col">Details</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- student detail drawer -->
+  <dialog id="drawer" class="drawer" aria-labelledby="dr-title">
+    <div class="drawer-head">
+      <div class="dr-who"><span class="avatar" id="dr-avatar" aria-hidden="true"></span><div><h2 id="dr-title">Student</h2><div id="dr-badges" class="dr-badges"></div></div></div>
+      <button type="button" class="btn sm ghost dr-close" id="dr-close" aria-label="Close details">×</button>
+    </div>
+    <div class="drawer-body" id="dr-body"></div>
+  </dialog>
+</main>
+<!--#footer-->
+</body>
+</html>

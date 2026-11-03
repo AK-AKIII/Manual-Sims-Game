@@ -14,7 +14,9 @@ class ContestTest(PlatformTest):
     def test_contest_info(self):
         c = self.client.get("/api/contest").json()
         self.assertEqual(set(c), {"name", "start", "end", "freeze", "now", "open", "public_seeds", "hidden_count",
-                                  "time_limit", "full_per_hour", "invite_required"})
+                                  "time_limit", "full_per_hour", "invite_required", "max_source_kb",
+                                  "announcement"})
+        self.assertIsNone(c["announcement"])
         self.assertEqual(c["name"], "Poker Run")
         self.assertTrue(c["open"])
         self.assertEqual(c["public_seeds"], [5, 6])

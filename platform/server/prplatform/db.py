@@ -15,7 +15,11 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT NOT NULL UNIQUE COLLATE NOCASE,
     pw_hash TEXT NOT NULL,
     created TEXT NOT NULL,
-    is_admin INTEGER NOT NULL DEFAULT 0
+    is_admin INTEGER NOT NULL DEFAULT 0,
+    last_login TEXT,
+    disabled_at TEXT,
+    disabled_reason TEXT,
+    email TEXT
 );
 CREATE TABLE IF NOT EXISTS sessions (
     token_hash TEXT PRIMARY KEY,
@@ -50,14 +54,44 @@ CREATE TABLE IF NOT EXISTS results (
     message TEXT,
     PRIMARY KEY (submission_id, seed)
 );
+CREATE TABLE IF NOT EXISTS audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target TEXT,
+    details TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated TEXT NOT NULL,
+    updated_by TEXT
+);
+CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
 CREATE INDEX IF NOT EXISTS submissions_user ON submissions(user_id, id);
 CREATE INDEX IF NOT EXISTS submissions_status ON submissions(status, id);
 CREATE INDEX IF NOT EXISTS sessions_expires ON sessions(expires);
 """
 
 # Columns added after the first version: (table, column, declaration).
+# Only additive changes that SQLite can do in place on a live database (nullable
+# columns or ones with a constant default); never rewrite or drop anything.
 MIGRATIONS = [
     ("submissions", "tests_done", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "last_login", "TEXT"),
+    ("users", "disabled_at", "TEXT"),
+    ("users", "disabled_reason", "TEXT"),
+    ("users", "email", "TEXT"),
+]
+
+# Run after MIGRATIONS (they may refer to migrated columns). Emails are stored
+# lowercase, so a plain unique index is case-insensitive; old accounts have NULL.
+POST_MIGRATION = [
+    "CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email) WHERE email IS NOT NULL",
 ]
 
 
@@ -102,6 +136,8 @@ def init(path):
             cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
             if column not in cols:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+        for sql in POST_MIGRATION:
+            conn.execute(sql)
     finally:
         conn.close()
 

@@ -19,8 +19,9 @@ across runs. What it assembles:
 | `/` | `pages/index.html` (landing, live demo, scroll story, opening intro) |
 | `/problem/` | `pages/problem/index.html` + `poker_run/problem/statement.md` and `generator.md`, rendered by build.py's own Markdown renderer |
 | `/modes/` | `pages/modes/index.html` + `poker_run/web/MULTIPLAYER.md` and `poker_run/problem/balanced.md` (a `<!-- site:skip -->` line before a heading leaves that section out) |
-| `/contest/` | `pages/contest/index.html` (sign in / register, submit, my submissions, admin) |
+| `/contest/` | `pages/contest/index.html` (sign in / register, submit, my submissions, account email, admin "all submissions") |
 | `/contest/leaderboard/` | `pages/contest/leaderboard/index.html` |
+| `/admin/` | `pages/admin/index.html` + `assets/admin.js` (admin panel; signed-out and non-admin visitors get an "Admins only" screen) |
 | `/play/` | `poker_run/web/index.html` + every script it loads (`engine.js`, `bot.js`, `multiplayer.js`; the title becomes a link home) |
 | `/assets/` | `assets/` (references get `?v=<content hash>` for cache busting) |
 | `/media/` | `video/poker_run_explainer.mp4` (+ `.webm` if present) |
@@ -28,6 +29,8 @@ across runs. What it assembles:
 | `/favicon.ico` | wraps `assets/favicon.png` |
 
 Pages use build-time partials: `<!--#head-->`, `<!--#nav:KEY-->` and `<!--#footer-->`.
+`KEY` is a `NAV_ITEMS` key (marked `aria-current`); any other key, like the admin page's `admin`, marks
+nothing. The header's Admin link isn't a static nav item: `site.js` adds it for signed-in admins only.
 The landing page has a small inline `<script>` in `<head>` (the intro cover guard).
 If you deploy a CSP, allow it or move it to a file.
 
@@ -42,22 +45,45 @@ python3 platform/site/mock_server.py        # http://127.0.0.1:8765/
 endpoint of API.md in memory, including `tests_done`/`tests_total`/`position`
 progress. Nothing is persisted.
 
-- Accounts: `admin` / `adminpass` (admin), `demo` / `demopass` (has history), plus 14 fake leaderboard players.
+- Accounts (sign in with the username or the email): `admin` / `adminpass` (admin, treated as listed in
+  `PR_ADMINS`, so "Remove admin" on it gives the 409), `helper` / `helperpass` (admin via the database flag),
+  `demo` / `demopass` (has history, `demo@example.com`), plus 14 fake students (password `xxxxxxxxxxxx`).
+  Most accounts have `<name>@example.com`; `helper`, `kicker` and `low_road` have no email (old accounts).
+  `lastcall` copied `momentum` and `hal9000` copied `ace_high`, so the similarity check finds pairs;
+  `greedy_gus` has an errored run.
 - A new submission is queued for about 2 s, then runs one test at a time (`tests_done` climbs) and finishes.
   Submissions are judged one at a time, in enqueue order.
 - The source picks the verdicts: `raise` gives some RE, `sleep` some TLE, `WRONG` some WA, no `print`/`stdout`
   gives all WA, `JUDGE_ERROR` ends with status `error`.
 - `rivalrook` gains score every 20 s, so the leaderboard's rank arrows have something to show.
-- Rules enforced: CSRF header on POSTs (403), 429 while you have a queued/running submission or after 6 full
+- The whole Admin API of API.md is implemented in memory: overview, users (list, CSV, detail, disable,
+  enable, password, admin, email, delete), submissions (filters, delete, cancel, rejudge, bulk rejudge, ZIP),
+  `leaderboard.csv`, similarity (Python `tokenize` 5-grams minus `starter.py`, Jaccard), settings (get, set,
+  clear, regenerate invite; overrides feed `/api/contest`, registration, the hourly limit and the freeze)
+  and the audit log with its filters. The safety rules (self-actions, last active admin, `PR_ADMINS`) and
+  the disable rules (sessions dropped, queued runs cancelled, off the public leaderboard; admins see them
+  after the ranked rows with `rank: null`) are enforced. The per-test bests are a fixed fake field, so
+  disabling someone doesn't move anyone else's relative score in the mock. `POST /api/account/email` too.
+- Rules enforced: CSRF header on POSTs and DELETEs (403), 429 while you have a queued/running submission or after 6 full
   runs per hour, 413 over 256 KB, 403 for full submissions when the contest is closed.
 - Options: `--invite CODE`, `--frozen`, `--closed`, `--upcoming`, `--no-deadline`, `--speed X`,
-  `--latency S`, `--port N`, `--dir PATH`, `--quiet`.
+  `--latency S`, `--stale-worker` (the overview shows a dead worker), `--port N`, `--dir PATH`, `--quiet`.
 
 ## Files
 
 - `assets/site.css`: the whole design system (felt/cream/gold, one dark theme, `color-scheme: dark`).
-- `assets/api.js`: API client (`credentials: "same-origin"`, `X-Requested-With: fetch` on every POST, `{error}` messages).
-- `assets/site.js`: formatting, toasts, count-ups, button ripple and ticks, the signed-in chip, the contest clock, the problem-page scrollspy.
+- `assets/api.js`: API client (`credentials: "same-origin"`, `X-Requested-With: fetch` on every POST and DELETE, `{error}` messages).
+  `API.contest()` shares one request for 3 s (site.js and the page scripts both read it at load); `API.contest(true)` forces a fresh one.
+  Admin calls are `API.admin*` (one per Admin API endpoint).
+- `assets/site.js`: formatting, toasts, count-ups, button ripple and ticks, the signed-in chip (plus the Admin link
+  for admins), the announcement banner (from `/api/contest`'s `announcement`; a dismissal is remembered per text in
+  `localStorage["pr-announce-dismissed"]`), `UI.dialog` (native `<dialog>` confirm/form dialogs: focus kept inside,
+  Escape closes, focus returns, errors inline, optional "type the name to confirm"), the contest clock, the problem-page scrollspy.
+- `assets/admin.js`: the admin panel. Seven hash-addressed sections (`#overview`, `#students`, `#submissions`,
+  `#settings`, `#leaderboard`, `#similarity`, `#activity`) as ARIA tabs: a sidebar on desktop, a scrollable strip
+  under 900 px; arrow keys, Home and End move between them. Only the visible section polls (overview every 5 s,
+  submissions every 3 s while something is queued or running, leaderboard every 10 s), never while the
+  browser tab is hidden. Students open in a `<dialog>` drawer with the account actions; overview charts are inline SVG.
 - `assets/motion.js`: scroll progress line, compacting header, scroll reveals, card tilt, smooth anchors.
 - `assets/sound.js`: quiet WebAudio tones, header toggle (remembered in localStorage); silent until a user gesture.
 - `assets/code.js`: Python highlighter, line-numbered code view, highlighted editor.

@@ -1,6 +1,7 @@
 /* Leaderboard: animated scores, rank movement since the last refresh, the
  * signed-in player highlighted (and pinned when scrolled out of view), a filter
- * box and an auto-refresh toggle. */
+ * box and an auto-refresh toggle. Admins also get disabled players after the
+ * ranked rows (rank null, disabled true); they're marked and never ranked. */
 (function () {
   "use strict";
   const { esc, fmtInt, fmtDate, relTime, countUp, toast } = window.UI;
@@ -12,12 +13,16 @@
   let rows = [], me = null, contest = null, prevRanks = null, timer = null, firstLoad = true, scrolledToMe = false;
   const shownScore = new Map(); // username -> last displayed relative total (for count-up)
 
-  function medal(rank) {
+  const unranked = (r) => r.rank === null || r.rank === undefined || r.disabled === true;
+
+  function medal(r) {
+    if (unranked(r)) return `<span class="badge-disabled" title="Disabled account: not ranked, shown to admins only">${r.disabled ? "disabled" : "unranked"}</span>`;
+    const rank = r.rank;
     return rank <= 3 ? `<span class="medal m${rank}" aria-label="rank ${rank}">${rank}</span>` : `<span class="rk" aria-label="rank ${rank}">${rank}</span>`;
   }
 
   function moveHTML(r) {
-    if (!prevRanks) return `<span class="move"></span>`;
+    if (!prevRanks || unranked(r)) return `<span class="move"></span>`;
     const p = prevRanks.get(r.username);
     if (p === undefined) return `<span class="move new" title="New on the board">NEW</span>`;
     if (p > r.rank) return `<span class="move up" title="Up ${p - r.rank} since the last refresh" aria-label="up ${p - r.rank}">▲${p - r.rank}</span>`;
@@ -42,8 +47,8 @@
     tbody.innerHTML = list.map((r, idx) => {
       const isMe = me && r.username === me.username;
       const pct = Math.max(0, Math.min(100, (100 * (Number(r.relative_total) || 0)) / max));
-      return `<tr class="row${isMe ? " me" : ""}${entrance ? " row-in" : ""}" style="--i:${Math.min(idx, 14)}" data-user="${esc(r.username)}">
-        <td class="rank">${medal(r.rank)} ${moveHTML(r)}</td>
+      return `<tr class="row${isMe ? " me" : ""}${unranked(r) ? " is-disabled" : ""}${entrance ? " row-in" : ""}" style="--i:${Math.min(idx, 14)}" data-user="${esc(r.username)}">
+        <td class="rank">${medal(r)} ${moveHTML(r)}</td>
         <td class="user">${esc(r.username)}</td>
         <td class="r scorecell"><div class="scorebar"><b class="num" data-score="${esc(r.relative_total)}">${fmtInt(shownScore.has(r.username) ? shownScore.get(r.username) : 0)}</b>
           <span class="track" aria-hidden="true"><i class="${entrance ? "grow" : ""}" style="width:${pct}%"></i></span></div></td>
@@ -69,7 +74,7 @@
     const pin = $("pinned");
     const r = myRow();
     const tr = me ? document.querySelector(`#lb-table tr.me`) : null;
-    if (!r || !tr) { pin.classList.add("hidden"); return; }
+    if (!r || !tr || unranked(r)) { pin.classList.add("hidden"); return; }
     const rect = tr.getBoundingClientRect();
     const out = rect.bottom < 70 || rect.top > window.innerHeight - 10;
     if (out) {
@@ -89,7 +94,7 @@
     try {
       const data = await API.leaderboard();
       const newRows = Array.isArray(data.rows) ? data.rows : [];
-      if (rows.length) prevRanks = new Map(rows.map((r) => [r.username, r.rank]));
+      if (rows.length) prevRanks = new Map(rows.filter((r) => !unranked(r)).map((r) => [r.username, r.rank]));
       else if (firstLoad) {
         // compare with what this browser saw last time, if anything
         try {
@@ -98,10 +103,11 @@
         } catch (e) { prevRanks = null; }
       }
       rows = newRows;
-      try { localStorage.setItem("pr-lb-ranks", JSON.stringify(Object.fromEntries(rows.map((r) => [r.username, r.rank])))); } catch (e) { /* ignore */ }
+      try { localStorage.setItem("pr-lb-ranks", JSON.stringify(Object.fromEntries(rows.filter((r) => !unranked(r)).map((r) => [r.username, r.rank])))); } catch (e) { /* ignore */ }
       $("frozen").classList.toggle("hidden", !data.frozen);
       render();
-      $("lb-updated").textContent = `${rows.length} player${rows.length === 1 ? "" : "s"} · updated ${new Date().toLocaleTimeString()}`;
+      const ranked = rows.filter((r) => !unranked(r)).length, off = rows.length - ranked;
+      $("lb-updated").textContent = `${ranked} player${ranked === 1 ? "" : "s"}${off ? ` (+${off} disabled)` : ""} · updated ${new Date().toLocaleTimeString()}`;
       if (firstLoad && !scrolledToMe) {
         const tr = document.querySelector("#lb-table tr.me");
         if (tr) {

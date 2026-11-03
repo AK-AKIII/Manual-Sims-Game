@@ -332,7 +332,7 @@ recreates only the containers whose configuration changed.
 Admins are the usernames in `PR_ADMINS`. Claim yours before announcing the site:
 
 1. Open `https://pokerrun.example.com/contest/` and register with username `ADMIN`
-   (exactly as in `PR_ADMINS`), a strong password and the invite code.
+   (exactly as in `PR_ADMINS`), your email, a strong password and the invite code.
 2. Check: in the browser console on that page,
    `fetch('/api/me').then(r => r.json()).then(console.log)` prints `is_admin: true`.
    If you registered before adding the name to `PR_ADMINS`, use `set-admin` below.
@@ -345,6 +345,9 @@ docker compose exec api python -m prplatform.manage list-users
 docker compose exec api python -m prplatform.manage set-admin alice        # --off to remove
 docker compose exec api python -m prplatform.manage set-password alice     # prompts for the new password; logs out their sessions
 ```
+
+More commands (disable, enable, delete-user, delete-submission, set-email, audit) are in
+"Admin panel" below.
 
 Changing `PR_ADMINS` needs `make up` (restarts api and worker).
 
@@ -370,7 +373,7 @@ downloads `starter.py`; `/contest/leaderboard/` loads.
 D=https://pokerrun.example.com; H='X-Requested-With: fetch'; CT='Content-Type: application/json'
 INVITE=$(grep '^PR_INVITE=' /opt/pokerrun/platform/deploy/.env | cut -d= -f2-)
 curl -fsS -c /tmp/jar -H "$H" -H "$CT" \
-  -d "{\"username\":\"smoketest\",\"password\":\"smoke-test-password-1\",\"invite\":\"$INVITE\"}" $D/api/register
+  -d "{\"username\":\"smoketest\",\"password\":\"smoke-test-password-1\",\"email\":\"smoketest@example.com\",\"invite\":\"$INVITE\"}" $D/api/register
 python3 -c "import json; print(json.dumps({'kind': 'public', 'source': open('/opt/pokerrun/poker_run/starters/starter.py').read()}))" > /tmp/sub.json
 curl -fsS -b /tmp/jar -H "$H" -H "$CT" --data-binary @/tmp/sub.json $D/api/submissions     # {"id": 1}
 sleep 30; curl -fsS -b /tmp/jar $D/api/submissions | python3 -m json.tool                # status "done", tests_ac 10
@@ -459,7 +462,8 @@ log is JSON on stdout.
 
 ### Rejudging
 
-After fixing a judge problem, put submissions back in the queue as an admin:
+The admin panel (`/admin/#submissions`) has Rejudge per submission and "Rejudge all
+errored" / "Rejudge all full submissions". From a shell instead:
 
 ```sh
 D=https://pokerrun.example.com; H='X-Requested-With: fetch'; CT='Content-Type: application/json'
@@ -471,6 +475,44 @@ curl -fsS -b /tmp/admin $D/api/admin/submissions \
   | python3 -c "import json,sys; print(*[s['id'] for s in json.load(sys.stdin) if s['status']=='error'])" \
   | xargs -n1 -I{} curl -fsS -b /tmp/admin -H "$H" -X POST $D/api/admin/rejudge/{}
 rm /tmp/admin
+```
+
+### Admin panel
+
+`https://pokerrun.example.com/admin/` (the header shows an "Admin" link to admins only).
+Everything there is admin-only, needs the CSRF header and is recorded in the audit log
+(Activity section, or `manage audit`).
+
+| Section | What you can do |
+| --- | --- |
+| Overview | counts, judge queue and running submission, worker heartbeat (stale after 30 s = the worker is down: `make logs S=worker`), verdicts, 14-day charts, top 5, contest clock |
+| Students | search/sort, CSV export, per-student detail; disable/enable, reset password, make/remove admin, edit email, delete (type the username) |
+| Submissions | filters, source view, rejudge one or in bulk, cancel queued, delete one, ZIP of every student's best or latest full submission |
+| Settings | contest name, start/end/freeze, invite code (show, regenerate, open registration), full runs per hour, announcement banner. Stored in the database as overrides of `.env`; "Reset to env value" removes an override |
+| Leaderboard | live (unfrozen) standings incl. disabled users (marked), CSV export of the live or public view |
+| Similarity | on-demand pairwise similarity of students' latest full submissions, side-by-side view |
+| Activity | the audit log with filters |
+
+**Disable** is the reversible "remove": the account is logged out everywhere, its
+queued submissions are cancelled, it can't sign in or submit, and it is left out of the
+leaderboard and of the per-seed bests (so other students' relative scores recompute
+without it). A submission already being judged finishes but doesn't count. **Delete** is
+permanent (refused while one of their submissions is being judged).
+
+Still needs SSH / `.env` + `make up`: `PR_ADMINS`, hidden and public seeds, time limit,
+memory, source size, sandbox and worker count, `PR_SECRET`, cookies, the domain;
+backups/restores; rotating the secrets. A user listed in `PR_ADMINS` can't be de-admined
+from the panel (remove them from `PR_ADMINS` and restart). Settings changed in the panel
+win over `.env` until reset, so after editing `PR_START` etc. in `.env`, check the
+Settings section for an override. The same user actions from a shell:
+
+```sh
+docker compose exec api python -m prplatform.manage disable alice --reason "shared code"
+docker compose exec api python -m prplatform.manage enable alice
+docker compose exec api python -m prplatform.manage delete-user alice --confirm alice
+docker compose exec api python -m prplatform.manage delete-submission 123
+docker compose exec api python -m prplatform.manage set-email alice alice@example.com
+docker compose exec api python -m prplatform.manage audit --limit 20
 ```
 
 ### Scaling the judge

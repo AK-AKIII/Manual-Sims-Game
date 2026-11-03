@@ -1,5 +1,6 @@
 /* Poker Run API client (see platform/API.md).
- * Every request is same-origin with cookies; state-changing requests also send
+ * Every request is same-origin with cookies; state-changing requests (POST,
+ * DELETE) also send
  * X-Requested-With: fetch (the server's CSRF guard). Errors come back as
  * {"error": "..."} and are thrown as ApiError with that message and the status. */
 (function () {
@@ -43,13 +44,37 @@
   }
 
   let meCache = null;
+  // /api/contest is read by site.js (announcement banner) and the page scripts at
+  // load; share one request for a few seconds instead of asking twice.
+  let contestCache = null, contestAt = 0;
+  const CONTEST_TTL = 3000;
+  const qs = (params) => {
+    const p = new URLSearchParams();
+    Object.keys(params || {}).forEach((k) => {
+      const v = params[k];
+      if (v !== undefined && v !== null && v !== "") p.set(k, String(v));
+    });
+    const s = p.toString();
+    return s ? "?" + s : "";
+  };
+  const id = (x) => encodeURIComponent(x);
 
   const API = {
     ApiError,
     get: (p) => request("GET", p),
     post: (p, b) => request("POST", p, b === undefined ? {} : b),
+    del: (p, b) => request("DELETE", p, b),
+    qs,
 
-    contest: () => request("GET", "/api/contest"),
+    /** Contest info; one shared request for a few seconds unless `force`. */
+    contest(force) {
+      if (!force && contestCache && Date.now() - contestAt < CONTEST_TTL) return contestCache;
+      contestAt = Date.now();
+      contestCache = request("GET", "/api/contest");
+      contestCache.catch(() => { contestCache = null; });
+      return contestCache;
+    },
+    forgetContest() { contestCache = null; },
     /** Resolves to {username, is_admin} or null when signed out. */
     async me(force) {
       if (meCache && !force) return meCache;
@@ -70,8 +95,8 @@
       meCache = Promise.resolve(r);
       return r;
     },
-    async register(username, password, invite) {
-      const r = await request("POST", "/api/register", { username, password, invite: invite || "" });
+    async register(username, password, invite, email) {
+      const r = await request("POST", "/api/register", { username, password, invite: invite || "", email: email || "" });
       meCache = Promise.resolve(r);
       return r;
     },
@@ -79,12 +104,37 @@
       await request("POST", "/api/logout");
       meCache = Promise.resolve(null);
     },
+    /** Add or change the signed-in account's email (current password required). */
+    async changeEmail(email, password) {
+      const r = await request("POST", "/api/account/email", { email, password });
+      meCache = Promise.resolve(r);
+      return r;
+    },
     submit: (kind, source) => request("POST", "/api/submissions", { kind, source }),
     submissions: () => request("GET", "/api/submissions"),
     submission: (id) => request("GET", "/api/submissions/" + encodeURIComponent(id)),
     leaderboard: () => request("GET", "/api/leaderboard"),
-    adminSubmissions: () => request("GET", "/api/admin/submissions"),
-    rejudge: (id) => request("POST", "/api/admin/rejudge/" + encodeURIComponent(id)),
+    adminSubmissions: (params) => request("GET", "/api/admin/submissions" + qs(params)),
+    rejudge: (sid) => request("POST", "/api/admin/rejudge/" + id(sid)),
+
+    // ---- admin panel (API.md "Admin API")
+    adminOverview: () => request("GET", "/api/admin/overview"),
+    adminUsers: () => request("GET", "/api/admin/users"),
+    adminUser: (uid) => request("GET", "/api/admin/users/" + id(uid)),
+    adminDisable: (uid, reason) => request("POST", `/api/admin/users/${id(uid)}/disable`, reason ? { reason } : {}),
+    adminSetEmail: (uid, email) => request("POST", `/api/admin/users/${id(uid)}/email`, { email: email || null }),
+    adminEnable: (uid) => request("POST", `/api/admin/users/${id(uid)}/enable`, {}),
+    adminPassword: (uid, password) => request("POST", `/api/admin/users/${id(uid)}/password`, { password }),
+    adminSetAdmin: (uid, isAdmin) => request("POST", `/api/admin/users/${id(uid)}/admin`, { is_admin: !!isAdmin }),
+    adminDeleteUser: (uid, confirm) => request("DELETE", "/api/admin/users/" + id(uid), { confirm }),
+    adminDeleteSubmission: (sid) => request("DELETE", "/api/admin/submissions/" + id(sid)),
+    adminCancel: (sid) => request("POST", `/api/admin/submissions/${id(sid)}/cancel`, {}),
+    adminRejudgeBulk: (which) => request("POST", "/api/admin/rejudge-bulk", { which }),
+    adminSimilarity: (limit) => request("GET", "/api/admin/similarity" + qs({ limit })),
+    adminSettings: () => request("GET", "/api/admin/settings"),
+    adminSaveSettings: (set, clear) => request("POST", "/api/admin/settings", { set: set || {}, clear: clear || [] }),
+    adminRegenerateInvite: () => request("POST", "/api/admin/settings/invite/regenerate", {}),
+    adminAudit: (params) => request("GET", "/api/admin/audit" + qs(params)),
   };
 
   window.API = API;
