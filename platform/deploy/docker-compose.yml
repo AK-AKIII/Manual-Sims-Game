@@ -55,6 +55,8 @@ services:
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN in platform/deploy/.env}
       FRAME_ANCESTORS: ${FRAME_ANCESTORS:-}
+      # plain-HTTP placeholder when unset: Caddy needs some address, and this one never matches
+      REDIRECT_FROM: ${REDIRECT_FROM:-http://redirect-unused.invalid}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data        # certificates and ACME account: keep this volume
