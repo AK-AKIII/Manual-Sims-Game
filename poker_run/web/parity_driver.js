@@ -3,6 +3,8 @@
 //   {"op": "gen", "seed": 7, "params": {...}}        -> input text
 //   {"op": "check", "input": "...", "output": "..."}  -> [exit code, verdict]
 //   {"op": "trace", "input": "...", "moves": [...]}   -> state after each move (see snapshot)
+//   check and trace take an optional "rules" (a ruleset name; default classic).
+//   {"op": "rulesets"}                                -> every ruleset's tables
 "use strict";
 const PR = require("./engine.js");
 
@@ -22,9 +24,17 @@ function snapshot(g) {
 
 function run(c) {
   if (c.op === "gen") return PR.formatInstance(PR.generate(c.seed, c.params || {}));
-  if (c.op === "check") return PR.check(c.input, c.output);
+  if (c.op === "check") return c.rules ? PR.check(c.input, c.output, c.rules) : PR.check(c.input, c.output);
+  if (c.op === "rulesets") {
+    const out = {};
+    for (const [name, R] of Object.entries(PR.RULESETS)) {
+      out[name] = {};
+      for (const [k, v] of Object.entries(R)) if (!k.startsWith("_")) out[name][k] = v;
+    }
+    return out;
+  }
   if (c.op === "trace") {
-    const g = new PR.Game(PR.parseInstance(c.input));
+    const g = c.rules ? new PR.Game(PR.parseInstance(c.input), c.rules) : new PR.Game(PR.parseInstance(c.input));
     const out = [snapshot(g)];
     for (const m of c.moves) {
       try { g.apply(m); } catch (e) {

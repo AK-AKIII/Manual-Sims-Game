@@ -15,7 +15,9 @@ time: every decision is a formula with weights, e.g.
 Picking those weights by hand is guesswork, so `tune.py` searches for them
 automatically: it runs this policy on the training seeds 1001-1060 and keeps
 weight changes that raise the mean score (a (1+1) evolution strategy). The
-result is written to tuned_weights.json, which this file loads.
+result is written to tuned_weights.json, which this file loads (with
+POKER_RULES=balanced it loads tuned_weights_balanced.json if there is one:
+weights tuned for those rules).
 
 Because each run takes ~0.1 s the tuner can try hundreds of weight vectors.
 The learned weights are also a little readable lesson: look at which
@@ -65,7 +67,18 @@ for _m, _w in {"tricolor": 30, "last_call": 25, "twin_engine": 14, "full_spread"
     DEFAULT_WEIGHTS["mod_" + _m] = float(_w)
 
 
-def load_weights(path=WEIGHTS_FILE):
+def weights_file(rules=None):
+    """tuned_weights.json, or tuned_weights_<rules>.json for another ruleset if it exists."""
+    name = C.get_ruleset(rules).name if rules is not None else C.rules_from_env().name
+    if name != "classic":
+        path = WEIGHTS_FILE.replace(".json", f"_{name}.json")
+        if os.path.exists(path):
+            return path
+    return WEIGHTS_FILE
+
+
+def load_weights(path=None):
+    path = path or weights_file()
     w = dict(DEFAULT_WEIGHTS)
     try:
         with open(path) as f:
@@ -116,6 +129,7 @@ class TunedPolicy:
         by_code, by_suit, total, _ = info
         out = []
         money = game.money
+        R = game.rules
         full = len(game.mods) >= game.inst.slots
         suit_share = [x / max(sum(by_suit), 1) for x in by_suit]
         red, black = suit_share[1] + suit_share[2], suit_share[0] + suit_share[3]
@@ -139,39 +153,39 @@ class TunedPolicy:
                 if game.has_mod(name):
                     continue
                 u = mod_utility(name)
-                price = MODIFIERS[name][0] + extra
+                price = R.price(name) + extra
                 if not full:
                     out.append((u, price, pre + [f"buy {name}"]))
                 else:
                     worst = min(owned, key=owned.get)
                     if u > owned[worst] + w["sell_margin"]:
-                        refund = MODIFIERS[worst][0] // 2
+                        refund = R.price(worst) // 2
                         out.append((u - owned[worst], price - refund, [f"sell {worst}"] + pre + [f"buy {name}"]))
         for code, pts in by_code.items():
             lv = game.levels[code]
             u = w["level"] * pts / total / (1 + w["level_decay"] * (lv - 1))
             out.append((u, game.level_price(code), [f"level {code}"]))
         pr = game.prices()
-        if game.hand_size < C.MAX_HAND_SIZE:
+        if game.hand_size < R.max_hand_size:
             out.append((w["handsize"], pr["handsize"], ["handsize"]))
         out.append((w["discards"] / (1 + game.extra_discards), pr["discards"], ["discards"]))
         # deck edits
         deck = [c for c in range(N_CARDS) if game.in_deck[c]]
-        if game.deck_size > C.MIN_DECK:
+        if game.deck_size > R.min_deck:
             rc = [0] * 13
             for c in deck:
                 rc[game.rank[c]] += 1
             main = max(range(4), key=lambda s: by_suit[s])
             junk = min(deck, key=lambda c: (game.suit[c] == main, rc[game.rank[c]], C.chips(game.rank[c])))
             u = w["remove"] + (w["remove_thin"] if game.has_mod("thin_deck") else 0)
-            out.append((u, 3, [f"remove {junk}"]))
+            out.append((u, R.price_remove, [f"remove {junk}"]))
         fl = (by_code.get("FL", 0) + by_code.get("SF", 0) + by_code.get("HF", 0)) / total
         if fl > 0:
             main = max(range(4), key=lambda s: by_suit[s])
             off = [c for c in deck if game.suit[c] != main]
             if off:
                 c = max(off, key=lambda c: C.chips(game.rank[c]))
-                out.append((w["paint"] * fl * 3, 3, [f"paint {c} {SUITS[main]}"]))
+                out.append((w["paint"] * fl * 3, R.price_paint, [f"paint {c} {SUITS[main]}"]))
         return [(u, price, ms) for u, price, ms in out if price <= money]
 
     def shop(self, game, deadline):

@@ -5,10 +5,15 @@
     python -m poker_run check in.txt out.txt [--no-json]
     python -m poker_run batch --seeds 1-10 --solver "python3 my_solver.py" [--time-limit 2] [--json]
     python -m poker_run versus --solvers "python3 a.py" "python3 b.py" --names a b --seeds 1-20
+
+check, batch and versus take --rules classic|balanced (default classic): the
+ruleset used to score; batch and versus also pass it to the solvers in the
+environment variable POKER_RULES. The input files are the same for every ruleset.
 """
 
 import argparse
 import json
+import os
 import shlex
 import statistics
 import subprocess
@@ -18,6 +23,7 @@ from pathlib import Path
 
 from .checker import check
 from .instance import format_instance, generate
+from .rules import RULESETS
 
 
 def seed_range(text):
@@ -48,17 +54,18 @@ def cmd_gen(args):
 
 
 def cmd_check(args):
-    code, v = check(Path(args.input).read_text(), Path(args.output).read_text())
+    code, v = check(Path(args.input).read_text(), Path(args.output).read_text(), args.rules)
     print(describe(v) if args.no_json else json.dumps(v))
     print(describe(v), file=sys.stderr) if not args.no_json else None
     return code
 
 
-def run_solver(solver, input_text, time_limit):
+def run_solver(solver, input_text, time_limit, rules="classic"):
     start = time.perf_counter()
+    env = dict(os.environ, POKER_RULES=rules)
     try:
         proc = subprocess.run(shlex.split(solver), input=input_text, capture_output=True, text=True,
-                              timeout=time_limit)
+                              timeout=time_limit, env=env)
     except subprocess.TimeoutExpired:
         return None, time.perf_counter() - start, "time limit exceeded"
     elapsed = time.perf_counter() - start
@@ -74,11 +81,11 @@ def cmd_batch(args):
         out_dir.mkdir(parents=True, exist_ok=True)
     for s in seed_range(args.seeds):
         input_text = format_instance(generate(s))
-        output, elapsed, note = run_solver(args.solver, input_text, args.time_limit)
+        output, elapsed, note = run_solver(args.solver, input_text, args.time_limit, args.rules)
         if output is None:
             v = {"valid": False, "score": 0, "error": note}
         else:
-            _, v = check(input_text, output)
+            _, v = check(input_text, output, args.rules)
             if out_dir:
                 (out_dir / f"{s:04d}.in.txt").write_text(input_text)
                 (out_dir / f"{s:04d}.{args.name}.out.txt").write_text(output)
@@ -99,11 +106,14 @@ def cmd_batch(args):
         "invalid": sum(1 for r in rows if not r["valid"]),
         "max_time": max(r["time"] for r in rows),
     }
+    if args.rules != "classic":
+        summary["rules"] = args.rules
     if args.json:
         print(json.dumps({"summary": summary, "results": rows}))
     else:
         print(f"total {summary['total']}  mean {summary['mean']:.1f}  mean cleared {summary['mean_cleared']:.2f}"
-              f"  invalid {summary['invalid']}  max time {summary['max_time']:.2f}s")
+              f"  invalid {summary['invalid']}  max time {summary['max_time']:.2f}s"
+              + (f"  rules {args.rules}" if args.rules != "classic" else ""))
     return 0
 
 
@@ -138,17 +148,21 @@ def cmd_versus(args):
         input_text = format_instance(generate(s))
         line = []
         for name, solver in zip(names, args.solvers):
-            output, _, note = run_solver(solver, input_text, args.time_limit)
-            v = check(input_text, output)[1] if output is not None else {"valid": False, "score": 0}
+            output, _, note = run_solver(solver, input_text, args.time_limit, args.rules)
+            v = check(input_text, output, args.rules)[1] if output is not None else {"valid": False, "score": 0}
             scores[name].append(v["score"])
             line.append(f"{name} {v['score']}" + ("" if v["valid"] else " (invalid)"))
         if not args.json:
             print(f"seed {s:>4}  " + "   ".join(line))
     rows, wins = versus_table(names, scores)
     if args.json:
-        print(json.dumps({"seeds": seeds, "scores": scores, "ranking": rows, "wins": wins}))
+        out = {"seeds": seeds, "scores": scores, "ranking": rows, "wins": wins}
+        if args.rules != "classic":
+            out["rules"] = args.rules
+        print(json.dumps(out))
         return 0
-    print(f"\nRanking over {len(seeds)} seeds (each seed: higher score wins; ties count for no one)")
+    rules = f", {args.rules} rules" if args.rules != "classic" else ""
+    print(f"\nRanking over {len(seeds)} seeds (each seed: higher score wins; ties count for no one{rules})")
     for i, r in enumerate(rows, 1):
         print(f"{i:>2}. {r['name']:<16} mean rank {r['mean_rank']:.2f}   first on {r['firsts']:>3} seeds"
               f"   mean score {r['mean']:>10.1f}   head-to-heads won {r['duels_won']}/{len(names) - 1}")
@@ -175,6 +189,7 @@ def main():
     c.add_argument("input")
     c.add_argument("output")
     c.add_argument("--no-json", action="store_true", help="human-readable verdict only")
+    c.add_argument("--rules", choices=list(RULESETS), default="classic", help="ruleset (default classic)")
 
     b = sub.add_parser("batch", help="run a solver on many seeds")
     b.add_argument("--seeds", default="1-10")
@@ -185,6 +200,8 @@ def main():
     b.add_argument("--out-dir", help="save inputs, outputs and verdicts here")
     b.add_argument("--name", default="solver", help="label used in saved file names")
     b.add_argument("--write-expected", action="store_true", help="also save each verdict as JSON")
+    b.add_argument("--rules", choices=list(RULESETS), default="classic",
+                   help="ruleset to score by, also passed to the solver as POKER_RULES (default classic)")
 
     v = sub.add_parser("versus", help="run 2 or more solvers on the same seeds, head to head")
     v.add_argument("--solvers", nargs="+", required=True, help='command lines, e.g. "python3 a.py" "python3 b.py"')
@@ -192,6 +209,8 @@ def main():
     v.add_argument("--seeds", default="1-10")
     v.add_argument("--time-limit", type=float, default=2.0)
     v.add_argument("--json", action="store_true")
+    v.add_argument("--rules", choices=list(RULESETS), default="classic",
+                   help="ruleset to score by, also passed to the solvers as POKER_RULES (default classic)")
 
     args = ap.parse_args()
     sys.exit({"gen": cmd_gen, "check": cmd_check, "batch": cmd_batch, "versus": cmd_versus}[args.cmd](args))

@@ -115,6 +115,106 @@ PLAY_BONUS = 1            # per unused play
 INTEREST_PER = 5          # $1 per $5 held
 INTEREST_CAP = 5
 
+# Modifier amounts: the numbers in the texts above (mirror: extra times the
+# chips are added; short_hand, last_call, tricolor: the multiplier).
+EFFECTS = {
+    "rose_tint": 3, "coal_seam": 3, "low_road": 12, "high_court": 3, "ace_dividend": 2, "twin_engine": 4,
+    "short_hand": 2, "full_spread": 40, "last_call": 3, "momentum": 2, "collector": 10, "thin_deck": 1,
+    "mirror": 1, "tricolor": 2, "savings": 5, "spare_hands": 2, "odd_job": 2, "even_split": 15,
+}
+
+
+# ---- rulesets ---------------------------------------------------------------------
+
+class Ruleset:
+    """Every number above, as one object, so a game can be played by other rules.
+
+    CLASSIC is the rules above (the contest's). Game(inst, rules=...) takes a
+    Ruleset or its name; get_ruleset() lists the others."""
+
+    def __init__(self, name, **values):
+        self.name = name
+        self.__dict__.update(values)
+        self.hand_codes = [h[0] for h in self.hands]
+        self.hand_names = {h[0]: h[1] for h in self.hands}
+        self._hand_rows = {h[0]: h for h in self.hands}
+
+    def hand_value(self, code, level):
+        """(base, mult) of a hand type at a level (levels start at 1)."""
+        _, _, base, mult, gain_base, gain_mult = self._hand_rows[code]
+        return base + (level - 1) * gain_base, mult + (level - 1) * gain_mult
+
+    def price(self, name):
+        """Price of a modifier."""
+        return self.modifiers[name][0]
+
+    def changed(self, name, **changes):
+        """A copy with some values changed (dicts given in changes replace the old ones)."""
+        values = {k: v for k, v in self.__dict__.items() if k not in ("name", "hand_codes", "hand_names")
+                  and not k.startswith("_")}
+        values.update(changes)
+        return Ruleset(name, **values)
+
+
+CLASSIC = Ruleset(
+    "classic", hands=HANDS, modifiers=MODIFIERS, effects=EFFECTS,
+    price_reroll=PRICE_REROLL, price_remove=PRICE_REMOVE, price_paint=PRICE_PAINT, price_promote=PRICE_PROMOTE,
+    price_discards=PRICE_DISCARDS, price_hand_size=PRICE_HAND_SIZE, level_base=LEVEL_BASE, level_step=LEVEL_STEP,
+    shop_window=SHOP_WINDOW, min_deck=MIN_DECK, max_hand_size=MAX_HAND_SIZE, round_reward=ROUND_REWARD,
+    play_bonus=PLAY_BONUS, interest_per=INTEREST_PER, interest_cap=INTEREST_CAP,
+    savings_interest_per=INTEREST_PER,   # with savings: $1 interest per this many $ held
+    end_in_last_round=True,   # `end` is allowed in the last round
+    tricolor_exact=False,     # tricolor wants 3 or more suits (True: exactly 3)
+)
+
+# The balanced ruleset: an optional variant of classic (see problem/balanced.md).
+BALANCED = CLASSIC.changed(
+    "balanced",
+    hands=[
+        ("HC", "High Card", 5, 1, 10, 1),
+        ("PR", "Pair", 10, 2, 15, 1),
+        ("TP", "Two Pair", 20, 2, 20, 1),
+        ("TK", "Three of a Kind", 30, 3, 25, 2),
+        ("ST", "Straight", 30, 4, 30, 2),
+        ("FL", "Flush", 40, 5, 30, 2),
+        ("FH", "Full House", 35, 4, 20, 2),
+        ("FK", "Four of a Kind", 60, 6, 30, 3),
+        ("SF", "Straight Flush", 80, 8, 40, 3),
+        ("FV", "Five of a Kind", 100, 10, 35, 3),
+        ("HF", "Flush House", 120, 11, 40, 3),
+        ("F5", "Flush Five", 150, 12, 50, 3),
+    ],
+    modifiers={**MODIFIERS,
+               "ace_dividend": (3, "+$3 for each scored ace"),
+               "short_hand": (7, "x3 mult when you play 3 or fewer cards"),
+               "momentum": (5, "+3 mult for each play in a row before this one of the same hand type"),
+               "collector": (5, "gains +20 base for good each time you play a Straight or Straight Flush; "
+                                "adds its base to every play"),
+               "thin_deck": (6, "+2 mult for each card your deck is below 52"),
+               "tricolor": (7, "x2 mult when the scored cards have exactly 3 suits"),
+               "savings": (4, "interest is $1 per $3 held (not per $5), and its cap is +$5"),
+               "spare_hands": (3, "+$3 for each unused discard when you clear a round")},
+    effects={**EFFECTS, "ace_dividend": 3, "short_hand": 3, "momentum": 3, "collector": 20, "thin_deck": 2,
+             "spare_hands": 3},
+    price_remove=2, price_paint=2, price_promote=2,
+    savings_interest_per=3,
+    end_in_last_round=False,
+    tricolor_exact=True,
+)
+
+RULESETS = {"classic": CLASSIC, "balanced": BALANCED}
+
+
+def get_ruleset(rules=None):
+    """A Ruleset from a name (None means classic), or the Ruleset itself."""
+    if isinstance(rules, Ruleset):
+        return rules
+    if rules is None:
+        return CLASSIC
+    if rules not in RULESETS:
+        raise ValueError(f"unknown ruleset {rules!r}: use one of {', '.join(RULESETS)}")
+    return RULESETS[rules]
+
 
 # ---- input ----------------------------------------------------------------------
 
@@ -229,16 +329,17 @@ def classify(ranks, suits):
 class Game:
     __slots__ = ("inst", "rank", "suit", "in_deck", "deck_size", "levels", "mods", "money", "round",
                  "phase", "round_score", "total", "plays_left", "discards_left", "pile", "hand",
-                 "offer_pos", "offers_taken", "rerolls", "extra_discards", "extra_hand", "cleared", "moves")
+                 "offer_pos", "offers_taken", "rerolls", "extra_discards", "extra_hand", "cleared", "moves", "rules")
 
-    def __init__(self, inst):
+    def __init__(self, inst, rules=None):
         self.inst = inst
+        self.rules = get_ruleset(rules)
         faces = [start_face(i) for i in range(N_CARDS)]
         self.rank = [f[0] for f in faces]
         self.suit = [f[1] for f in faces]
         self.in_deck = [True] * N_CARDS
         self.deck_size = N_CARDS
-        self.levels = {c: 1 for c in HAND_CODES}
+        self.levels = {c: 1 for c in self.rules.hand_codes}
         self.mods = []            # [[name, state], ...] in slot order
         self.money = STARTING_MONEY
         self.total = 0
@@ -283,21 +384,22 @@ class Game:
         if self.phase != "shop":
             return []
         queue = self.inst.offers[self.round]
-        window = queue[self.offer_pos:self.offer_pos + SHOP_WINDOW]
+        window = queue[self.offer_pos:self.offer_pos + self.rules.shop_window]
         return [m for k, m in enumerate(window) if self.offer_pos + k not in self.offers_taken]
 
     def level_price(self, code):
-        return LEVEL_BASE + LEVEL_STEP * self.levels[code]
+        return self.rules.level_base + self.rules.level_step * self.levels[code]
 
     def prices(self):
         """Prices of the fixed shop items right now."""
+        R = self.rules
         return {
-            "reroll": PRICE_REROLL + self.rerolls,
-            "remove": PRICE_REMOVE,
-            "paint": PRICE_PAINT,
-            "promote": PRICE_PROMOTE,
-            "discards": PRICE_DISCARDS * (self.extra_discards + 1),
-            "handsize": PRICE_HAND_SIZE * (self.extra_hand + 1),
+            "reroll": R.price_reroll + self.rerolls,
+            "remove": R.price_remove,
+            "paint": R.price_paint,
+            "promote": R.price_promote,
+            "discards": R.price_discards * (self.extra_discards + 1),
+            "handsize": R.price_hand_size * (self.extra_hand + 1),
         }
 
     def evaluate(self, cards):
@@ -307,48 +409,50 @@ class Game:
         code, scored = classify(ranks, suits)
         s_ranks = [ranks[i] for i in scored]
         s_suits = [suits[i] for i in scored]
-        base, mult = hand_value(code, self.levels[code])
+        base, mult = self.rules.hand_value(code, self.levels[code])
         base += sum(chips(r) for r in s_ranks)
         times = 1
         money = 0
+        eff = self.rules.effects
         for name, state in self.mods:
             if name == "rose_tint":
-                mult += 3 * sum(1 for s in s_suits if s in (1, 2))
+                mult += eff[name] * sum(1 for s in s_suits if s in (1, 2))
             elif name == "coal_seam":
-                mult += 3 * sum(1 for s in s_suits if s in (0, 3))
+                mult += eff[name] * sum(1 for s in s_suits if s in (0, 3))
             elif name == "low_road":
-                base += 12 * sum(1 for r in s_ranks if r <= 4)
+                base += eff[name] * sum(1 for r in s_ranks if r <= 4)
             elif name == "high_court":
-                mult += 3 * sum(1 for r in s_ranks if 9 <= r <= 11)
+                mult += eff[name] * sum(1 for r in s_ranks if 9 <= r <= 11)
             elif name == "ace_dividend":
-                money += 2 * sum(1 for r in s_ranks if r == 12)
+                money += eff[name] * sum(1 for r in s_ranks if r == 12)
             elif name == "twin_engine":
-                mult += 4 * sum(1 for r in set(s_ranks) if s_ranks.count(r) >= 2)
+                mult += eff[name] * sum(1 for r in set(s_ranks) if s_ranks.count(r) >= 2)
             elif name == "short_hand":
                 if len(cards) <= 3:
-                    times *= 2
+                    times *= eff[name]
             elif name == "full_spread":
                 if len(cards) == 5:
-                    base += 40
+                    base += eff[name]
             elif name == "last_call":
                 if self.plays_left == 1:
-                    times *= 3
+                    times *= eff[name]
             elif name == "momentum":
                 if state["last"] == code:
-                    mult += 2 * state["streak"]
+                    mult += eff[name] * state["streak"]
             elif name == "collector":
-                base += state["bonus"] + (10 if code in ("ST", "SF") else 0)
+                base += state["bonus"] + (eff[name] if code in ("ST", "SF") else 0)
             elif name == "thin_deck":
-                mult += max(0, N_CARDS - self.deck_size)
+                mult += eff[name] * max(0, N_CARDS - self.deck_size)
             elif name == "mirror":
-                base += sum(chips(r) for r in s_ranks)
+                base += eff[name] * sum(chips(r) for r in s_ranks)
             elif name == "tricolor":
-                if len(set(s_suits)) >= 3:
-                    times *= 2
+                k = len(set(s_suits))
+                if k == 3 or (k > 3 and not self.rules.tricolor_exact):
+                    times *= eff[name]
             elif name == "odd_job":
-                mult += 2 * sum(1 for r in s_ranks if r in (1, 3, 5, 7, 12))  # 3 5 7 9 A
+                mult += eff[name] * sum(1 for r in s_ranks if r in (1, 3, 5, 7, 12))  # 3 5 7 9 A
             elif name == "even_split":
-                base += 15 * sum(1 for r in s_ranks if r <= 8 and r % 2 == 0)
+                base += eff[name] * sum(1 for r in s_ranks if r <= 8 and r % 2 == 0)
         return {"hand": code, "scored": [cards[i] for i in scored], "base": base, "mult": mult,
                 "times": times, "points": base * mult * times, "money": money}
 
@@ -395,7 +499,7 @@ class Game:
                 else:
                     state["last"], state["streak"] = res["hand"], 1
             elif name == "collector" and res["hand"] in ("ST", "SF"):
-                state["bonus"] += 10
+                state["bonus"] += self.rules.effects[name]
         self.round_score += res["points"]
         self.total += res["points"]
         self.money += res["money"]
@@ -418,6 +522,8 @@ class Game:
     def _end(self, args):
         if args:
             raise IllegalMove("'end' takes no arguments")
+        if self.round + 1 == self.inst.rounds and not self.rules.end_in_last_round:
+            raise IllegalMove(f"'end' is not allowed in the last round ({self.rules.name} rules)")
         if self.round_score < self.target:
             raise IllegalMove(f"round score {self.round_score} is below the target {self.target}")
         self._end_round()
@@ -441,10 +547,13 @@ class Game:
             self.phase = "over"
             return
         self.cleared += 1
-        cap = INTEREST_CAP + (5 if self.has_mod("savings") else 0)
-        reward = ROUND_REWARD + PLAY_BONUS * self.plays_left + min(self.money // INTEREST_PER, cap)
+        R = self.rules
+        saving = self.has_mod("savings")
+        cap = R.interest_cap + (R.effects["savings"] if saving else 0)
+        per = R.savings_interest_per if saving else R.interest_per
+        reward = R.round_reward + R.play_bonus * self.plays_left + min(self.money // per, cap)
         if self.has_mod("spare_hands"):
-            reward += 2 * self.discards_left
+            reward += R.effects["spare_hands"] * self.discards_left
         self.money += reward
         if self.round + 1 == self.inst.rounds:
             self.phase = "over"
@@ -480,7 +589,7 @@ class Game:
     def _buy(self, args):
         name = self._one(args, "modifier name")
         queue = self.inst.offers[self.round]
-        window = range(self.offer_pos, min(self.offer_pos + SHOP_WINDOW, len(queue)))
+        window = range(self.offer_pos, min(self.offer_pos + self.rules.shop_window, len(queue)))
         slot = next((k for k in window if queue[k] == name and k not in self.offers_taken), None)
         if slot is None:
             raise IllegalMove(f"{name} is not on offer")
@@ -488,7 +597,7 @@ class Game:
             raise IllegalMove(f"you already own {name}")
         if len(self.mods) >= self.inst.slots:
             raise IllegalMove(f"all {self.inst.slots} modifier slots are full")
-        self._pay(MODIFIERS[name][0])
+        self._pay(self.rules.price(name))
         self.offers_taken.add(slot)
         self.mods.append([name, {"last": "", "streak": 0} if name == "momentum" else
                           {"bonus": 0} if name == "collector" else {}])
@@ -498,7 +607,7 @@ class Game:
         for k, (m, _) in enumerate(self.mods):
             if m == name:
                 del self.mods[k]
-                self.money += MODIFIERS[name][0] // 2
+                self.money += self.rules.price(name) // 2
                 return
         raise IllegalMove(f"you don't own {name}")
 
@@ -511,9 +620,9 @@ class Game:
 
     def _remove(self, args):
         c = self._deck_card(args)
-        if self.deck_size <= MIN_DECK:
-            raise IllegalMove(f"your deck can't go below {MIN_DECK} cards")
-        self._pay(PRICE_REMOVE)
+        if self.deck_size <= self.rules.min_deck:
+            raise IllegalMove(f"your deck can't go below {self.rules.min_deck} cards")
+        self._pay(self.rules.price_remove)
         self.in_deck[c] = False
         self.deck_size -= 1
 
@@ -521,14 +630,14 @@ class Game:
         c = self._deck_card(args, extra=1)
         if args[1] not in tuple(SUITS):
             raise IllegalMove("suit must be one of S H D C")
-        self._pay(PRICE_PAINT)
+        self._pay(self.rules.price_paint)
         self.suit[c] = SUITS.index(args[1])
 
     def _promote(self, args):
         c = self._deck_card(args)
         if self.rank[c] == 12:
             raise IllegalMove("an ace can't be promoted")
-        self._pay(PRICE_PROMOTE)
+        self._pay(self.rules.price_promote)
         self.rank[c] += 1
 
     def _discards(self, args):
@@ -540,19 +649,19 @@ class Game:
     def _handsize(self, args):
         if args:
             raise IllegalMove("'handsize' takes no arguments")
-        if self.hand_size >= MAX_HAND_SIZE:
-            raise IllegalMove(f"hand size is already {MAX_HAND_SIZE}")
+        if self.hand_size >= self.rules.max_hand_size:
+            raise IllegalMove(f"hand size is already {self.rules.max_hand_size}")
         self._pay(self.prices()["handsize"])
         self.extra_hand += 1
 
     def _reroll(self, args):
         if args:
             raise IllegalMove("'reroll' takes no arguments")
-        if self.offer_pos + SHOP_WINDOW >= len(self.inst.offers[self.round]):
+        if self.offer_pos + self.rules.shop_window >= len(self.inst.offers[self.round]):
             raise IllegalMove("the offer queue is used up")
         self._pay(self.prices()["reroll"])
         self.rerolls += 1
-        self.offer_pos += SHOP_WINDOW
+        self.offer_pos += self.rules.shop_window
 
     def _next(self, args):
         if args:

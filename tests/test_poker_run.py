@@ -7,7 +7,7 @@ from pathlib import Path
 from poker_run import Game, IllegalMove, check, classify, format_instance, generate, parse_instance
 from poker_run.baseline import best_play, solve as baseline
 from poker_run.instance import Rng
-from poker_run.rules import MODIFIERS, SUITS, face_str
+from poker_run.rules import HANDS, MODIFIERS, SUITS, face_str, get_ruleset
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "tests" / "fixtures" / "poker_run" / "public"
@@ -312,6 +312,163 @@ class TestStarter(unittest.TestCase):
         expected = expected.replace("# @SIM@", mod.body((mod.PKG / "sim.py").read_text()).strip())
         self.assertEqual(mod.OUT.read_text(), expected,
                          "starter.py is stale: run python3 poker_run/starters/build_starter.py")
+
+
+class TestBalanced(unittest.TestCase):
+    """The optional balanced ruleset: each difference from classic applies, and only those."""
+
+    def setUp(self):
+        self.C, self.B = get_ruleset("classic"), get_ruleset("balanced")
+
+    def test_default_is_classic(self):
+        self.assertIs(get_ruleset(), self.C)
+        self.assertIs(get_ruleset(None), self.C)
+        self.assertIs(get_ruleset(self.B), self.B)
+        self.assertIs(Game(generate(7)).rules, self.C)
+        self.assertIs(Game(generate(7), "balanced").rules, self.B)
+        with self.assertRaises(ValueError):
+            get_ruleset("chaos")
+        # classic is exactly the module constants
+        self.assertEqual((self.C.hands, self.C.modifiers, self.C.price_remove), (HANDS, MODIFIERS, 3))
+
+    def test_only_documented_differences(self):
+        diff = {k for k, v in vars(self.B).items() if not k.startswith("_") and vars(self.C)[k] != v}
+        self.assertEqual(diff, {"name", "hands", "modifiers", "effects", "price_remove", "price_paint",
+                                "price_promote", "savings_interest_per", "end_in_last_round", "tricolor_exact"})
+        hands = {h[0] for h, c in zip(self.B.hands, self.C.hands) if h != c}
+        self.assertEqual(hands, {"TK", "FL", "FH"})
+        mods = {m for m in MODIFIERS if self.B.modifiers[m] != self.C.modifiers[m]}
+        self.assertEqual(mods, {"ace_dividend", "short_hand", "momentum", "collector", "thin_deck", "tricolor",
+                                "savings", "spare_hands"})
+        effects = {m for m in MODIFIERS if self.B.effects[m] != self.C.effects[m]}
+        self.assertEqual(effects, {"ace_dividend", "short_hand", "momentum", "collector", "thin_deck",
+                                   "spare_hands"})
+        self.assertEqual(list(self.B.modifiers), list(self.C.modifiers))   # same ids, same order
+
+    def test_hand_values(self):
+        g = Game(generate(7), "balanced")
+        self.assertEqual(self.B.hand_value("FH", 1), (35, 4))
+        self.assertEqual(self.B.hand_value("FL", 2), (70, 7))
+        self.assertEqual(self.B.hand_value("TK", 3), (80, 7))
+        g.apply("discard 26 16 17 45")   # the statement's straight: ST is unchanged
+        self.assertEqual(g.evaluate([33, 8, 9, 23, 50])["points"], 316)
+        g.levels["TK"] = 2
+        trips = [card("2S"), card("2H"), card("2D")]
+        self.assertEqual(g.evaluate(trips)["base"], 55 + 6)
+
+    def test_modifier_effects(self):
+        g, c = Game(generate(7), "balanced"), Game(generate(7))
+        kc = 50   # KC
+        for game, short, last, thin in ((c, 2, 3, 12), (g, 3, 3, 24)):
+            game.mods = [["short_hand", {}]]
+            self.assertEqual(game.evaluate([kc])["times"], short)
+            game.mods = [["last_call", {}]]
+            game.plays_left = 1
+            self.assertEqual(game.evaluate([kc])["times"], last)
+            game.mods = [["thin_deck", {}]]
+            game.deck_size = 40
+            self.assertEqual(game.evaluate([kc])["mult"], 1 + thin)
+        for game, dollars in ((c, 2), (g, 3)):
+            game.mods = [["ace_dividend", {}]]
+            self.assertEqual(game.evaluate([card("AS")])["money"], dollars)
+        # momentum +3 per play in a row
+        g.mods = [["momentum", {"last": "HC", "streak": 2}]]
+        self.assertEqual(g.evaluate([kc])["mult"], 1 + 6)
+        # collector +20 for each straight
+        g.mods = [["collector", {"bonus": 0}]]
+        g.plays_left = 4
+        g.apply("discard 26 16 17 45")
+        self.assertEqual(g.evaluate([33, 8, 9, 23, 50])["base"], 79 + 20)
+        g.apply("play 33 8 9 23 50")
+        self.assertEqual(g.mods[0][1]["bonus"], 20)
+
+    def test_tricolor_wants_exactly_three_suits(self):
+        three = [card(f) for f in ("2S", "2H", "2D", "3S", "3H")]   # full house, 3 suits
+        four = [card(f) for f in ("2S", "2H", "2D", "3S", "3C")]    # full house, 4 suits
+        for rules, times4 in (("classic", 2), ("balanced", 1)):
+            g = Game(generate(7), rules)
+            g.mods = [["tricolor", {}]]
+            self.assertEqual(g.evaluate(three)["times"], 2)
+            self.assertEqual(g.evaluate(four)["times"], times4, rules)
+            self.assertEqual(g.evaluate(three[:2])["times"], 1)
+
+    def test_prices(self):
+        for rules, edit, tricolor in (("classic", 3, 6), ("balanced", 2, 7)):
+            g = shop_game(money=100)
+            g.rules = get_ruleset(rules)
+            self.assertEqual({k: g.prices()[k] for k in ("remove", "paint", "promote")},
+                             {"remove": edit, "paint": edit, "promote": edit})
+            for move in ("remove 5", "paint 0 H", "promote 0"):
+                money = g.money
+                g.apply(move)
+                self.assertEqual(money - g.money, edit, move)
+            self.assertEqual(g.rules.price("tricolor"), tricolor)
+        g = shop_game(money=100)
+        g.rules = self.B
+        name = g.visible_offers()[0]
+        g.apply(f"buy {name}")
+        self.assertEqual(g.money, 100 - self.B.price(name))
+        g.apply(f"sell {name}")
+        self.assertEqual(g.money, 100 - self.B.price(name) + self.B.price(name) // 2)
+
+    def round_money(self, rules, mods, money):
+        """Money after clearing round 1 with the statement's straight and `end`, holding `money`."""
+        g = Game(generate(7), rules)
+        g.mods = [[m, {}] for m in mods]
+        g.money = money
+        g.apply("discard 26 16 17 45")
+        g.apply("play 33 8 9 23 50")
+        g.apply("end")
+        return g.money - money
+
+    def test_savings_and_spare_hands(self):
+        # reward = $4 + $3 (unused plays) + interest; 2 discards left
+        self.assertEqual(self.round_money("classic", [], 30), 4 + 3 + 5)
+        self.assertEqual(self.round_money("balanced", [], 30), 4 + 3 + 5)
+        self.assertEqual(self.round_money("classic", ["savings"], 30), 4 + 3 + 6)
+        self.assertEqual(self.round_money("balanced", ["savings"], 30), 4 + 3 + 10)
+        self.assertEqual(self.round_money("balanced", ["savings"], 12), 4 + 3 + 4)
+        self.assertEqual(self.round_money("classic", ["spare_hands"], 0), 4 + 3 + 2 * 2)
+        self.assertEqual(self.round_money("balanced", ["spare_hands"], 0), 4 + 3 + 3 * 2)
+
+    def test_end_in_last_round(self):
+        inst = generate(5, rounds=2)
+        inst.plays, inst.targets = 150, [10, 10]
+        for rules, ok in (("classic", True), ("balanced", False)):
+            g = Game(inst, rules)
+            g.apply(f"play {g.hand[0]}")
+            g.apply("end")                  # not the last round: fine
+            g.apply("next")
+            g.apply(f"play {g.hand[0]}")
+            if ok:
+                g.apply("end")
+                self.assertTrue(g.over)
+            else:
+                with self.assertRaisesRegex(IllegalMove, "not allowed in the last round"):
+                    g.apply("end")
+                self.assertEqual(g.phase, "play")
+
+    def test_checker_and_baseline(self):
+        text = format_instance(generate(7))
+        moves = baseline(generate(7), "balanced")
+        code, v = check(text, output(moves), "balanced")
+        self.assertEqual((code, v["rules"]), (0, "balanced"))
+        self.assertNotIn("rules", check(text, output(moves))[1])
+        self.assertEqual(baseline(generate(7)), baseline(generate(7), "classic"))
+
+    def test_cli_passes_rules_to_solver(self):
+        from poker_run.__main__ import run_solver
+        import shlex
+        import sys
+        solver = shlex.join([sys.executable, "-c", "import os; print(0 if os.environ['POKER_RULES'] == 'balanced' else 'x')"])
+        self.assertEqual(run_solver(solver, "", 20, "balanced")[0].strip(), "0")
+        self.assertEqual(run_solver(solver, "", 20)[0].strip(), "x")
+
+    def test_solver_scorer(self):
+        import sys
+        sys.path.insert(0, str(ROOT / "poker_run" / "solvers"))
+        import common
+        common.self_test(n=400, rules="balanced")
 
 
 if __name__ == "__main__":

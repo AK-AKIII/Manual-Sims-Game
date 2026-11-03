@@ -37,6 +37,13 @@ Randomised solvers use fixed seeds.
 `python3 poker_run/solvers/common.py` self-tests the fast scorer against the
 simulator.
 
+All the solvers also play the optional balanced ruleset
+([`../problem/balanced.md`](../problem/balanced.md)): the environment variable
+`POKER_RULES=balanced` selects it (`python3 -m poker_run batch --rules balanced
+...` sets it for you). Every number the solvers use comes from the game's
+ruleset; `tuned.py` then loads `tuned_weights_balanced.json`, weights tuned
+for those rules (`POKER_RULES=balanced python3 poker_run/solvers/tune.py`).
+
 ## Two things to understand first
 
 **1. Inside a round, nothing is random.** The input gives the draw order of

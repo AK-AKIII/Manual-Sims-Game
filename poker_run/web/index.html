@@ -45,7 +45,16 @@ header.top h1 { font-size: 26px; font-weight: 800; letter-spacing: 0.06em; }
 header.top h1 span { color: var(--gold); }
 .tabs { display: flex; gap: 4px; background: var(--panel); padding: 3px; border-radius: 10px; }
 .tab { background: transparent; border: 0; color: var(--muted); padding: 6px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
-.tab[aria-selected="true"] { background: var(--gold); color: #1b1a14; }
+.tab[aria-selected="true"], .tab[aria-checked="true"] { background: var(--gold); color: #1b1a14; }
+.rules-pick { align-items: center; }
+.rules-pick .lbl { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 6px 0 8px; }
+.rules-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(127, 209, 164, 0.16); color: var(--ok); margin-right: 6px; }
+table.hands td.changed { color: var(--ok); }
+.rules-notes { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+.rules-notes li { margin: 3px 0; }
+.rules-notes b { color: var(--cream); font-weight: 600; }
+details.rules-box summary { cursor: pointer; font-weight: 700; }
+details.rules-box[open] summary { margin-bottom: 8px; }
 .source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 .source label { color: var(--muted); font-size: 13px; }
 input[type="number"], input[type="text"], textarea, select {
@@ -303,6 +312,11 @@ button.card:hover::after { opacity: 1; }
       <button class="tab" role="tab" id="tab-play" aria-selected="true" aria-controls="view-play" data-act="mode" data-v="play">Play</button>
       <button class="tab" role="tab" id="tab-replay" aria-selected="false" aria-controls="view-replay" data-act="mode" data-v="replay">Replay</button>
     </div>
+    <div class="tabs rules-pick" role="radiogroup" aria-label="Rules" id="rules-pick">
+      <span class="lbl" aria-hidden="true">Rules</span>
+      <button class="tab" role="radio" aria-checked="true" data-act="rules" data-v="classic" title="Classic rules: the contest's">Classic</button>
+      <button class="tab" role="radio" aria-checked="false" data-act="rules" data-v="balanced" title="Balanced rules: an optional variant with rebalanced hands, modifiers and prices">Balanced</button>
+    </div>
     <div class="source" id="source-bar">
       <label for="seed">Seed</label>
       <input type="number" id="seed" value="1" step="1" inputmode="numeric">
@@ -404,10 +418,35 @@ const UI = (function (PR) {
   function isModified(g, id) { const f = PR.startFace(id); return g.rank[id] !== f[0] || g.suit[id] !== f[1]; }
   function num(x) { return typeof x === "bigint" ? x.toString() : Number(x).toLocaleString("en-US"); }
   function prettyMod(name) { return name.replace(/_/g, " "); }
+  function rulesTitle(name) { return name.charAt(0).toUpperCase() + name.slice(1); }
+
+  // What a ruleset changes compared with classic, as short lines of text (empty for classic).
+  function rulesChanges(rules) {
+    const R = PR.getRuleset(rules), C = PR.getRuleset("classic");
+    const out = [];
+    if (R === C) return out;
+    const hv = (h) => `${h[2]} base × ${h[3]} mult, +${h[4]}/+${h[5]} per level`;
+    R.hands.forEach((h, i) => {
+      if (h.join() !== C.hands[i].join()) out.push({ what: h[1], now: hv(h), was: hv(C.hands[i]) });
+    });
+    for (const name of PR.MODIFIER_IDS) {
+      const [p, fx] = R.modifiers[name], [cp, cfx] = C.modifiers[name];
+      if (p !== cp || fx !== cfx) {
+        out.push({ what: prettyMod(name), now: `$${p}: ${fx}`, was: (p !== cp ? `$${cp}` : "") + (fx !== cfx ? (p !== cp ? ": " : "") + cfx : "") });
+      }
+    }
+    for (const k of ["remove", "paint", "promote"]) {
+      if (R["price_" + k] !== C["price_" + k]) out.push({ what: k, now: `$${R["price_" + k]} a card`, was: `$${C["price_" + k]}` });
+    }
+    if (R.end_in_last_round !== C.end_in_last_round) {
+      out.push({ what: "end", now: R.end_in_last_round ? "allowed in the last round" : "not allowed in the last round (play it out)", was: "allowed" });
+    }
+    return out;
+  }
 
   // Build a game from an instance and a move list. Stops at the first illegal move.
-  function buildGame(inst, moves) {
-    const g = new PR.Game(inst);
+  function buildGame(inst, moves, rules) {
+    const g = new PR.Game(inst, rules);
     for (let k = 0; k < moves.length; k++) {
       try { g.apply(moves[k]); } catch (e) {
         if (e instanceof PR.IllegalMove) return { game: g, applied: k, error: e.message };
@@ -418,8 +457,8 @@ const UI = (function (PR) {
   }
 
   // Every state of a replay: states[k] is the game after k moves.
-  function replayStates(inst, moves) {
-    const states = [new PR.Game(inst)];
+  function replayStates(inst, moves, rules) {
+    const states = [new PR.Game(inst, rules)];
     for (let k = 0; k < moves.length; k++) {
       const g = states[k].clone();
       try { g.apply(moves[k]); } catch (e) {
@@ -459,7 +498,7 @@ const UI = (function (PR) {
     }
     if (cmd === "discard") return faces;
     if (cmd === "end") return "end round";
-    if (cmd === "buy") return t[1] && Object.prototype.hasOwnProperty.call(PR.MODIFIERS, t[1]) ? `buy ${prettyMod(t[1])} -$${PR.MODIFIERS[t[1]][0]}` : "buy";
+    if (cmd === "buy") return t[1] && Object.prototype.hasOwnProperty.call(g.rules.modifiers, t[1]) ? `buy ${prettyMod(t[1])} -$${g.rules.price(t[1])}` : "buy";
     if (cmd === "sell") return t[1] ? `sell ${prettyMod(t[1])}` : "sell";
     if (cmd === "level") return t[1] && g.levels[t[1]] !== undefined && PR.HAND_CODES.includes(t[1])
       ? `${PR.HAND_NAMES[t[1]]} → level ${g.levels[t[1]] + 1}` : "level";
@@ -479,9 +518,11 @@ const UI = (function (PR) {
 
   // Money you'd get by ending the round now (or after a round-ending play).
   function roundReward(g) {
-    const cap = PR.INTEREST_CAP + (g.hasMod("savings") ? 5 : 0);
-    let r = PR.ROUND_REWARD + PR.PLAY_BONUS * g.plays_left + Math.min(Math.floor(g.money / PR.INTEREST_PER), cap);
-    if (g.hasMod("spare_hands")) r += 2 * g.discards_left;
+    const R = g.rules, saving = g.hasMod("savings");
+    const cap = R.interest_cap + (saving ? R.effects.savings : 0);
+    const per = saving ? R.savings_interest_per : R.interest_per;
+    let r = R.round_reward + R.play_bonus * g.plays_left + Math.min(Math.floor(g.money / per), cap);
+    if (g.hasMod("spare_hands")) r += R.effects.spare_hands * g.discards_left;
     return r;
   }
 
@@ -545,14 +586,15 @@ const UI = (function (PR) {
     return ids.sort((a, b) => (g.in_deck[b] - g.in_deck[a]) || g.suit[a] - g.suit[b] || g.rank[a] - g.rank[b] || a - b);
   }
 
-  function modState(name, state) {
-    if (name === "momentum") return state.streak ? `streak ${state.streak} × ${PR.HAND_NAMES[state.last]} (+${2 * state.streak} mult on another one)` : "no streak yet";
+  function modState(name, state, rules) {
+    const e = PR.getRuleset(rules).effects;
+    if (name === "momentum") return state.streak ? `streak ${state.streak} × ${PR.HAND_NAMES[state.last]} (+${e.momentum * state.streak} mult on another one)` : "no streak yet";
     if (name === "collector") return `+${state.bonus} base banked`;
     return "";
   }
 
-  return { SUIT_GLYPH, SUIT_LETTER, esc, rankLabel, faceText, isRed, isModified, num, prettyMod, buildGame, replayStates,
-    moveCards, describe, roundReward, preview, formula, verdictText, outcome, nextRoundPile, sortedHand, deckOrder, modState };
+  return { SUIT_GLYPH, SUIT_LETTER, esc, rankLabel, faceText, isRed, isModified, num, prettyMod, rulesTitle, rulesChanges,
+    buildGame, replayStates, moveCards, describe, roundReward, preview, formula, verdictText, outcome, nextRoundPile, sortedHand, deckOrder, modState };
 })(typeof PokerRun !== "undefined" ? PokerRun : require("./engine.js"));
 
 /* ======================================================================
@@ -566,6 +608,7 @@ function startApp(PR) {
   const S = {
     mode: "play",
     source: { type: "seed", seed: 1 },  // or {type: "text", text}
+    rules: "classic",    // ruleset name (PR.RULESETS); every game here is built with it
     inputText: "",
     inst: null,
     moves: [],
@@ -581,7 +624,7 @@ function startApp(PR) {
 
   // ---------- persistence (per-viewer convenience only)
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ source: S.source, moves: S.moves, sort: S.sort })); } catch (e) { /* storage unavailable */ }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ source: S.source, moves: S.moves, sort: S.sort, rules: S.rules })); } catch (e) { /* storage unavailable */ }
   }
   function restore() {
     try {
@@ -602,15 +645,16 @@ function startApp(PR) {
     setMoves(moves || []);
     if (source.type === "seed") $("seed").value = String(source.seed);
     if (source.type === "seed") {
-      try { history.replaceState(null, "", "#seed=" + source.seed); } catch (e) {
-        try { location.hash = "seed=" + source.seed; } catch (e2) { /* no URL updates here */ }
+      const hash = "seed=" + source.seed + (S.rules !== "classic" ? "&rules=" + S.rules : "");
+      try { history.replaceState(null, "", "#" + hash); } catch (e) {
+        try { location.hash = hash; } catch (e2) { /* no URL updates here */ }
       }
     }
     save();
   }
 
   function setMoves(moves) {
-    const g = new PR.Game(S.inst);
+    const g = new PR.Game(S.inst, S.rules);
     const kept = [], labels = [];
     for (const m of moves) {
       const label = UI.describe(g, m);
@@ -961,7 +1005,7 @@ function startApp(PR) {
       ? `<div class="progress-label"><span>Round ${g.round + 1} cleared with ${UI.num(g.round_score)}</span><span>Next target ${UI.num(g.inst.targets[g.round + 1])}</span></div>`
       : `<div class="progress-label"><span>${UI.num(g.round_score)} / ${UI.num(g.target)}</span><span>${done ? "target reached" : UI.num(Math.max(0, target - g.round_score)) + " to go"}</span></div>`;
     return `<section class="panel" aria-label="Round status">
-      <div class="toolbar" style="margin-bottom:10px"><h2 style="margin:0">Round ${g.round + 1} of ${R}</h2><span class="phase-tag">${phase}</span></div>
+      <div class="toolbar" style="margin-bottom:10px"><h2 style="margin:0">Round ${g.round + 1} of ${R}</h2><span>${g.rules.name !== "classic" ? `<span class="rules-tag" title="Scored by the ${esc(g.rules.name)} rules">${esc(UI.rulesTitle(g.rules.name))} rules</span>` : ""}<span class="phase-tag">${phase}</span></span></div>
       <div class="stats">
         <div class="stat"><div class="k">Target</div><div class="v">${UI.num(g.target)}</div></div>
         <div class="stat"><div class="k">Round pts</div><div class="v" data-num="round">${UI.num(g.round_score)}</div></div>
@@ -1054,23 +1098,27 @@ function startApp(PR) {
   }
 
   function handTableHTML(g, interactive, litCode) {
-    const rows = PR.HANDS.map(([code, name]) => {
+    const classic = PR.getRuleset("classic");
+    const rows = g.rules.hands.map(([code, name]) => {
       const lvl = g.levels[code];
-      const [b, m] = PR.handValue(code, lvl);
+      const [b, m] = g.rules.handValue(code, lvl);
+      const [cb, cm] = classic.handValue(code, lvl);
+      const cell = (v, c) => (v !== c ? `<td class="num changed" title="classic: ${c}">${v}</td>` : `<td class="num">${v}</td>`);
       const err = g.phase === "shop" ? g.tryMove("level " + code) : "Only in the shop";
       const action = interactive && g.phase === "shop" ? `<td class="num">${btn("Level up", "level", { v: code, price: g.levelPrice(code), err, cls: "small", aria: `Level up ${name} for $${g.levelPrice(code)}` })}</td>` : "";
-      return `<tr class="${code === litCode ? "lit" : ""}"><td class="mono">${code}</td><td>${name}</td><td class="num">${lvl}</td><td class="num">${b}</td><td class="num">${m}</td>${action}</tr>`;
+      return `<tr class="${code === litCode ? "lit" : ""}"><td class="mono">${code}</td><td>${name}</td><td class="num">${lvl}</td>${cell(b, cb)}${cell(m, cm)}${action}</tr>`;
     }).join("");
     const head = interactive && g.phase === "shop" ? '<th class="num">Price</th>' : "";
-    return `<section class="panel" aria-label="Hand types"><h2>Hand types</h2><div class="scroll-x"><table class="hands">
+    const note = g.rules.name !== "classic" ? `<span class="muted" style="font-size:12px">${esc(UI.rulesTitle(g.rules.name))} values · green = changed</span>` : "";
+    return `<section class="panel" aria-label="Hand types"><div class="toolbar"><h2 style="margin:0">Hand types</h2>${note}</div><div class="scroll-x"><table class="hands">
       <thead><tr><th>Code</th><th>Hand</th><th class="num">Lvl</th><th class="num">Base</th><th class="num">Mult</th>${head}</tr></thead>
       <tbody>${rows}</tbody></table></div></section>`;
   }
 
   function modsHTML(g, interactive) {
     const list = g.mods.map(([name, state]) => {
-      const [price, fx] = PR.MODIFIERS[name];
-      const st = UI.modState(name, state);
+      const [price, fx] = g.rules.modifiers[name];
+      const st = UI.modState(name, state, g.rules);
       const sell = interactive && g.phase === "shop" ? btn("Sell", "sell", { v: name, cls: "small", title: `Sell for $${Math.floor(price / 2)}`, aria: `Sell ${name} for $${Math.floor(price / 2)}` }) + ` <span class="muted" style="font-size:12px">+$${Math.floor(price / 2)}</span>` : `<span class="muted" style="font-size:12px">$${price}</span>`;
       return `<div class="mod"><span class="name">${esc(UI.prettyMod(name))}</span><span>${sell}</span><span class="fx">${esc(fx)}</span>${st ? `<span class="state">${esc(st)}</span>` : ""}</div>`;
     }).join("");
@@ -1083,13 +1131,13 @@ function startApp(PR) {
     const queue = g.inst.offers[g.round];
     const slots = g.visibleSlots();
     const offers = slots.map(({ name, taken }) => {
-      const [price, fx] = PR.MODIFIERS[name];
+      const [price, fx] = g.rules.modifiers[name];
       if (taken) return `<div class="offer sold"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Bought</div></div>`;
       const err = g.tryMove("buy " + name);
       return `<div class="offer"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">${esc(fx)}</div>
         <div class="row"><span class="cost">$${price}</span>${btn("Buy", "buy", { v: name, cls: "primary small", err, aria: `Buy ${name} for $${price}` })}</div></div>`;
     }).join("");
-    const later = queue.slice(g.offer_pos + PR.SHOP_WINDOW).map((m) => `<span class="chip" title="${esc(PR.MODIFIERS[m] ? PR.MODIFIERS[m][1] : "")}">${esc(UI.prettyMod(m))}</span>`).join("");
+    const later = queue.slice(g.offer_pos + g.rules.shop_window).map((m) => `<span class="chip" title="${esc(g.rules.modifiers[m] ? `$${g.rules.modifiers[m][0]}: ${g.rules.modifiers[m][1]}` : "")}">${esc(UI.prettyMod(m))}</span>`).join("");
     const pick = S.deckPick;
     let deckActions = '<span class="muted">Pick a card below to remove, paint or promote it.</span>';
     if (pick !== null && g.in_deck[pick]) {
@@ -1107,18 +1155,18 @@ function startApp(PR) {
     return `<section class="panel" aria-label="Shop">
       <div class="toolbar"><h2 style="margin:0">Shop after round ${g.round + 1}</h2>
         <div class="actions">${btn("Next round →", "next", { cls: "primary", err: g.tryMove("next") })}</div></div>
-      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + PR.SHOP_WINDOW, queue.length)} of ${queue.length} in this shop's queue.</p>
+      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + g.rules.shop_window, queue.length)} of ${queue.length} in this shop's queue.</p>
       <div class="offers">${offers || '<p class="muted">No offers.</p>'}</div>
       <div class="actions" style="margin-top:10px">
         ${btn("Reroll", "reroll", { price: prices.reroll, err: g.tryMove("reroll") })}
         ${btn("+1 discard", "discards", { price: prices.discards, err: g.tryMove("discards"), title: "+1 discard every round from now on" })}
-        ${btn("+1 hand size", "handsize", { price: prices.handsize, err: g.tryMove("handsize"), title: `+1 hand size (max ${PR.MAX_HAND_SIZE})` })}
+        ${btn("+1 hand size", "handsize", { price: prices.handsize, err: g.tryMove("handsize"), title: `+1 hand size (max ${g.rules.max_hand_size})` })}
       </div>
       ${later ? `<div class="queue-later"><span class="muted">Later in the queue:</span>${later}</div>` : ""}
       <div class="msg" id="play-msg" role="status" aria-live="polite">${S.msg ? `<div class="${S.msg.kind === "err" ? "err" : "okmsg"}">${esc(S.msg.text)}</div>` : ""}</div>
     </section>
     <section class="panel" aria-label="Deck editor">
-      <div class="toolbar"><h2 style="margin:0">Deck</h2><span class="muted" style="font-size:13px">${g.deck_size} cards (min ${PR.MIN_DECK}) · gold dot = painted or promoted</span></div>
+      <div class="toolbar"><h2 style="margin:0">Deck</h2><span class="muted" style="font-size:13px">${g.deck_size} cards (min ${g.rules.min_deck}) · gold dot = painted or promoted</span></div>
       <div class="deck-actions">${deckActions}</div>
       <div class="deckgrid">${deck}</div>
     </section>`;
@@ -1140,18 +1188,30 @@ function startApp(PR) {
     return `<ol class="log" id="${S.mode === "replay" ? "rp-log" : "play-log"}" aria-label="Move log">${items || '<li class="muted"><span></span><span>No moves yet.</span></li>'}</ol>`;
   }
 
+  function rulesBoxHTML(rules) {
+    const changes = UI.rulesChanges(rules);
+    if (!changes.length) return "";
+    const items = changes.map((c) => `<li><b>${esc(c.what)}</b>: ${esc(c.now)} <span title="classic">(classic: ${esc(c.was)})</span></li>`).join("");
+    return `<section class="panel" aria-label="Rules in play"><details class="rules-box">
+      <summary>${esc(UI.rulesTitle(PR.getRuleset(rules).name))} rules: ${changes.length} changes from classic</summary>
+      <ul class="rules-notes">${items}</ul></details></section>`;
+  }
+
   function sideHTML(g) {
     const out = outputText();
-    return `${modsHTML(g, true)}
+    const rulesNote = g.rules.name !== "classic"
+      ? `<p class="muted" style="margin:0 0 6px;font-size:12px">Played with the <b>${esc(UI.rulesTitle(g.rules.name))}</b> rules: score it with <span class="mono">python -m poker_run check in.txt out.txt --rules ${esc(g.rules.name)}</span>. The contest judge uses the classic rules.</p>`
+      : "";
+    return `${modsHTML(g, true)}${rulesBoxHTML(g.rules)}
       <section class="panel" aria-label="Moves">
         <div class="toolbar"><h2 style="margin:0">Moves (${S.moves.length})</h2>${btn("Undo", "undo", { err: S.moves.length ? "" : "Nothing to undo", title: "Undo the last move" })}</div>
         <div style="margin-top:8px">${logHTML(S.moves, S.labels, 0, 0)}</div>
       </section>
       <section class="panel export" aria-label="Export">
         <h2>Output file</h2>
-        <textarea id="export-text" readonly spellcheck="false" aria-label="Output text">${esc(out)}</textarea>
+        ${rulesNote}<textarea id="export-text" readonly spellcheck="false" aria-label="Output text">${esc(out)}</textarea>
         <div class="actions" style="margin-top:8px">${btn("Copy", "copy")}${btn("Download", "download")}
-          <span class="muted" style="font-size:12px">${esc(sourceLabel())}</span></div>
+          <span class="muted" style="font-size:12px">${esc(sourceLabel())}${g.rules.name !== "classic" ? ` · ${esc(g.rules.name)} rules` : ""}</span></div>
         <div class="msg" id="export-msg" role="status" aria-live="polite"></div>
       </section>`;
   }
@@ -1183,14 +1243,14 @@ function startApp(PR) {
   // ---------- replay
   function runReplay() {
     const input = $("rp-input").value, output = $("rp-output").value;
-    const [code, v] = PR.check(input, output);
-    const rp = { code, verdict: v, inst: null, moves: [], states: null, errorAt: null, error: null, labels: [] };
+    const [code, v] = PR.check(input, output, S.rules);
+    const rp = { code, verdict: v, rules: S.rules, inst: null, moves: [], states: null, errorAt: null, error: null, labels: [] };
     try { rp.inst = PR.parseInstance(input); } catch (e) { if (!(e instanceof PR.BadInput)) throw e; }
     if (rp.inst) {
       try { rp.moves = PR.parseOutput(output); } catch (e) { rp.moves = null; }
     }
     if (rp.inst && rp.moves) {
-      const r = UI.replayStates(rp.inst, rp.moves);
+      const r = UI.replayStates(rp.inst, rp.moves, S.rules);
       rp.states = r.states; rp.errorAt = r.errorAt; rp.error = r.error;
       rp.labels = rp.moves.map((m, i) => (i < r.states.length ? UI.describe(r.states[i], m) : ""));
     }
@@ -1204,9 +1264,10 @@ function startApp(PR) {
     const vEl = $("rp-verdict");
     if (!rp) { vEl.innerHTML = ""; $("rp-stepper-panel").classList.add("hidden"); $("rp-board").classList.add("hidden"); return; }
     const codeName = ["valid", "illegal move", "unparsable output", "bad input"][rp.code];
+    const by = rp.rules !== "classic" ? ` <span class="rules-tag">${esc(UI.rulesTitle(rp.rules))} rules</span>` : "";
     vEl.innerHTML = rp.verdict.valid
-      ? `<div class="okmsg"><b>Valid.</b> ${esc(UI.verdictText(rp.code, rp.verdict))}</div>`
-      : `<div class="err"><b>Invalid (${codeName}, exit ${rp.code}), score 0.</b> ${esc(rp.verdict.error)}</div>`;
+      ? `<div class="okmsg"><b>Valid.</b> ${esc(UI.verdictText(rp.code, rp.verdict))}${by}</div>`
+      : `<div class="err"><b>Invalid (${codeName}, exit ${rp.code}), score 0.</b> ${esc(rp.verdict.error)}${by}</div>`;
     if (!rp.states) { $("rp-stepper-panel").classList.add("hidden"); $("rp-board").classList.add("hidden"); return; }
     $("rp-stepper-panel").classList.remove("hidden");
     $("rp-board").classList.remove("hidden");
@@ -1247,10 +1308,10 @@ function startApp(PR) {
       main += `<section class="panel" aria-label="Hand at this step"><h2>Hand</h2><div class="hand">${handHTML(g, { interactive: false, highlight: nextCards, hlScored: nextScored })}</div>${last}${nextLine}</section>`;
       main += pileHTML(g, g.pile, "Draw pile", "next card first", 0, nextCards);
     } else if (g.phase === "shop") {
-      const offers = g.visibleSlots().map(({ name, taken }) => `<span class="chip${taken ? "" : " on"}">${esc(UI.prettyMod(name))}${taken ? " (bought)" : ` $${PR.MODIFIERS[name][0]}`}</span>`).join(" ");
+      const offers = g.visibleSlots().map(({ name, taken }) => `<span class="chip${taken ? "" : " on"}">${esc(UI.prettyMod(name))}${taken ? " (bought)" : ` $${g.rules.price(name)}`}</span>`).join(" ");
       main += `<section class="panel" aria-label="Shop at this step"><h2>Shop after round ${g.round + 1}</h2>
         <div class="parts">${offers || '<span class="muted">No offers left in the window.</span>'}</div>
-        <p class="muted" style="font-size:13px">Prices: reroll $${g.prices().reroll}, +discard $${g.prices().discards}, +hand size $${g.prices().handsize}, remove/paint/promote $3.</p>
+        <p class="muted" style="font-size:13px">Prices: reroll $${g.prices().reroll}, +discard $${g.prices().discards}, +hand size $${g.prices().handsize}, remove $${g.prices().remove}, paint $${g.prices().paint}, promote $${g.prices().promote}.</p>
         ${last}${nextLine}</section>`;
       const deck = UI.deckOrder(g).map((c) => cardHTML(g, c, { size: "deckc", cls: (g.in_deck[c] ? "" : "gone") + (nextCards.has(c) ? " hl" : "") })).join("");
       main += `<section class="panel" aria-label="Deck"><h2>Deck (${g.deck_size} cards)</h2><div class="deckgrid">${deck}</div></section>`;
@@ -1272,6 +1333,7 @@ function startApp(PR) {
     $("tab-play").setAttribute("aria-selected", String(S.mode === "play"));
     $("tab-replay").setAttribute("aria-selected", String(S.mode === "replay"));
     $("source-bar").classList.toggle("hidden", S.mode !== "play");
+    document.querySelectorAll('[data-act="rules"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === S.rules)));
     if (S.mode === "play") renderPlay(); else renderReplay();
     Scroll.request();
   }
@@ -1313,7 +1375,22 @@ function startApp(PR) {
   }
 
   const actions = {
-    mode(el) { S.mode = el.dataset.v; Sound.tap(); render(); },
+    mode(el) {
+      S.mode = el.dataset.v; Sound.tap(); render();
+      if (S.mode === "replay" && S.rp && S.rp.rules !== S.rules) runReplay();   // checked with other rules
+    },
+    rules(el) {
+      const v = el.dataset.v;
+      if (v === S.rules || !Object.prototype.hasOwnProperty.call(PR.RULESETS, v)) return;
+      if (S.moves.length && !S.game.over &&
+          !window.confirm(`Switch to the ${UI.rulesTitle(v)} rules? Your current run (${S.moves.length} moves) starts again from the first move.`)) return;
+      S.rules = v;
+      Sound.shuffle();
+      startFromSource(S.source, []);
+      S.msg = { kind: "ok", text: `${UI.rulesTitle(v)} rules: ${v === "classic" ? "the contest's rules" : UI.rulesChanges(v).length + " changes from classic (see the side panel)"}. The run starts again.` };
+      if (S.mode === "replay" && S.rp) runReplay();   // re-check the loaded replay with the new rules
+      render();
+    },
     deal() { Sound.shuffle(); dealSeed(Number($("seed").value)); },
     "random-seed"() { const s = Math.floor(Math.random() * 1000000) + 1; S.mode = "play"; dealSeed(s); },
     "toggle-load"() {
@@ -1379,7 +1456,8 @@ function startApp(PR) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = S.source.type === "seed" ? `poker_run_seed${S.source.seed}_out.txt` : "poker_run_out.txt";
+      const tag = S.rules !== "classic" ? "_" + S.rules : "";
+      a.download = S.source.type === "seed" ? `poker_run_seed${S.source.seed}${tag}_out.txt` : `poker_run${tag}_out.txt`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
       flash("export-msg", "ok", `Saved ${a.download}.`);
@@ -1443,8 +1521,14 @@ function startApp(PR) {
 
   // ---------- boot
   const hashSeed = /(?:^#|&)seed=(-?\d+)/.exec(location.hash);
+  const hashRules = /(?:^#|&)rules=(\w+)/.exec(location.hash);
   const saved = restore();
   if (saved && saved.sort) S.sort = saved.sort;
+  const known = (r) => typeof r === "string" && Object.prototype.hasOwnProperty.call(PR.RULESETS, r);
+  const savedRules = saved && known(saved.rules) ? saved.rules : "classic";
+  S.rules = hashRules && known(hashRules[1]) ? hashRules[1] : hashSeed ? "classic" : savedRules;
+  // Saved moves only make sense with the rules they were played by.
+  if (saved && savedRules !== S.rules) saved.moves = [];
   try {
     if (hashSeed) {
       const seed = Number(hashSeed[1]);

@@ -39,6 +39,10 @@ Every solver in this folder is built from the same pieces, collected here:
 
 Run `python3 poker_run/solvers/common.py` to self-test the fast scorer and the
 fast classifier against the simulator.
+
+Every number of the rules (hand values, modifier amounts, prices) is read
+from the game's ruleset (`game.rules`), so the solvers also play the other
+rulesets: the environment variable POKER_RULES picks one (default classic).
 """
 
 import math
@@ -55,8 +59,7 @@ for p in (ROOT, HERE):
 
 from poker_run.instance import parse_instance  # noqa: E402
 from poker_run.rules import (  # noqa: E402
-    HAND_CODES, INTEREST_CAP, INTEREST_PER, MAX_HAND_SIZE, MIN_DECK, MODIFIERS, N_CARDS, PLAY_BONUS,
-    ROUND_REWARD, SUITS, chips, hand_value,
+    HAND_CODES, MAX_HAND_SIZE, MIN_DECK, MODIFIERS, N_CARDS, SUITS, chips, get_ruleset,
 )
 from poker_run.sim import Game, IllegalMove, classify  # noqa: E402
 
@@ -67,6 +70,11 @@ DEFAULT_TIME = 1.7      # seconds of wall time a solver may use
 def time_limit(default=DEFAULT_TIME):
     """TIME_LIMIT can be overridden with the environment variable POKER_TIME."""
     return float(os.environ.get("POKER_TIME", default))
+
+
+def rules_from_env():
+    """The ruleset to play: the environment variable POKER_RULES (default classic)."""
+    return get_ruleset(os.environ.get("POKER_RULES") or None)
 
 
 # ---------------------------------------------------------------------------
@@ -136,30 +144,32 @@ class Scorer:
     def __init__(self, game):
         self.rank = game.rank[:]
         self.suit = game.suit[:]
-        self.level = {c: hand_value(c, game.levels[c]) for c in HAND_CODES}
+        R = game.rules
+        E = self.effects = R.effects
+        self.level = {c: R.hand_value(c, game.levels[c]) for c in R.hand_codes}
         self.mods = [m for m, _ in game.mods]
         has = set(self.mods)
         self.has = has
         cb, cm = [0] * N_CARDS, [0] * N_CARDS
         for c in range(N_CARDS):
             r, s = self.rank[c], self.suit[c]
-            b = chips(r) * (2 if "mirror" in has else 1)
+            b = chips(r) * (1 + E["mirror"] if "mirror" in has else 1)
             if "low_road" in has and r <= 4:
-                b += 12
+                b += E["low_road"]
             if "even_split" in has and r <= 8 and r % 2 == 0:
-                b += 15
+                b += E["even_split"]
             m = 0
             if "rose_tint" in has and s in (1, 2):
-                m += 3
+                m += E["rose_tint"]
             if "coal_seam" in has and s in (0, 3):
-                m += 3
+                m += E["coal_seam"]
             if "high_court" in has and 9 <= r <= 11:
-                m += 3
+                m += E["high_court"]
             if "odd_job" in has and r in (1, 3, 5, 7, 12):   # 3 5 7 9 A
-                m += 2
+                m += E["odd_job"]
             cb[c], cm[c] = b, m
         self.card_base, self.card_mult = cb, cm
-        self.flat_mult = max(0, N_CARDS - game.deck_size) if "thin_deck" in has else 0
+        self.flat_mult = E["thin_deck"] * max(0, N_CARDS - game.deck_size) if "thin_deck" in has else 0
         self.twin = "twin_engine" in has
         self.short = "short_hand" in has
         self.spread = "full_spread" in has
@@ -167,6 +177,7 @@ class Scorer:
         self.momentum = "momentum" in has
         self.collector = "collector" in has
         self.tricolor = "tricolor" in has
+        self.tri_max = 3 if R.tricolor_exact else 4   # most suits tricolor accepts
         self.ace_div = "ace_dividend" in has
 
     def score(self, cards, plays_left, mom_last="", mom_streak=0, coll=0):
@@ -182,22 +193,23 @@ class Scorer:
             mult += cm[c]
         times = 1
         n = len(cards)
+        E = self.effects
         if self.twin and len(idx) >= 2:
             sr = [ranks[i] for i in idx]
-            mult += 4 * sum(1 for r in set(sr) if sr.count(r) >= 2)
+            mult += E["twin_engine"] * sum(1 for r in set(sr) if sr.count(r) >= 2)
         if self.short and n <= 3:
-            times *= 2
+            times *= E["short_hand"]
         if self.spread and n == 5:
-            base += 40
+            base += E["full_spread"]
         if self.last_call and plays_left == 1:
-            times *= 3
+            times *= E["last_call"]
         if self.momentum and mom_last == code:
-            mult += 2 * mom_streak
+            mult += E["momentum"] * mom_streak
         if self.collector:
-            base += coll + (10 if code in ("ST", "SF") else 0)
-        if self.tricolor and len({suit[cards[i]] for i in idx}) >= 3:
-            times *= 2
-        money = 2 * sum(1 for i in idx if ranks[i] == 12) if self.ace_div else 0
+            base += coll + (E["collector"] if code in ("ST", "SF") else 0)
+        if self.tricolor and 3 <= len({suit[cards[i]] for i in idx}) <= self.tri_max:
+            times *= E["tricolor"]
+        money = E["ace_dividend"] * sum(1 for i in idx if ranks[i] == 12) if self.ace_div else 0
         return base * mult * times, code, money
 
 
@@ -253,8 +265,11 @@ class RoundCtx:
         self.final = game.round == game.inst.rounds - 1
         self.dollar = 0.0 if self.final else dollar
         self.allow_end = allow_end and not self.final
-        self.spare = game.has_mod("spare_hands")
-        self.cap = INTEREST_CAP + (5 if game.has_mod("savings") else 0)
+        self.rules = R = game.rules
+        self.spare = R.effects["spare_hands"] if game.has_mod("spare_hands") else 0
+        saving = game.has_mod("savings")
+        self.cap = R.interest_cap + (R.effects["savings"] if saving else 0)
+        self.per = R.savings_interest_per if saving else R.interest_per
         self.money0 = game.money
         self.cache = {}
         self.bp_cache = {}
@@ -305,7 +320,7 @@ class RoundCtx:
             else:
                 t.mom_last, t.mom_streak = code, 1
         if self.sc.collector and code in ("ST", "SF"):
-            t.coll += 10
+            t.coll += self.sc.effects["collector"]
         t.plays -= 1
         cs = set(cards)
         self._refill(t, [c for c in s.hand if c not in cs])
@@ -347,10 +362,11 @@ class RoundCtx:
 
     def reward(self, s):
         """Money earned if the round ends cleared in state s."""
+        R = self.rules
         money = self.money0 + s.money
-        r = ROUND_REWARD + PLAY_BONUS * s.plays + min(money // INTEREST_PER, self.cap)
+        r = R.round_reward + R.play_bonus * s.plays + min(money // self.per, self.cap)
         if self.spare:
-            r += 2 * s.discards
+            r += self.spare * s.discards
         return r + s.money
 
     def terminal_value(self, s):
@@ -777,9 +793,12 @@ class Shop:
 
     def money_worth(self, game):
         """Money held, plus the interest it earns over the next rounds."""
-        cap = INTEREST_CAP + (5 if game.has_mod("savings") else 0)
+        R = game.rules
+        saving = game.has_mod("savings")
+        cap = R.interest_cap + (R.effects["savings"] if saving else 0)
+        per = R.savings_interest_per if saving else R.interest_per
         rounds = max(1, min(self.p["interest_rounds"], game.inst.rounds - 2 - game.round))
-        return game.money + rounds * min(game.money // INTEREST_PER, cap)
+        return game.money + rounds * min(game.money // per, cap)
 
     # -- proposals -------------------------------------------------------------
 
@@ -787,16 +806,17 @@ class Shop:
         """Affordable shop move bundles (lists of move strings)."""
         out = []
         money = game.money
+        price = game.rules.price
         offers = game.visible_offers()
         full = len(game.mods) >= game.inst.slots
         for name in offers:
-            if game.has_mod(name) or MODIFIERS[name][0] > money:
+            if game.has_mod(name) or price(name) > money:
                 continue
             if not full:
                 out.append([f"buy {name}"])
             else:
                 for m, _ in game.mods:
-                    if MODIFIERS[name][0] <= money + MODIFIERS[m][0] // 2:
+                    if price(name) <= money + price(m) // 2:
                         out.append([f"sell {m}", f"buy {name}"])
         # reroll to later offers: we know the whole queue, so look ahead
         queue = game.inst.offers[game.round]
@@ -806,20 +826,20 @@ class Shop:
             pos += 3
             rolls += 1
             for name in queue[pos:pos + 3]:
-                if game.has_mod(name) or MODIFIERS[name][0] + cost > money:
+                if game.has_mod(name) or price(name) + cost > money:
                     continue
                 if not full:
                     out.append(["reroll"] * rolls + [f"buy {name}"])
                 else:
                     for m, _ in game.mods:
-                        if MODIFIERS[name][0] + cost <= money + MODIFIERS[m][0] // 2:
+                        if price(name) + cost <= money + price(m) // 2:
                             out.append([f"sell {m}"] + ["reroll"] * rolls + [f"buy {name}"])
         # levels: hand types used in the simulated next round, and the most common ones
         for code in usage:
             if game.level_price(code) <= money:
                 out.append([f"level {code}"])
         pr = game.prices()
-        if pr["handsize"] <= money and game.hand_size < MAX_HAND_SIZE:
+        if pr["handsize"] <= money and game.hand_size < game.rules.max_hand_size:
             out.append(["handsize"])
         if pr["discards"] <= money:
             out.append(["discards"])
@@ -827,8 +847,12 @@ class Shop:
         return out
 
     def deck_bundles(self, game, money):
-        k = min(self.p["bundle"], money // 3)
-        if k <= 0:
+        R = game.rules
+        bundle = self.p["bundle"]
+        k_remove = min(bundle, money // R.price_remove)
+        k_paint = min(bundle, money // R.price_paint)
+        k_promote = min(bundle, money // R.price_promote)
+        if max(k_remove, k_paint, k_promote) <= 0:
             return []
         rank, suit = game.rank, game.suit
         deck = [c for c in range(N_CARDS) if game.in_deck[c]]
@@ -839,7 +863,8 @@ class Shop:
         main = max(range(4), key=lambda s: sc[s])
         out = []
         # remove: low-value cards of the weakest suits / rarest ranks
-        if game.deck_size - k >= MIN_DECK:
+        k = k_remove
+        if k > 0 and game.deck_size - k >= R.min_deck:
             junk = sorted(deck, key=lambda c: (sc[suit[c]] + rc[rank[c]] * 2, chips(rank[c])))
             out.append([f"remove {c}" for c in junk[:k]])
             junk2 = sorted(deck, key=lambda c: (sc[suit[c]], chips(rank[c])))
@@ -848,15 +873,15 @@ class Shop:
             out.append([f"remove {c}" for c in junk3[:k]])
         # paint: high cards of other suits into the main suit
         off = sorted((c for c in deck if suit[c] != main), key=lambda c: (-sc[suit[c]], -chips(rank[c])))
-        if off:
-            out.append([f"paint {c} {SUITS[main]}" for c in off[-k:]])
+        if off and k_paint > 0:
+            out.append([f"paint {c} {SUITS[main]}" for c in off[-k_paint:]])
         # promote: cards one rank below the most common rank join it
         for target in sorted(range(13), key=lambda r: -rc[r])[:2]:
             if target == 0:
                 continue
             below = [c for c in deck if rank[c] == target - 1]
-            if below:
-                out.append([f"promote {c}" for c in below[:k]])
+            if below and k_promote > 0:
+                out.append([f"promote {c}" for c in below[:k_promote]])
         return out
 
     # -- main loop ---------------------------------------------------------------
@@ -900,7 +925,7 @@ class Shop:
                 g.mods.append([name, {"last": "", "streak": 0} if name == "momentum" else
                                {"bonus": 0} if name == "collector" else {}])
                 gain = self.engine_value(g, False) - base
-                price = MODIFIERS[name][0] + (2 if pos >= 3 else 0)
+                price = game.rules.price(name) + (2 if pos >= 3 else 0)
                 best = max(best, gain / price * p["future_discount"] ** k)
         return min(best, p["future_cap"])
 
@@ -950,17 +975,18 @@ class Shop:
 RESERVE = 0.05   # seconds kept back for each phase still to come
 
 
-def solve(inst, round_solver, shop, start=None, budget=DEFAULT_TIME):
+def solve(inst, round_solver, shop, start=None, budget=DEFAULT_TIME, rules=None):
     """Alternate round_solver(game, deadline) and shop(game, deadline) until
     the run is over. Both get a copy of the game and return move strings,
-    which are checked here on the real game.
+    which are checked here on the real game. rules: a ruleset or its name
+    (default: the environment variable POKER_RULES, else classic).
 
     Time: the solvers are bounded by their own work limits (beam width,
     rollouts, ...), so their output does not depend on the machine. The
     deadline is only a safety net: a phase may use all the remaining time
     except RESERVE seconds for each phase still to come."""
     start = start or time.perf_counter()
-    game = Game(inst)
+    game = Game(inst, rules if rules is not None else rules_from_env())
     moves = []
     while not game.over:
         phases_left = 2 * (inst.rounds - game.round) - (2 if game.phase == "play" else 3)
@@ -998,14 +1024,14 @@ def safe_move(game):
     return "play " + " ".join(map(str, play_candidates(ctx, ctx.start())[0][1]))
 
 
-def self_test(n=3000, seed=1):
+def self_test(n=3000, seed=1, rules=None):
     """Check Scorer and fast_classify against the simulator on random cases."""
     import random
     from poker_run.instance import generate
     from poker_run.rules import MODIFIER_IDS
     rng = random.Random(seed)
     for _ in range(n):
-        g = Game(generate(rng.randint(1, 100)))
+        g = Game(generate(rng.randint(1, 100)), rules)
         g.mods = [[m, {"last": rng.choice(["", "PR", "FH"]), "streak": rng.randint(0, 3)} if m == "momentum"
                    else {"bonus": 10 * rng.randint(0, 3)} if m == "collector" else {}]
                   for m in rng.sample(MODIFIER_IDS, 5)]
@@ -1014,7 +1040,7 @@ def self_test(n=3000, seed=1):
                 g.suit[c] = rng.randrange(4)
             if rng.random() < 0.3:
                 g.rank[c] = rng.randrange(13)
-        g.deck_size = rng.randint(MIN_DECK, N_CARDS)
+        g.deck_size = rng.randint(g.rules.min_deck, N_CARDS)
         g.plays_left = rng.randint(1, 4)
         for code in HAND_CODES:
             g.levels[code] = rng.randint(1, 4)
@@ -1027,8 +1053,10 @@ def self_test(n=3000, seed=1):
         assert got == (e["points"], e["hand"], e["money"]), (cards, got, e)
         ranks, suits = [g.rank[c] for c in cards], [g.suit[c] for c in cards]
         assert fast_classify(ranks, suits) == classify(ranks, suits)
-    print(f"self_test: {n} random plays agree with Game.evaluate")
+    print(f"self_test: {n} random plays agree with Game.evaluate ({get_ruleset(rules).name} rules)")
 
 
 if __name__ == "__main__":
-    self_test()
+    from poker_run.rules import RULESETS
+    for _name in RULESETS:
+        self_test(rules=_name)

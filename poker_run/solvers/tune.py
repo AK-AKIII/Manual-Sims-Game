@@ -22,7 +22,8 @@ point of the tuned solver is to generalise to tests it has not seen.
 Runs are evaluated with a large time budget, so results don't depend on how
 busy the machine is; tuned.py itself takes about 0.2 s per test.
 The best weights are written to tuned_weights.json after every improvement,
-so you can stop the tuner at any time (Ctrl-C).
+so you can stop the tuner at any time (Ctrl-C). With POKER_RULES=balanced it
+tunes for the balanced rules and writes tuned_weights_balanced.json.
 """
 
 import argparse
@@ -48,7 +49,7 @@ def run_seed(args):
     seed, weights = args
     inst = generate(seed)
     moves = tuned.solve(inst, weights, budget=30.0)
-    g = C.Game(inst)
+    g = C.Game(inst, C.rules_from_env())
     for m in moves:
         g.apply(m)
     return g.total, g.cleared
@@ -79,11 +80,14 @@ def main():
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--seeds", default="1001-1060")
     ap.add_argument("--fresh", action="store_true", help="start from DEFAULT_WEIGHTS, not the JSON")
-    ap.add_argument("--out", default=tuned.WEIGHTS_FILE)
+    ap.add_argument("--out")
     args = ap.parse_args()
     lo, hi = map(int, args.seeds.split("-"))
     seeds = list(range(lo, hi + 1))
     assert not set(seeds) & set(range(1, 11)), "never tune on the public seeds 1-10"
+    rules = C.rules_from_env().name
+    if args.out is None:
+        args.out = tuned.WEIGHTS_FILE if rules == "classic" else tuned.WEIGHTS_FILE.replace(".json", f"_{rules}.json")
     rng = random.Random(12345)
     w = dict(tuned.DEFAULT_WEIGHTS) if args.fresh else tuned.load_weights()
     sigma = 0.3

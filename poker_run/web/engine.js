@@ -5,6 +5,10 @@
  *
  * Works as a browser global (window.PokerRun) and as a Node module.
  *
+ * Rulesets: new Game(inst, "balanced") (or new Game(inst, { rules: "balanced" }))
+ * plays by another ruleset; the default is classic. RULESETS / getRuleset()
+ * mirror rules.py, and check(input, output, rules) scores by one.
+ *
  * A few Python behaviours are copied on purpose so that verdicts (including
  * error strings) match exactly: str.split()/strip()/splitlines() whitespace
  * sets, int() parsing (signs, underscores, Unicode digits, the 4300-digit
@@ -206,6 +210,94 @@
   const SHOP_WINDOW = 3, MIN_DECK = 20, MAX_HAND_SIZE = 10;
   const ROUND_REWARD = 4, PLAY_BONUS = 1, INTEREST_PER = 5, INTEREST_CAP = 5;
 
+  // Modifier amounts: the numbers in the texts above.
+  const EFFECTS = {
+    rose_tint: 3, coal_seam: 3, low_road: 12, high_court: 3, ace_dividend: 2, twin_engine: 4,
+    short_hand: 2, full_spread: 40, last_call: 3, momentum: 2, collector: 10, thin_deck: 1,
+    mirror: 1, tricolor: 2, savings: 5, spare_hands: 2, odd_job: 2, even_split: 15,
+  };
+
+  // ---------------------------------------------------------------- rulesets (rules.py)
+
+  class Ruleset {
+    constructor(name, values) {
+      this.name = name;
+      Object.assign(this, values);
+      this.hand_codes = this.hands.map((h) => h[0]);
+      this.hand_names = Object.fromEntries(this.hands.map((h) => [h[0], h[1]]));
+      this._rows = Object.fromEntries(this.hands.map((h) => [h[0], h]));
+    }
+    handValue(code, level) {
+      const h = this._rows[code];
+      return [h[2] + (level - 1) * h[4], h[3] + (level - 1) * h[5]];
+    }
+    price(name) { return this.modifiers[name][0]; }
+    changed(name, changes) {
+      const values = {};
+      for (const [k, v] of Object.entries(this)) {
+        if (k !== "name" && k !== "hand_codes" && k !== "hand_names" && !k.startsWith("_")) values[k] = v;
+      }
+      return new Ruleset(name, Object.assign(values, changes));
+    }
+  }
+
+  const CLASSIC = new Ruleset("classic", {
+    hands: HANDS, modifiers: MODIFIERS, effects: EFFECTS,
+    price_reroll: PRICE_REROLL, price_remove: PRICE_REMOVE, price_paint: PRICE_PAINT, price_promote: PRICE_PROMOTE,
+    price_discards: PRICE_DISCARDS, price_hand_size: PRICE_HAND_SIZE, level_base: LEVEL_BASE, level_step: LEVEL_STEP,
+    shop_window: SHOP_WINDOW, min_deck: MIN_DECK, max_hand_size: MAX_HAND_SIZE, round_reward: ROUND_REWARD,
+    play_bonus: PLAY_BONUS, interest_per: INTEREST_PER, interest_cap: INTEREST_CAP,
+    savings_interest_per: INTEREST_PER,
+    end_in_last_round: true,
+    tricolor_exact: false,
+  });
+
+  const BALANCED = CLASSIC.changed("balanced", {
+    hands: [
+      ["HC", "High Card", 5, 1, 10, 1],
+      ["PR", "Pair", 10, 2, 15, 1],
+      ["TP", "Two Pair", 20, 2, 20, 1],
+      ["TK", "Three of a Kind", 30, 3, 25, 2],
+      ["ST", "Straight", 30, 4, 30, 2],
+      ["FL", "Flush", 40, 5, 30, 2],
+      ["FH", "Full House", 35, 4, 20, 2],
+      ["FK", "Four of a Kind", 60, 6, 30, 3],
+      ["SF", "Straight Flush", 80, 8, 40, 3],
+      ["FV", "Five of a Kind", 100, 10, 35, 3],
+      ["HF", "Flush House", 120, 11, 40, 3],
+      ["F5", "Flush Five", 150, 12, 50, 3],
+    ],
+    modifiers: Object.assign({}, MODIFIERS, {
+      ace_dividend: [3, "+$3 for each scored ace"],
+      short_hand: [7, "x3 mult when you play 3 or fewer cards"],
+      momentum: [5, "+3 mult for each play in a row before this one of the same hand type"],
+      collector: [5, "gains +20 base for good each time you play a Straight or Straight Flush; adds its base to every play"],
+      thin_deck: [6, "+2 mult for each card your deck is below 52"],
+      tricolor: [7, "x2 mult when the scored cards have exactly 3 suits"],
+      savings: [4, "interest is $1 per $3 held (not per $5), and its cap is +$5"],
+      spare_hands: [3, "+$3 for each unused discard when you clear a round"],
+    }),
+    effects: Object.assign({}, EFFECTS, { ace_dividend: 3, short_hand: 3, momentum: 3, collector: 20, thin_deck: 2,
+      spare_hands: 3 }),
+    price_remove: 2, price_paint: 2, price_promote: 2,
+    savings_interest_per: 3,
+    end_in_last_round: false,
+    tricolor_exact: true,
+  });
+
+  const RULESETS = { classic: CLASSIC, balanced: BALANCED };
+
+  // A Ruleset from a name (null/undefined: classic), a Ruleset, or an options object { rules }.
+  function getRuleset(rules) {
+    if (rules instanceof Ruleset) return rules;
+    if (rules === null || rules === undefined) return CLASSIC;
+    if (typeof rules === "object") return getRuleset(rules.rules);
+    if (!Object.prototype.hasOwnProperty.call(RULESETS, rules)) {
+      throw new Error(`unknown ruleset ${pyRepr(String(rules))}: use one of ${Object.keys(RULESETS).join(", ")}`);
+    }
+    return RULESETS[rules];
+  }
+
   // ---------------------------------------------------------------- instance.py
 
   class Rng {
@@ -348,15 +440,17 @@
     "reroll", "next"]);
 
   class Game {
-    constructor(inst) {
+    // rules: a ruleset name ("classic", "balanced"), a Ruleset, or { rules: ... }.
+    constructor(inst, rules) {
       if (inst === undefined) return; // used by clone()
       this.inst = inst;
+      this.rules = getRuleset(rules);
       this.rank = [];
       this.suit = [];
       for (let i = 0; i < N_CARDS; i++) { const f = startFace(i); this.rank.push(f[0]); this.suit.push(f[1]); }
       this.in_deck = new Array(N_CARDS).fill(true);
       this.deck_size = N_CARDS;
-      this.levels = Object.fromEntries(HAND_CODES.map((c) => [c, 1]));
+      this.levels = Object.fromEntries(this.rules.hand_codes.map((c) => [c, 1]));
       this.mods = [];
       this.money = STARTING_MONEY;
       this.total = 0;
@@ -389,7 +483,7 @@
     visibleOffers() {
       if (this.phase !== "shop") return [];
       const queue = this.inst.offers[this.round];
-      const window = queue.slice(this.offer_pos, this.offer_pos + SHOP_WINDOW);
+      const window = queue.slice(this.offer_pos, this.offer_pos + this.rules.shop_window);
       return window.filter((m, k) => !this.offers_taken.has(this.offer_pos + k));
     }
 
@@ -398,22 +492,23 @@
       if (this.phase !== "shop") return [];
       const queue = this.inst.offers[this.round];
       const out = [];
-      for (let k = this.offer_pos; k < Math.min(this.offer_pos + SHOP_WINDOW, queue.length); k++) {
+      for (let k = this.offer_pos; k < Math.min(this.offer_pos + this.rules.shop_window, queue.length); k++) {
         out.push({ slot: k, name: queue[k], taken: this.offers_taken.has(k) });
       }
       return out;
     }
 
-    levelPrice(code) { return LEVEL_BASE + LEVEL_STEP * this.levels[code]; }
+    levelPrice(code) { return this.rules.level_base + this.rules.level_step * this.levels[code]; }
 
     prices() {
+      const R = this.rules;
       return {
-        reroll: PRICE_REROLL + this.rerolls,
-        remove: PRICE_REMOVE,
-        paint: PRICE_PAINT,
-        promote: PRICE_PROMOTE,
-        discards: PRICE_DISCARDS * (this.extra_discards + 1),
-        handsize: PRICE_HAND_SIZE * (this.extra_hand + 1),
+        reroll: R.price_reroll + this.rerolls,
+        remove: R.price_remove,
+        paint: R.price_paint,
+        promote: R.price_promote,
+        discards: R.price_discards * (this.extra_discards + 1),
+        handsize: R.price_hand_size * (this.extra_hand + 1),
       };
     }
 
@@ -425,31 +520,36 @@
       const [code, scored] = classify(ranks, suits);
       const sRanks = scored.map((i) => ranks[i]);
       const sSuits = scored.map((i) => suits[i]);
-      let [base, mult] = handValue(code, this.levels[code]);
+      let [base, mult] = this.rules.handValue(code, this.levels[code]);
       const handBase = base, handMult = mult;
       const cardChips = sRanks.reduce((a, r) => a + chips(r), 0);
       base += cardChips;
       let times = 1, money = 0;
       const parts = [];
       const cnt = (arr, f) => arr.filter(f).length;
+      const E = this.rules.effects;
       for (const [name, state] of this.mods) {
         const b0 = base, m0 = mult, t0 = times, $0 = money;
-        if (name === "rose_tint") mult += 3 * cnt(sSuits, (s) => s === 1 || s === 2);
-        else if (name === "coal_seam") mult += 3 * cnt(sSuits, (s) => s === 0 || s === 3);
-        else if (name === "low_road") base += 12 * cnt(sRanks, (r) => r <= 4);
-        else if (name === "high_court") mult += 3 * cnt(sRanks, (r) => 9 <= r && r <= 11);
-        else if (name === "ace_dividend") money += 2 * cnt(sRanks, (r) => r === 12);
-        else if (name === "twin_engine") mult += 4 * [...new Set(sRanks)].filter((r) => cnt(sRanks, (x) => x === r) >= 2).length;
-        else if (name === "short_hand") { if (cards.length <= 3) times *= 2; }
-        else if (name === "full_spread") { if (cards.length === 5) base += 40; }
-        else if (name === "last_call") { if (this.plays_left === 1) times *= 3; }
-        else if (name === "momentum") { if (state.last === code) mult += 2 * state.streak; }
-        else if (name === "collector") base += state.bonus + (code === "ST" || code === "SF" ? 10 : 0);
-        else if (name === "thin_deck") mult += Math.max(0, N_CARDS - this.deck_size);
-        else if (name === "mirror") base += sRanks.reduce((a, r) => a + chips(r), 0);
-        else if (name === "tricolor") { if (new Set(sSuits).size >= 3) times *= 2; }
-        else if (name === "odd_job") mult += 2 * cnt(sRanks, (r) => r === 1 || r === 3 || r === 5 || r === 7 || r === 12); // 3 5 7 9 A
-        else if (name === "even_split") base += 15 * cnt(sRanks, (r) => r <= 8 && r % 2 === 0);
+        const e = E[name];
+        if (name === "rose_tint") mult += e * cnt(sSuits, (s) => s === 1 || s === 2);
+        else if (name === "coal_seam") mult += e * cnt(sSuits, (s) => s === 0 || s === 3);
+        else if (name === "low_road") base += e * cnt(sRanks, (r) => r <= 4);
+        else if (name === "high_court") mult += e * cnt(sRanks, (r) => 9 <= r && r <= 11);
+        else if (name === "ace_dividend") money += e * cnt(sRanks, (r) => r === 12);
+        else if (name === "twin_engine") mult += e * [...new Set(sRanks)].filter((r) => cnt(sRanks, (x) => x === r) >= 2).length;
+        else if (name === "short_hand") { if (cards.length <= 3) times *= e; }
+        else if (name === "full_spread") { if (cards.length === 5) base += e; }
+        else if (name === "last_call") { if (this.plays_left === 1) times *= e; }
+        else if (name === "momentum") { if (state.last === code) mult += e * state.streak; }
+        else if (name === "collector") base += state.bonus + (code === "ST" || code === "SF" ? e : 0);
+        else if (name === "thin_deck") mult += e * Math.max(0, N_CARDS - this.deck_size);
+        else if (name === "mirror") base += e * sRanks.reduce((a, r) => a + chips(r), 0);
+        else if (name === "tricolor") {
+          const k = new Set(sSuits).size;
+          if (k === 3 || (k > 3 && !this.rules.tricolor_exact)) times *= e;
+        }
+        else if (name === "odd_job") mult += e * cnt(sRanks, (r) => r === 1 || r === 3 || r === 5 || r === 7 || r === 12); // 3 5 7 9 A
+        else if (name === "even_split") base += e * cnt(sRanks, (r) => r <= 8 && r % 2 === 0);
         if (detail) parts.push({ name, base: base - b0, mult: mult - m0, times: times / t0, money: money - $0 });
       }
       const res = { hand: code, scored: scored.map((i) => cards[i]), base, mult, times,
@@ -493,7 +593,7 @@
         if (name === "momentum") {
           if (state.last === res.hand) state.streak += 1;
           else { state.last = res.hand; state.streak = 1; }
-        } else if (name === "collector" && (res.hand === "ST" || res.hand === "SF")) state.bonus += 10;
+        } else if (name === "collector" && (res.hand === "ST" || res.hand === "SF")) state.bonus += this.rules.effects[name];
       }
       this.round_score += res.points;
       this.total += res.points;
@@ -515,6 +615,9 @@
 
     _end(args) {
       if (args.length) throw new IllegalMove("'end' takes no arguments");
+      if (this.round + 1 === this.inst.rounds && !this.rules.end_in_last_round) {
+        throw new IllegalMove(`'end' is not allowed in the last round (${this.rules.name} rules)`);
+      }
       if (this.round_score < this.target) {
         throw new IllegalMove(`round score ${this.round_score} is below the target ${this.target}`);
       }
@@ -539,9 +642,11 @@
     _endRound() {
       if (this.round_score < this.target) { this.phase = "over"; return; }
       this.cleared += 1;
-      const cap = INTEREST_CAP + (this.hasMod("savings") ? 5 : 0);
-      let reward = ROUND_REWARD + PLAY_BONUS * this.plays_left + Math.min(Math.floor(this.money / INTEREST_PER), cap);
-      if (this.hasMod("spare_hands")) reward += 2 * this.discards_left;
+      const R = this.rules, saving = this.hasMod("savings");
+      const cap = R.interest_cap + (saving ? R.effects.savings : 0);
+      const per = saving ? R.savings_interest_per : R.interest_per;
+      let reward = R.round_reward + R.play_bonus * this.plays_left + Math.min(Math.floor(this.money / per), cap);
+      if (this.hasMod("spare_hands")) reward += R.effects.spare_hands * this.discards_left;
       this.money += reward;
       if (this.round + 1 === this.inst.rounds) { this.phase = "over"; return; }
       this.phase = "shop";
@@ -577,13 +682,13 @@
       const name = this._one(args, "modifier name");
       const queue = this.inst.offers[this.round];
       let slot = null;
-      for (let k = this.offer_pos; k < Math.min(this.offer_pos + SHOP_WINDOW, queue.length); k++) {
+      for (let k = this.offer_pos; k < Math.min(this.offer_pos + this.rules.shop_window, queue.length); k++) {
         if (queue[k] === name && !this.offers_taken.has(k)) { slot = k; break; }
       }
       if (slot === null) throw new IllegalMove(`${name} is not on offer`);
       if (this.hasMod(name)) throw new IllegalMove(`you already own ${name}`);
       if (this.mods.length >= this.inst.slots) throw new IllegalMove(`all ${this.inst.slots} modifier slots are full`);
-      this._pay(MODIFIERS[name][0]);
+      this._pay(this.rules.price(name));
       this.offers_taken.add(slot);
       this.mods.push([name, name === "momentum" ? { last: "", streak: 0 } : name === "collector" ? { bonus: 0 } : {}]);
     }
@@ -593,7 +698,7 @@
       for (let k = 0; k < this.mods.length; k++) {
         if (this.mods[k][0] === name) {
           this.mods.splice(k, 1);
-          this.money += Math.floor(MODIFIERS[name][0] / 2);
+          this.money += Math.floor(this.rules.price(name) / 2);
           return;
         }
       }
@@ -602,15 +707,16 @@
 
     _level(args) {
       const code = this._one(args, "hand code");
-      if (!HAND_CODES.includes(code)) throw new IllegalMove(`unknown hand code ${code}`);
+      if (!this.rules.hand_codes.includes(code)) throw new IllegalMove(`unknown hand code ${code}`);
       this._pay(this.levelPrice(code));
       this.levels[code] += 1;
     }
 
     _remove(args) {
       const c = this._deckCard(args);
-      if (this.deck_size <= MIN_DECK) throw new IllegalMove(`your deck can't go below ${MIN_DECK} cards`);
-      this._pay(PRICE_REMOVE);
+      const R = this.rules;
+      if (this.deck_size <= R.min_deck) throw new IllegalMove(`your deck can't go below ${R.min_deck} cards`);
+      this._pay(R.price_remove);
       this.in_deck[c] = false;
       this.deck_size -= 1;
     }
@@ -619,14 +725,14 @@
       const c = this._deckCard(args, 1);
       // Python: `args[1] not in SUITS` is a substring test on the string "SHDC".
       if (args[1].length !== 1 || !SUITS.includes(args[1])) throw new IllegalMove("suit must be one of S H D C");
-      this._pay(PRICE_PAINT);
+      this._pay(this.rules.price_paint);
       this.suit[c] = SUITS.indexOf(args[1]);
     }
 
     _promote(args) {
       const c = this._deckCard(args);
       if (this.rank[c] === 12) throw new IllegalMove("an ace can't be promoted");
-      this._pay(PRICE_PROMOTE);
+      this._pay(this.rules.price_promote);
       this.rank[c] += 1;
     }
 
@@ -638,19 +744,20 @@
 
     _handsize(args) {
       if (args.length) throw new IllegalMove("'handsize' takes no arguments");
-      if (this.hand_size >= MAX_HAND_SIZE) throw new IllegalMove(`hand size is already ${MAX_HAND_SIZE}`);
+      const max = this.rules.max_hand_size;
+      if (this.hand_size >= max) throw new IllegalMove(`hand size is already ${max}`);
       this._pay(this.prices().handsize);
       this.extra_hand += 1;
     }
 
     _reroll(args) {
       if (args.length) throw new IllegalMove("'reroll' takes no arguments");
-      if (this.offer_pos + SHOP_WINDOW >= this.inst.offers[this.round].length) {
+      if (this.offer_pos + this.rules.shop_window >= this.inst.offers[this.round].length) {
         throw new IllegalMove("the offer queue is used up");
       }
       this._pay(this.prices().reroll);
       this.rerolls += 1;
-      this.offer_pos += SHOP_WINDOW;
+      this.offer_pos += this.rules.shop_window;
     }
 
     _next(args) {
@@ -686,12 +793,14 @@
   }
 
   function verdict(game, moves) {
-    return { valid: true, score: game.total, cleared: game.cleared, rounds: game.inst.rounds,
+    const v = { valid: true, score: game.total, cleared: game.cleared, rounds: game.inst.rounds,
       finished: game.over, moves, money: game.money };
+    if (game.rules.name !== "classic") v.rules = game.rules.name;
+    return v;
   }
 
   // Returns [exit code, verdict]. Verdict keys match checker.py exactly.
-  function check(inputText, outputText) {
+  function check(inputText, outputText, rules) {
     let inst;
     try { inst = parseInstance(inputText); } catch (e) {
       if (e instanceof BadInput) return [BAD_INPUT, { valid: false, score: 0, error: `bad input: ${e.message}` }];
@@ -702,7 +811,7 @@
       if (e instanceof PyValueError) return [UNPARSABLE, { valid: false, score: 0, error: `unparsable output: ${e.message}` }];
       throw e;
     }
-    const game = new Game(inst);
+    const game = new Game(inst, rules);
     for (let k = 1; k <= moves.length; k++) {
       const move = moves[k - 1];
       try { game.apply(move); } catch (e) {
@@ -724,8 +833,10 @@
     RANKS, SUITS, N_CARDS, HANDS, HAND_CODES, HAND_NAMES, MODIFIERS, MODIFIER_IDS,
     PRICE_REROLL, PRICE_REMOVE, PRICE_PAINT, PRICE_PROMOTE, PRICE_DISCARDS, PRICE_HAND_SIZE,
     LEVEL_BASE, LEVEL_STEP, SHOP_WINDOW, MIN_DECK, MAX_HAND_SIZE,
-    ROUND_REWARD, PLAY_BONUS, INTEREST_PER, INTEREST_CAP, STARTING_MONEY,
+    ROUND_REWARD, PLAY_BONUS, INTEREST_PER, INTEREST_CAP, STARTING_MONEY, EFFECTS,
     startFace, faceStr, chips, handValue,
+    // rulesets
+    Ruleset, RULESETS, getRuleset,
     // instance
     Rng, DEFAULT_PARAMS, targetsFor, generate, formatInstance, parseInstance, BadInput,
     // sim

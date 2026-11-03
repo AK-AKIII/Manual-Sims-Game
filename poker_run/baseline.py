@@ -3,15 +3,17 @@
     python -m poker_run.baseline < input.txt > output.txt
 
 It exists to show the problem isn't trivial and to give contestants a score
-to beat. It never looks at future draws.
+to beat. It never looks at future draws. The environment variable
+POKER_RULES picks another ruleset (e.g. POKER_RULES=balanced).
 """
 
+import os
 import sys
 from collections import Counter
 from itertools import combinations
 
 from .instance import parse_instance
-from .rules import MODIFIERS, chips
+from .rules import chips
 from .sim import Game
 
 
@@ -54,7 +56,7 @@ def shop_moves(game, played):
         moves.append(move)
 
     for name in game.visible_offers():
-        if not game.has_mod(name) and len(game.mods) < game.inst.slots and game.money >= MODIFIERS[name][0]:
+        if not game.has_mod(name) and len(game.mods) < game.inst.slots and game.money >= game.rules.price(name):
             do(f"buy {name}")
     if played:
         code = played.most_common(1)[0][0]
@@ -64,8 +66,8 @@ def shop_moves(game, played):
     return moves
 
 
-def solve(inst):
-    game = Game(inst)
+def solve(inst, rules=None):
+    game = Game(inst, rules)
     played = Counter()
     moves = []
     while not game.over:
@@ -74,7 +76,7 @@ def solve(inst):
 
 
 def main():
-    moves = solve(parse_instance(sys.stdin.read()))
+    moves = solve(parse_instance(sys.stdin.read()), os.environ.get("POKER_RULES") or None)
     print(len(moves))
     print("\n".join(moves))
 

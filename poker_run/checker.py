@@ -5,6 +5,9 @@ The output may stop before the run is over; the score is the points so far.
 
 Exit codes follow Harvest Craft's checker: 0 valid, 1 illegal move,
 2 unparsable output, 3 bad input.
+
+check(..., rules="balanced") scores by another ruleset (default: classic);
+the verdict then says which ruleset it used.
 """
 
 from .instance import BadInput, parse_instance
@@ -27,7 +30,7 @@ def parse_output(text):
     return moves
 
 
-def check(input_text, output_text):
+def check(input_text, output_text, rules=None):
     """Return (exit code, verdict dict)."""
     try:
         inst = parse_instance(input_text)
@@ -37,7 +40,7 @@ def check(input_text, output_text):
         moves = parse_output(output_text)
     except ValueError as e:
         return UNPARSABLE, {"valid": False, "score": 0, "error": f"unparsable output: {e}"}
-    game = Game(inst)
+    game = Game(inst, rules)
     for k, move in enumerate(moves, 1):
         try:
             game.apply(move)
@@ -48,7 +51,7 @@ def check(input_text, output_text):
 
 
 def verdict(game, moves):
-    return {
+    v = {
         "valid": True,
         "score": game.total,
         "cleared": game.cleared,
@@ -57,3 +60,6 @@ def verdict(game, moves):
         "moves": moves,
         "money": game.money,
     }
+    if game.rules.name != "classic":
+        v["rules"] = game.rules.name
+    return v

@@ -5,7 +5,9 @@
 Every case is run through both implementations and the results must be identical:
 generated input text, checker verdicts (including error strings) for baseline outputs,
 random deep runs exercising every move type, illegal moves, unparsable outputs and bad
-inputs, and per-move game state for a subset of runs. Skipped if node is not installed.
+inputs, and per-move game state for a subset of runs. The same is done (on fewer runs)
+for the balanced ruleset, and the ruleset tables themselves are compared.
+Skipped if node is not installed.
 """
 
 import json
@@ -18,7 +20,7 @@ from pathlib import Path
 from poker_run.baseline import best_play, solve
 from poker_run.checker import check
 from poker_run.instance import format_instance, generate
-from poker_run.rules import HAND_CODES, MODIFIER_IDS, SUITS
+from poker_run.rules import HAND_CODES, MODIFIER_IDS, RULESETS, SUITS
 from poker_run.sim import Game, IllegalMove
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -163,9 +165,9 @@ def smart_shop_move(game, rng, played):
     return None
 
 
-def random_run(inst, rng, mode, rich=False):
+def random_run(inst, rng, mode, rich=False, rules=None):
     """A move list. mode: 'legal', 'illegal' (one illegal move somewhere), 'after_over', 'stop'."""
-    game = Game(inst)
+    game = Game(inst, rules)
     moves = []
     played = {}
     stop_at = rng.randint(1, 150) if mode == "stop" else None
@@ -231,8 +233,8 @@ def py_snapshot(g):
     }
 
 
-def py_trace(inst, moves):
-    g = Game(inst)
+def py_trace(inst, moves, rules=None):
+    g = Game(inst, rules)
     out = [py_snapshot(g)]
     for m in moves:
         try:
@@ -412,6 +414,115 @@ class TestWebParity(unittest.TestCase):
                     self.fail(f"state differs after move {k} ({moves[k - 1] if k else 'start'!r}):\n"
                               f"js={json.dumps(a)[:800]}\npy={json.dumps(b)[:800]}")
         print(f"\n  {len(self.traces)} traced runs, {steps} states compared")
+
+
+def ruleset_table(R):
+    """A ruleset's values as JSON-like data (what the parity driver's 'rulesets' op returns)."""
+    out = {k: v for k, v in vars(R).items() if not k.startswith("_")}
+    return json.loads(json.dumps(out))
+
+
+@unittest.skipIf(NODE is None, "node is not on PATH; install Node.js to run the web engine parity test")
+class TestWebParityBalanced(unittest.TestCase):
+    """The balanced ruleset: same tables in both engines, and the same verdicts and states."""
+    RULES = "balanced"
+
+    @classmethod
+    def setUpClass(cls):
+        rng = random.Random(20261104)
+        rules = cls.RULES
+        cls.checks = []   # (input, output, rules)
+        cls.traces = []   # (input, moves)
+        runs = []
+        modes = ["legal", "legal", "illegal", "illegal", "after_over", "stop"]
+        for seed in range(1, 13):
+            inst = generate(seed)
+            text = format_instance(inst)
+            base = solve(inst, rules)
+            cls.checks.append((text, f"{len(base)}\n" + "\n".join(base) + "\n", rules))
+            for k in range(6):
+                moves = random_run(inst, rng, modes[k], rules=rules)
+                cls.checks.append((text, render_output(moves, rng), rules))
+                if k == 0:
+                    runs.append((inst, text, moves))
+                if k < 2:
+                    cls.traces.append((text, moves))
+        # Rich inputs: money piles up, so the modifiers, deck edits and shop limits all get used.
+        for seed in (3, 11):
+            rich = generate(seed)
+            rich.plays, rich.targets = 150, [10] * rich.rounds
+            rtext = format_instance(rich)
+            for k in range(4):
+                moves = random_run(rich, rng, ["legal", "illegal"][k % 2], rich=True, rules=rules)
+                cls.checks.append((rtext, render_output(moves, rng), rules))
+                cls.traces.append((rtext, moves))
+                if k == 0:
+                    runs.append((rich, rtext, moves))
+        # `end` in the last round: legal in classic, illegal in balanced.
+        rich = generate(5, rounds=2)
+        rich.plays, rich.targets = 150, [10, 10]
+        rtext = format_instance(rich)
+        cls.last_round = [f"play {c}" for c in rich.orders[0][:1]] + ["end", "next"]
+        cls.last_round += [f"play {c}" for c in rich.orders[1][:1]] + ["end"]
+        cls.last_round_checks = (len(cls.checks), len(cls.checks) + 1)
+        for r in ("classic", rules):
+            cls.checks.append((rtext, render_output(cls.last_round, rng), r))
+        cls.traces.append((rtext, cls.last_round))
+        for inst, text, moves in runs:
+            game = Game(inst, rules)
+            points = set(rng.sample(range(len(moves) + 1), min(10, len(moves) + 1)))
+            for k, m in enumerate(moves + [None]):
+                if k in points:
+                    for bad in illegal_moves(game, rng)[:3]:
+                        cls.checks.append((text, render_output(moves[:k] + [bad], rng), rules))
+                if m is None:
+                    break
+                game.apply(m)
+
+        cases = [{"op": "rulesets"}]
+        cases += [{"op": "check", "input": i, "output": o, "rules": r} for i, o, r in cls.checks]
+        cases += [{"op": "trace", "input": i, "moves": m, "rules": rules} for i, m in cls.traces]
+        js = run_js(cases)
+        n = len(cls.checks)
+        cls.js_rulesets, cls.js_check, cls.js_trace = js[0], js[1:1 + n], js[1 + n:]
+
+    def test_ruleset_tables(self):
+        self.assertEqual(set(self.js_rulesets), set(RULESETS))
+        for name, R in RULESETS.items():
+            with self.subTest(rules=name):
+                self.assertEqual(self.js_rulesets[name], ruleset_table(R))
+
+    def test_checker_verdicts(self):
+        kinds = {"valid": 0, "illegal": 0, "unparsable": 0, "bad_input": 0}
+        for (inp, out, rules), js in zip(self.checks, self.js_check):
+            code, v = check(inp, out, rules)
+            kinds[["valid", "illegal", "unparsable", "bad_input"][code]] += 1
+            with self.subTest(output=out[:120], rules=rules):
+                self.assertEqual(js, [code, v])
+        self.assertGreater(kinds["valid"], 20)
+        self.assertGreater(kinds["illegal"], 20)
+        deepest = max(check(i, o, r)[1].get("cleared", 0) for i, o, r in self.checks)
+        self.assertGreaterEqual(deepest, 5)
+        print(f"\n  {len(self.checks)} {self.RULES} checker cases: {kinds}")
+
+    def test_end_in_last_round(self):
+        classic, balanced = (self.js_check[i] for i in self.last_round_checks)
+        self.assertEqual(classic[0], 0)
+        self.assertNotIn("rules", classic[1])
+        self.assertEqual(balanced[0], 1)
+        self.assertIn("not allowed in the last round", balanced[1]["error"])
+
+    def test_per_move_state(self):
+        steps = 0
+        for (inp, moves), js in zip(self.traces, self.js_trace):
+            py = py_trace(__import__("poker_run").parse_instance(inp), moves, self.RULES)
+            self.assertEqual(len(js), len(py))
+            for k, (a, b) in enumerate(zip(js, py)):
+                steps += 1
+                if a != b:
+                    self.fail(f"state differs after move {k} ({moves[k - 1] if k else 'start'!r}):\n"
+                              f"js={json.dumps(a)[:800]}\npy={json.dumps(b)[:800]}")
+        print(f"\n  {len(self.traces)} {self.RULES} traced runs, {steps} states compared")
 
 
 UI_SCRIPT = r"""
