@@ -1,0 +1,17 @@
+# Used by BuildKit for Dockerfile.site (build context = repository root).
+*
+!poker_run/
+!platform/site/
+!platform/API.md
+!platform/deploy/Caddyfile
+# a tracked file so video/ always exists in the context, even without the mp4
+!video/make_poker_run_video.sh
+!video/poker_run_explainer.mp4
+!video/poker_run_explainer.webm
+# public tests + baseline outputs that build.py packs into downloads/poker_run_public.zip
+# (tests/__init__.py is tracked, so tests/ always exists in the context)
+!tests/__init__.py
+!tests/fixtures/poker_run/public/
+**/__pycache__
+**/*.pyc
+platform/site/dist

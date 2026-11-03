@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+#
+# The web front: Caddy with the static site baked in.
+#
+# Stage 1 runs `python platform/site/build.py`, which writes platform/site/dist/.
+# Stage 2 is the official Caddy image with that dist/ copied to /srv/site.
+# Rebuilding this image (make rebuild) is how site changes go live.
+#
+# Build context is the REPOSITORY ROOT; Dockerfile.site.dockerignore limits what is sent.
+
+FROM python:3.12-slim-bookworm AS build
+ENV PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/src
+WORKDIR /src
+
+COPY poker_run poker_run
+COPY platform platform
+COPY video video
+# Optional for build.py: tests/fixtures/poker_run/public (baseline outputs for the public zip).
+COPY tests tests
+
+# build.py is expected to be stdlib-only; install extras only if the site ships a requirements file.
+RUN if [ -f platform/site/requirements.txt ]; then pip install -r platform/site/requirements.txt; fi
+
+RUN python platform/site/build.py
+
+# Safety net: the layout in platform/API.md wants /play/ (the browser game) and
+# /media/poker_run_explainer.mp4. If build.py already produced them, nothing changes.
+RUN set -eu; \
+    d=platform/site/dist; \
+    test -f "$d/index.html" || { echo "build.py did not produce $d/index.html" >&2; exit 1; }; \
+    if [ ! -f "$d/play/index.html" ]; then \
+        mkdir -p "$d/play"; cp poker_run/web/index.html poker_run/web/engine.js "$d/play/"; \
+    fi; \
+    mkdir -p "$d/media"; \
+    for f in video/poker_run_explainer.mp4 video/poker_run_explainer.webm; do \
+        if [ -f "$f" ] && [ ! -f "$d/media/$(basename "$f")" ]; then cp "$f" "$d/media/"; fi; \
+    done; \
+    if [ ! -f "$d/media/poker_run_explainer.mp4" ]; then \
+        echo "WARNING: no media/poker_run_explainer.mp4 (commit video/poker_run_explainer.mp4 or copy it onto the server)" >&2; \
+    fi; \
+    find "$d" -type d -exec chmod 0755 {} +; \
+    find "$d" -type f -exec chmod 0644 {} +
+
+FROM caddy:2.10.0
+COPY --from=build /src/platform/site/dist /srv/site
+# docker-compose.yml bind-mounts the same file over this one, so Caddyfile edits
+# only need `docker compose restart caddy` (or `make reload`), not a rebuild.
+COPY platform/deploy/Caddyfile /etc/caddy/Caddyfile

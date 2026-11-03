@@ -1,0 +1,11 @@
+# Used by BuildKit for Dockerfile.app (build context = repository root).
+# Everything is excluded except what the image needs.
+*
+!poker_run/
+!platform/server/
+!platform/judge/runner.py
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+platform/server/data
+platform/server/**/*.db

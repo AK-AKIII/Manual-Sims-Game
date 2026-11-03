@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!--#head-->
+<title>Leaderboard · Poker Run</title>
+<meta name="description" content="Poker Run contest leaderboard: best full submission per player, by relative score.">
+<script defer src="/assets/leaderboard.js"></script>
+</head>
+<body>
+<!--#nav:leaderboard-->
+<main id="main">
+  <div class="wrap">
+    <div class="page-head">
+      <div class="row">
+        <div>
+          <span class="eyebrow">Leaderboard</span>
+          <h1>Standings</h1>
+          <p class="sub">Each player's best full submission. Per hidden test you earn 1,000,000 × your score ÷ the best score on that test.</p>
+        </div>
+        <a class="btn primary" href="/contest/">Submit a solver <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+    </div>
+
+    <div id="frozen" class="note frozen hidden" role="status" style="margin-bottom:14px">
+      <span aria-hidden="true">❄︎</span>
+      <span><b>The leaderboard is frozen.</b> It shows submissions made before the freeze; final standings are revealed after the contest.</span>
+    </div>
+
+    <div class="lb-tools">
+      <div class="search"><label for="lb-filter" class="sr-only">Filter players</label><input type="search" id="lb-filter" placeholder="Filter players…" autocomplete="off" spellcheck="false"></div>
+      <div class="btn-row" style="gap:16px">
+        <span class="updated" id="lb-updated" aria-live="off"></span>
+        <label class="toggle"><input type="checkbox" id="lb-auto" checked><span class="track" aria-hidden="true"></span>Auto-refresh</label>
+        <button type="button" class="btn sm" id="lb-refresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="data lb" id="lb-table">
+        <caption class="sr-only">Leaderboard ranked by relative total</caption>
+        <thead><tr>
+          <th scope="col">Rank</th>
+          <th scope="col">Player</th>
+          <th scope="col" class="r">Relative total</th>
+          <th scope="col" class="r opt">Raw total</th>
+          <th scope="col" class="r opt">Valid tests</th>
+          <th scope="col" class="r opt">Submissions</th>
+          <th scope="col" class="r opt">Best at</th>
+        </tr></thead>
+        <tbody><tr><td colspan="7"><span class="skel" style="width:70%"></span><br><span class="skel" style="width:50%"></span></td></tr></tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:13px;margin-top:10px">Arrows show rank changes since the previous refresh. Ties go to the earlier submission.</p>
+  </div>
+  <div id="pinned" class="pinned-me hidden" role="region" aria-label="Your position"></div>
+</main>
+<!--#footer-->
+</body>
+</html>

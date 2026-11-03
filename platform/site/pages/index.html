@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!--#head-->
+<title>Poker Run</title>
+<meta name="description" content="Poker Run: an 8-round poker puzzle where the input reveals everything. Play it by hand or write a solver and climb the leaderboard.">
+<script>
+/* Intro guard: cover the page before first paint only when the intro will play.
+   If intro.js never runs, the cover removes itself after 3.5 s. */
+(function () {
+  try {
+    var q = /[?&]intro=1/.test(location.search);
+    var seen = false; try { seen = sessionStorage.getItem("pr-intro") === "1"; } catch (e) {}
+    var rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if ((q || !seen) && !rm) {
+      document.documentElement.classList.add("intro-on");
+      window.__introFailsafe = setTimeout(function () { document.documentElement.classList.remove("intro-on"); }, 3500);
+    }
+  } catch (e) {}
+})();
+</script>
+<script defer src="/play/engine.js"></script>
+<script defer src="/assets/landing.js"></script>
+<script defer src="/assets/intro.js"></script>
+</head>
+<body>
+<!--#nav:home-->
+<main id="main">
+  <section class="hero" id="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-deco" aria-hidden="true">
+      <div class="card deco d1" data-speed="0.22" data-rot="-14"><span class="tl">A<i>♠︎</i></span><span class="mid">♠︎</span><span class="br">A<i>♠︎</i></span></div>
+      <div class="card red deco d2" data-speed="-0.12" data-rot="11"><span class="tl">K<i>♥︎</i></span><span class="mid">♥︎</span><span class="br">K<i>♥︎</i></span></div>
+      <div class="card red deco d3" data-speed="0.34" data-rot="-6"><span class="tl">7<i>♦︎</i></span><span class="mid">♦︎</span><span class="br">7<i>♦︎</i></span></div>
+      <div class="card deco d4" data-speed="0.16" data-rot="18"><span class="tl">Q<i>♣︎</i></span><span class="mid">♣︎</span><span class="br">Q<i>♣︎</i></span></div>
+    </div>
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="eyebrow" id="contest-name">A heuristic programming contest</span>
+        <h1>POKER <b>RUN</b></h1>
+        <p class="tagline">An 8-round poker puzzle where the input reveals everything.</p>
+        <p class="pitch">Every draw and every shop offer is written in the input, so there is no luck, only planning.
+          Play hands to beat targets that double from 300 to 38,400, spend your winnings on modifiers and deck edits,
+          and see how far one run can go. Play it by hand in the browser, or write a solver and climb the leaderboard.</p>
+        <div class="btn-row">
+          <a class="btn primary lg" href="/play/">Play in the browser <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn lg" href="/problem/">Read the problem</a>
+          <a class="btn lg" href="/contest/">Enter the contest</a>
+        </div>
+        <div class="status-line" id="contest-status"></div>
+      </div>
+
+      <section class="demo" id="demo" aria-labelledby="demo-title">
+        <div class="demo-head">
+          <h2 id="demo-title">Try a hand <span class="muted" id="demo-seed" style="font-weight:500">· seed 7, round 1</span></h2>
+          <span class="muted" style="font-size:13px">real rules, real numbers</span>
+        </div>
+        <div id="demo-body">
+          <noscript><p class="muted">The interactive demo needs JavaScript. You can still <a href="/play/">open the full game</a>.</p></noscript>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="section" id="video" aria-labelledby="video-title">
+    <div class="wrap">
+      <span class="eyebrow">Explainer</span>
+      <h2 class="big" id="video-title">The whole game in three minutes</h2>
+      <p class="lead">The rules, a round played out card by card, the shop, and how your score is counted.</p>
+      <div class="video-frame">
+        <video controls preload="none" playsinline poster="/assets/poster.jpg" aria-label="Poker Run explainer video">
+          <source src="/media/poker_run_explainer.webm" type="video/webm">
+          <source src="/media/poker_run_explainer.mp4" type="video/mp4">
+          Your browser can't play this video. <a href="/media/poker_run_explainer.mp4">Download the MP4</a>.
+        </video>
+      </div>
+      <div class="video-meta"><span>3:17</span><span>with music, no narration</span><a href="/media/poker_run_explainer.mp4" download>Download MP4</a></div>
+    </div>
+  </section>
+
+  <section class="section story" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <span class="eyebrow">How it works</span>
+      <h2 class="big" id="how-title">Read it all, then plan the perfect run</h2>
+      <p class="lead">One test is one run of eight rounds with a 52-card deck. Your program reads the test and prints its moves; the judge replays them with the same simulator the browser game uses.</p>
+      <div class="story-grid">
+        <div class="story-visual" id="story-visual" data-step="1" aria-hidden="true">
+          <div class="scene s1"></div><div class="scene s2"></div><div class="scene s3"></div><div class="scene s4"></div><div class="scene s5"></div>
+          <div class="story-dots"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <ol class="story-steps">
+          <li class="story-step active" data-step="1"><div class="n">1</div><h3>Read the input</h3><p>The input lists the draw order of all eight rounds and every shop's offer queue. Once you've read it, nothing is random: you know exactly which card comes next.</p></li>
+          <li class="story-step" data-step="2"><div class="n">2</div><h3>Play and discard</h3><p>Each round you hold 8 cards and get 4 plays and 3 discards. Discard to dig for the cards you know are coming, then play the strongest hand: on seed 7, four discards turn a 15-point high card into a 316-point straight.</p></li>
+          <li class="story-step" data-step="3"><div class="n">3</div><h3>Shop between rounds</h3><p>Clearing a round pays money. Spend it on up to 5 modifiers from a window of three offers, level up hand types, or remove, paint and promote cards. ×2 and ×3 effects stack.</p></li>
+          <li class="story-step" data-step="4"><div class="n">4</div><h3>Score across 8 rounds</h3><p>Targets double every round, from 300 to 38,400. Miss one and the run ends. Every play's points count toward your score, including the round you fail.</p></li>
+          <li class="story-step" data-step="5"><div class="n">5</div><h3>Submit a solver</h3><p>Upload one Python file. The judge runs it on every test in a sandbox and checks each output. Public runs on seeds 1–10 give feedback; full runs on hidden seeds count for the leaderboard.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="scoring" aria-labelledby="scoring-title">
+    <div class="wrap split">
+      <div>
+        <span class="eyebrow">Scoring</span>
+        <h2 class="big" id="scoring-title">Ranked relative to the best</h2>
+        <p class="lead" style="margin-bottom:14px">On each hidden test you earn <b>1,000,000 × your score ÷ the best score anyone got on that test</b>. Your total is the sum over all hidden tests, and the leaderboard keeps each player's best full submission.</p>
+        <p class="muted">Your program reads one test on standard input and prints the number of moves, then one move per line:</p>
+        <pre class="snippet" aria-label="Example output"><span class="tok-num">2</span>
+<span class="tok-kw">discard</span> 26 16 17 45
+<span class="tok-kw">play</span> 33 8 9 23 50</pre>
+      </div>
+      <div class="panel">
+        <div class="section-title">This contest</div>
+        <div class="facts" id="facts">
+          <div class="fact"><div class="k">Hidden tests</div><div class="v" data-fact="hidden_count">–</div></div>
+          <div class="fact"><div class="k">Time per test</div><div class="v" data-fact="time_limit">–</div></div>
+          <div class="fact"><div class="k">Public seeds</div><div class="v" data-fact="public_seeds">–</div></div>
+          <div class="fact"><div class="k">Full runs / hour</div><div class="v" data-fact="full_per_hour">–</div></div>
+        </div>
+        <div class="btn-row" style="margin-top:16px">
+          <a class="btn primary" href="/downloads/starter.py" download>Download starter.py</a>
+          <a class="btn" href="/contest/leaderboard/">Leaderboard <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-label="Get started">
+    <div class="wrap">
+      <div class="cta-band">
+        <h2>Ready to deal?</h2>
+        <p>Warm up by hand, then teach a program to do it better.</p>
+        <div class="btn-row">
+          <a class="btn primary lg" href="/contest/">Enter the contest <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn lg" href="/play/">Play a run first</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+</body>
+</html>

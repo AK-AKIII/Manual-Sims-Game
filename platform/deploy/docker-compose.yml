@@ -1,0 +1,116 @@
+# Poker Run contest platform: caddy (HTTPS + static site) -> api (FastAPI) ; worker (judge).
+#
+# Run from platform/deploy/ (or use the Makefile there):
+#   docker compose up -d --build
+#
+# Configuration comes from platform/deploy/.env (copy env.example; bootstrap.sh does it).
+# Compose reads .env both for ${...} substitution in this file and, via env_file,
+# as the environment of api and worker.
+#
+# Host directories (created by bootstrap.sh, owned by uid 10001):
+#   ${POKERRUN_ROOT}/data     SQLite database (api + worker)
+#   ${POKERRUN_ROOT}/jobs     per-submission temp dirs; SAME path inside the worker and on
+#                             the host, because the host docker daemon mounts them into the sandbox
+#   ${POKERRUN_ROOT}/backups  local database backups and exports (backup.sh, make export)
+
+name: pokerrun
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app: &app
+  image: pokerrun-app:latest
+  build:
+    context: ../..
+    dockerfile: platform/deploy/Dockerfile.app
+  env_file:
+    - .env
+  restart: unless-stopped
+  logging: *default-logging
+  read_only: true
+  tmpfs:
+    - /tmp:rw,size=64m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  caddy:
+    image: pokerrun-caddy:latest
+    build:
+      context: ../..
+      dockerfile: platform/deploy/Dockerfile.site
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started   # the static site stays up even if the api is unhealthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in platform/deploy/.env}
+      FRAME_ANCESTORS: ${FRAME_ANCESTORS:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # certificates and ACME account: keep this volume
+      - caddy_config:/config
+    logging: *default-logging
+
+  api:
+    <<: *app
+    command: ["uvicorn", "prplatform.app:app", "--host", "0.0.0.0", "--port", "8000",
+              "--proxy-headers", "--forwarded-allow-ips", "*", "--no-server-header"]
+    environment:
+      # Forced here so a typo in .env cannot point production at the wrong place.
+      PR_DB: /data/platform.db
+      PR_SANDBOX: docker
+      PR_SECURE_COOKIES: "1"
+    volumes:
+      - ${POKERRUN_ROOT:-/srv/pokerrun}/data:/data
+      - ${POKERRUN_ROOT:-/srv/pokerrun}/backups:/backups
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "prplatform.worker"]
+    depends_on:
+      api:
+        condition: service_healthy   # the api creates/migrates the database first
+    environment:
+      PR_DB: /data/platform.db
+      PR_SANDBOX: docker
+      PR_SECURE_COOKIES: "1"
+      # Job dirs are created here: a host path the docker daemon can mount into the
+      # sandbox (prplatform/judge.py makes them 0755 with 0644 files, readable by uid 65534).
+      PR_JOB_ROOT: ${POKERRUN_ROOT:-/srv/pokerrun}/jobs
+      # The docker CLI keeps its (empty) config in a writable place; the root fs is read-only.
+      DOCKER_CONFIG: /tmp/.docker
+    # Membership of the host's docker group gives access to the socket below.
+    group_add:
+      - "${DOCKER_GID:?set DOCKER_GID in .env (getent group docker | cut -d: -f3)}"
+    volumes:
+      - ${POKERRUN_ROOT:-/srv/pokerrun}/data:/data
+      - ${POKERRUN_ROOT:-/srv/pokerrun}/jobs:${POKERRUN_ROOT:-/srv/pokerrun}/jobs
+      - /var/run/docker.sock:/var/run/docker.sock
+    # On SIGTERM the worker finishes the submission it is judging (up to
+    # hidden_count x (time_limit + 1) + 30 s = 180 s with the defaults) before exiting.
+    stop_grace_period: 200s
+    # Exactly ONE worker container per database: on start it re-queues every
+    # 'running' submission, which would break a second worker's runs. Scale with
+    # PR_WORKERS (judging threads inside this process); see RUNBOOK.md, "Scaling the judge".
+
+volumes:
+  caddy_data:
+  caddy_config:

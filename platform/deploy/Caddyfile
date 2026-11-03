@@ -1,0 +1,89 @@
+# Poker Run contest front door.
+#
+# Environment (set in platform/deploy/.env, passed in by docker-compose.yml):
+#   DOMAIN           the contest host name, e.g. pokerrun.example.com (DNS A record -> Elastic IP)
+#   FRAME_ANCESTORS  extra origins allowed to embed /play/ in an iframe, space separated,
+#                    e.g. "https://yourname.com https://www.yourname.com". Empty = same origin only.
+#
+# Caddy gets and renews the Let's Encrypt certificate for {$DOMAIN} by itself;
+# ports 80 and 443 must be reachable from the internet and DNS must point here.
+# Apply edits with: make reload   (or: docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile)
+
+{
+	# Uncomment to test against Let's Encrypt staging first (avoids rate limits while experimenting):
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+	servers {
+		# Clients that keep a connection open without sending anything get dropped.
+		timeouts {
+			read_header 10s
+			idle 2m
+		}
+	}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Access log to stdout (docker's json-file driver rotates it, see docker-compose.yml).
+	log {
+		output stdout
+		format json
+	}
+
+	# ---- Security headers (every response) ----
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+
+	# Content-Security-Policy. The site is static vanilla JS whose pages use inline
+	# <script> and <style> blocks (the /play/ game is one self-contained HTML file),
+	# hence 'unsafe-inline' for scripts and styles; nothing is loaded from other
+	# origins except Google Fonts. Two variants so only /play/ can be framed by the
+	# owner's site; matchers are mutually exclusive so neither overwrites the other.
+	@play path /play /play/*
+	@notplay not path /play /play/*
+	header @notplay Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'self'; frame-ancestors 'self'"
+	header @play Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self' {$FRAME_ANCESTORS}"
+
+	# ---- API ----
+	# Uploads are capped by the app at PR_MAX_SOURCE_KB (256 KB by default); JSON
+	# escaping can inflate source code, so allow some headroom here.
+	request_body /api/* {
+		max_size 2MB
+	}
+
+	handle /api/* {
+		# Default only: if the app sets its own Cache-Control, that one wins.
+		header ?Cache-Control "no-store"
+		reverse_proxy api:8000 {
+			# While the api restarts (deploys), retry the connection for a few
+			# seconds instead of answering 502 at once.
+			lb_try_duration 5s
+		}
+	}
+
+	# ---- Static site ----
+	handle {
+		root * /srv/site
+
+		# Video, poster and other assets: long cache. Their names are not
+		# content-hashed, so a week (not "immutable"); replace a file under a
+		# new name if it must change immediately for everyone.
+		@longcache path /media/* /assets/*
+		header @longcache Cache-Control "public, max-age=604800"
+
+		# Everything else (HTML, the game's engine.js, downloads): revalidate every
+		# time; file_server answers with ETag/Last-Modified so revalidation is cheap.
+		@revalidate not path /media/* /assets/*
+		header @revalidate Cache-Control "no-cache"
+
+		file_server {
+			hide .*
+		}
+	}
+}

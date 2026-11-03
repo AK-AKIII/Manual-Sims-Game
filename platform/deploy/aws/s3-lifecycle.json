@@ -1,0 +1,12 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-pokerrun-db-backups",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "pokerrun/db/" },
+      "Expiration": { "Days": 30 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 7 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

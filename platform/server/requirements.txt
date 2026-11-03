@@ -1,0 +1,3 @@
+# Poker Run platform backend (api + worker). Python 3.11+.
+fastapi==0.162.0
+uvicorn[standard]==0.54.0

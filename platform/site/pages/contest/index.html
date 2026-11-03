@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!--#head-->
+<title>Contest · Poker Run</title>
+<meta name="description" content="Submit your Poker Run solver, follow the judge live and see your results.">
+<script defer src="/assets/code.js"></script>
+<script defer src="/assets/contest.js"></script>
+</head>
+<body>
+<!--#nav:contest-->
+<main id="main">
+  <div class="wrap">
+    <div class="page-head">
+      <div class="row">
+        <div>
+          <span class="eyebrow">Contest hub</span>
+          <h1 id="c-name">Poker Run</h1>
+          <p class="sub">Submit one Python file. The judge runs it on every test in a sandbox and checks each output.</p>
+        </div>
+        <a class="btn" href="/contest/leaderboard/">Leaderboard <span class="arrow" aria-hidden="true">→</span></a>
+      </div>
+    </div>
+
+    <section class="panel status-bar" id="status-bar" aria-label="Contest status">
+      <div class="state"><span class="dot-live off" id="st-dot" aria-hidden="true"></span><span id="st-label">Loading contest…</span></div>
+      <div class="countdown" id="st-countdown" aria-hidden="true"></div>
+      <div class="limits" id="st-limits"></div>
+    </section>
+    <p class="sr-only" id="st-sr" aria-live="polite"></p>
+
+    <div id="view-loading" class="panel" style="margin-top:20px">
+      <span class="skel" style="width:40%"></span><br><span class="skel" style="width:70%"></span><br><span class="skel" style="width:55%"></span>
+    </div>
+
+    <!-- signed out -->
+    <section id="view-auth" class="auth hidden" aria-label="Sign in or create an account">
+      <div class="auth-aside">
+        <span class="eyebrow">Join the table</span>
+        <h2>Sign in to submit</h2>
+        <p class="muted">An account lets you upload a solver, follow the judge live and appear on the leaderboard.</p>
+        <ul>
+          <li><b>Public runs</b> on seeds <span data-c="public_seeds">1–10</span> show your score per seed. They never count.</li>
+          <li><b>Full runs</b> on <span data-c="hidden_count">the hidden</span> tests count for the leaderboard (<span data-c="full_per_hour">a few</span> per hour).</li>
+          <li>Start from <a href="/downloads/starter.py" download>starter.py</a>: it bundles the exact simulator the judge uses.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="segmented" role="tablist" aria-label="Account">
+          <button type="button" role="tab" id="tab-login" aria-selected="true" aria-controls="form-login">Sign in</button>
+          <button type="button" role="tab" id="tab-register" aria-selected="false" aria-controls="form-register" tabindex="-1">Create account</button>
+        </div>
+        <form id="form-login" role="tabpanel" aria-labelledby="tab-login" style="margin-top:18px" novalidate>
+          <div class="field"><label for="li-user">Username</label><input id="li-user" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></div>
+          <div class="field"><label for="li-pass">Password</label><input id="li-pass" name="password" type="password" autocomplete="current-password" required></div>
+          <button class="btn primary lg" type="submit" style="width:100%">Sign in</button>
+          <div class="msg" id="li-msg" role="alert"></div>
+        </form>
+        <form id="form-register" role="tabpanel" aria-labelledby="tab-register" style="margin-top:18px" class="hidden" novalidate>
+          <div class="field"><label for="rg-user">Username <span class="hint">3–20 letters, digits, _ or -</span></label>
+            <input id="rg-user" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_\-]{3,20}" aria-describedby="rg-user-note"><span class="hint" id="rg-user-note" aria-live="polite"></span></div>
+          <div class="field"><label for="rg-pass">Password <span class="hint">at least 8 characters</span></label><input id="rg-pass" name="password" type="password" autocomplete="new-password" required minlength="8"></div>
+          <div class="field hidden" id="rg-invite-field"><label for="rg-invite">Invite code <span class="hint">from the organisers</span></label><input id="rg-invite" name="invite" type="text" autocomplete="off" spellcheck="false"></div>
+          <button class="btn primary lg" type="submit" style="width:100%">Create account</button>
+          <div class="msg" id="rg-msg" role="alert"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- signed in -->
+    <section id="view-app" class="hidden" aria-label="Your contest">
+      <div class="tabs" role="tablist" aria-label="Contest sections">
+        <button type="button" role="tab" id="t-submit" aria-controls="p-submit" aria-selected="true">Submit</button>
+        <button type="button" role="tab" id="t-mine" aria-controls="p-mine" aria-selected="false" tabindex="-1">My submissions <span class="count" id="mine-count">0</span></button>
+        <button type="button" role="tab" id="t-all" aria-controls="p-all" aria-selected="false" tabindex="-1" class="hidden">All submissions <span class="count" id="all-count">0</span></button>
+      </div>
+
+      <div id="p-submit" role="tabpanel" aria-labelledby="t-submit" class="tabpanel">
+        <div class="submit-grid">
+          <form id="submit-form" class="panel" novalidate>
+            <fieldset class="kind-pick">
+              <legend>What should the judge run?</legend>
+              <label class="kind-opt"><input type="radio" name="kind" value="public" checked><span class="box"><b>Public seeds · feedback</b><span>Seeds <span data-c="public_seeds">1–10</span>, per-seed scores. Doesn't count.</span></span></label>
+              <label class="kind-opt"><input type="radio" name="kind" value="full"><span class="box"><b>Full · counts</b><span><span data-c="hidden_count">All hidden</span> tests, ranked on the leaderboard. <span data-c="full_per_hour">Limited</span> per hour.</span></span></label>
+            </fieldset>
+            <label class="dropzone" id="dropzone" for="file-input">
+              <span class="ic" aria-hidden="true">⇪</span>
+              <span><span class="t" id="dz-title">Drop your .py file here</span><br><span class="d" id="dz-sub">or click to choose a file. It's read in your browser and shown below.</span></span>
+              <input type="file" id="file-input" accept=".py,text/x-python,text/plain">
+            </label>
+            <div class="editor-bar">
+              <label for="source">Source code <span class="muted" style="font-weight:400">(or paste it here)</span></label>
+              <span><span id="src-stats">empty</span> · <button type="button" class="btn sm ghost" id="load-starter">Load starter.py</button> <button type="button" class="btn sm ghost" id="clear-src">Clear</button></span>
+            </div>
+            <div class="editor" id="editor"><textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" placeholder="import sys&#10;&#10;def main():&#10;    data = sys.stdin.read().split()&#10;    ..."></textarea></div>
+            <div class="btn-row" style="margin-top:14px;justify-content:space-between">
+              <span class="muted" style="font-size:13px" id="submit-note">One submission is judged at a time.</span>
+              <button type="submit" class="btn primary lg" id="submit-btn">Submit <span class="arrow" aria-hidden="true">→</span></button>
+            </div>
+            <div class="msg" id="submit-msg" role="alert"></div>
+          </form>
+          <aside class="stack">
+            <div class="panel side-card">
+              <h3>Limits</h3>
+              <ul id="limits-list"></ul>
+            </div>
+            <div class="panel side-card">
+              <h3>Before you submit</h3>
+              <p class="muted" style="font-size:14px;margin:0 0 12px">Test locally: <code class="mono" style="font-size:12.5px">python3 main.py &lt; 0001.txt</code>. Your file runs as <code class="mono" style="font-size:12.5px">main.py</code>, reads one test on stdin and prints its moves.</p>
+              <div class="btn-row">
+                <a class="btn sm" href="/downloads/starter.py" download>starter.py</a>
+                <a class="btn sm" href="/downloads/poker_run_public.zip" download>Public inputs</a>
+                <a class="btn sm ghost" href="/problem/">Problem</a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div id="p-mine" role="tabpanel" aria-labelledby="t-mine" class="tabpanel hidden">
+        <div class="lb-tools">
+          <span class="updated" id="mine-poll" aria-live="off"></span>
+          <button type="button" class="btn sm" id="mine-refresh">Refresh</button>
+        </div>
+        <div class="table-scroll"><table class="data subs" id="mine-table">
+          <caption class="sr-only">My submissions, newest first. Expand a row for details.</caption>
+          <thead><tr><th scope="col">Submission</th><th scope="col">Kind</th><th scope="col">Status</th><th scope="col" class="r">Score</th><th scope="col" class="r opt">Tests</th><th scope="col" class="r opt">Max time</th><th scope="col" class="r opt">Submitted</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+
+      <div id="p-all" role="tabpanel" aria-labelledby="t-all" class="tabpanel hidden">
+        <div class="lb-tools">
+          <span class="updated" id="all-poll"></span>
+          <button type="button" class="btn sm" id="all-refresh">Refresh</button>
+        </div>
+        <div class="table-scroll"><table class="data subs" id="all-table">
+          <caption class="sr-only">All submissions (admin view), newest first.</caption>
+          <thead><tr><th scope="col">Submission</th><th scope="col">User</th><th scope="col" class="opt">Kind</th><th scope="col">Status</th><th scope="col" class="r">Score</th><th scope="col" class="r opt">Tests</th><th scope="col" class="r opt">Submitted</th><th scope="col" class="r"><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </section>
+  </div>
+</main>
+<!--#footer-->
+</body>
+</html>
