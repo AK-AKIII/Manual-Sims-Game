@@ -7,6 +7,10 @@
 Serves platform/site/dist/ and implements every endpoint of platform/API.md in
 memory with fake data. Stdlib only. Nothing is persisted; restart to reset.
 
+Online rooms (/api/rooms, /api/matches) are implemented too, with the real game
+logic (poker_run.multiplayer from this repository), minus rate limits, expiry
+and removing away players.
+
 Accounts that exist at start:  admin / adminpass (admin)   demo / demopass (has history)
 Judging is simulated: a submission is queued for ~2 s, then runs one test at a
 time (tests_done climbs), then is done. The verdicts depend on the source:
@@ -70,6 +74,7 @@ class State:
         self.freeze = (now - 600) if args.frozen else None
         self.add_user("admin", "adminpass", True)
         self.add_user("demo", "demopass", False)
+        self.rooms = Rooms()
         self.seed_field(now)
 
     # ---- fake data
@@ -259,6 +264,301 @@ if __name__ == "__main__":
 '''
 
 
+# ---- online rooms (platform/API.md, "Online multiplayer") ----------------------------------
+# A simplified, in-memory copy of prplatform/rooms.py: the same endpoints and room views, and
+# the same game authority (poker_run.multiplayer, imported from the repository). Not here: rate
+# limits, idle expiry and removing away players (rooms live until the mock restarts).
+
+ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+BOT_NAMES = {"easy": "Easy bot", "normal": "Normal bot", "hard": "Hard bot"}
+
+
+def _mp():
+    import sys
+    root = os.path.dirname(os.path.dirname(HERE))
+    if root not in sys.path:
+        sys.path.append(root)
+    from poker_run import multiplayer, instance, rules, sim
+    return multiplayer, instance, rules, sim
+
+
+class Rooms:
+    def __init__(self):
+        self.rooms = {}      # code -> room dict
+        self.matches = []    # saved results
+        self.seen = {}       # (code, username) -> time of last poll
+
+    def new_code(self):
+        while True:
+            code = "".join(random.choice(ROOM_ALPHABET) for _ in range(5))
+            if code not in self.rooms:
+                return code
+
+    def create(self, user, mode, rules, seed, maxp, bots):
+        code = self.new_code()
+        now = time.time()
+        room = {"code": code, "host": user, "mode": mode, "rules": rules, "seed": seed, "max": maxp,
+                "status": "lobby", "version": 1, "created": now, "started": None, "finished": None,
+                "seats": [{"user": user, "bot": None, "ready": True, "status": "in"}]
+                + [{"user": None, "bot": b, "ready": True, "status": "in"} for b in bots],
+                "kicked": set(), "match": None, "match_id": None, "rematch": None}
+        self.rooms[code] = room
+        return room
+
+    @staticmethod
+    def name(room, k):
+        s = room["seats"][k]
+        if s["user"]:
+            return s["user"]
+        same = [i for i, x in enumerate(room["seats"]) if not x["user"] and x["bot"] == s["bot"]]
+        return BOT_NAMES[s["bot"]] + (f" {same.index(k) + 1}" if len(same) > 1 else "")
+
+    def bump(self, room):
+        room["version"] += 1
+
+    def start(self, room):
+        mp, inst, _, _ = _mp()
+        players = [{"name": self.name(room, k), "bot": s["bot"]} for k, s in enumerate(room["seats"])]
+        room["match"] = mp.Match(inst.generate(room["seed"]), room["mode"], room["rules"], players)
+        room["status"], room["started"] = "playing", time.time()
+        self.check_over(room)
+
+    def check_over(self, room):
+        m = room["match"]
+        if room["status"] != "playing" or not m.over:
+            return
+        room["status"], room["finished"] = "finished", time.time()
+        place = {r["seat"]: r["place"] for r in m.standings()}
+        mid = len(self.matches) + 1
+        self.matches.append({"id": mid, "code": room["code"], "mode": room["mode"], "rules": room["rules"],
+                             "seed": room["seed"], "started": iso(room["started"]), "finished": iso(room["finished"]),
+                             "ended": "done", "players": [
+                                 {"seat": p.seat, "user": room["seats"][p.seat]["user"], "name": p.name, "bot": p.bot,
+                                  "total": p.game.total, "cleared": p.game.cleared, "place": place[p.seat],
+                                  "left": p.left, "moves": list(p.moves)} for p in m.players]})
+        room["match_id"] = mid
+
+    def view(self, room, user):
+        me = next((k for k, s in enumerate(room["seats"]) if s["user"] == user), None)
+        out = {"code": room["code"], "mode": room["mode"], "rules": room["rules"], "seed": room["seed"],
+               "max_players": room["max"], "status": room["status"], "version": room["version"],
+               "created": iso(room["created"]), "started": iso(room["started"]) if room["started"] else None,
+               "finished": iso(room["finished"]) if room["finished"] else None, "rematch": room["rematch"],
+               "match_id": room["match_id"], "you": me, "turn": None, "shop_order": None, "owners": {},
+               "ended": "done" if room["status"] == "finished" else None, "server_time": iso(time.time()),
+               "expires_in": 1800, "host": next((k for k, s in enumerate(room["seats"]) if s["user"] == room["host"]), None)}
+        online = lambda s: bool(s["bot"]) or time.time() - self.seen.get((room["code"], s["user"]), 0) < 30
+        if room["status"] == "lobby":
+            out["players"] = [{"seat": k, "name": self.name(room, k), "bot": s["bot"], "host": s["user"] == room["host"],
+                               "ready": s["ready"], "status": s["status"], "you": k == me, "online": online(s)}
+                              for k, s in enumerate(room["seats"])]
+            return out
+        m = room["match"]
+        fin = room["status"] == "finished"
+        out["turn"] = None if fin else m.turn
+        if out["turn"] and m.mode == "draft" and out["turn"]["stage"] == "shop":
+            out["shop_order"] = m.shop_order(out["turn"]["round"])
+        out["owners"] = m.owners()
+        mine = m.players[me] if me is not None else None
+        reveal = m.inst.rounds if m.mode != "race" or fin or (mine and mine.out) else \
+            (sum(1 for r in mine.rounds if r["cleared"] is not None) if mine else 0)
+        place = {r["seat"]: r["place"] for r in m.standings()}
+        players = []
+        for p in m.players:
+            s = room["seats"][p.seat]
+            shown = len(p.rounds) if p.seat == me else min(len(p.rounds), reveal)
+            hidden = shown < len(p.rounds)
+            recs = [{"score": r["score"], "cleared": r["cleared"], "total": r["total"], "plays": r["plays"],
+                     "discards": r["discards"], "buys": [x[4:] for x in r["shop"] if x.startswith("buy ")],
+                     "sells": [x[5:] for x in r["shop"] if x.startswith("sell ")], "shop_moves": len(r["shop"])}
+                    for r in p.rounds[:shown]]
+            row = {"seat": p.seat, "name": p.name, "bot": p.bot, "host": s["user"] == room["host"],
+                   "status": "left" if p.left and s["status"] == "in" else s["status"], "you": p.seat == me,
+                   "online": online(s), "idle": 0, "removable": False,
+                   "total": sum(r["score"] for r in recs) if hidden else p.game.total,
+                   "cleared": sum(1 for r in recs if r["cleared"]) if hidden else p.game.cleared,
+                   "rounds": recs, "hidden": hidden, "round": p.game.round, "phase": p.game.phase,
+                   "over": p.game.over, "moves_made": len(p.moves),
+                   "mods": None if hidden else [n for n, _ in p.game.mods], "place": place[p.seat] if fin else None}
+            if p.seat == me or fin:
+                row["moves"] = list(p.moves)
+            players.append(row)
+        out["players"] = players
+        return out
+
+    def match_json(self, mt, user, moves=False):
+        you = next((p["seat"] for p in mt["players"] if p["user"] == user), None)
+        return {**{k: mt[k] for k in ("id", "code", "mode", "rules", "seed", "started", "finished", "ended")}, "you": you,
+                "players": [dict({k: p[k] for k in ("seat", "name", "bot", "total", "cleared", "place", "left")},
+                                 you=p["seat"] == you, **({"moves": p["moves"]} if moves else {}))
+                            for p in mt["players"]]}
+
+    def api(self, h, method, path, user):
+        """Returns True if it answered the request."""
+        mp, inst, rules_mod, sim = _mp()
+        if method == "GET" and path == "/api/matches":
+            mine = [m for m in reversed(self.matches) if any(p["user"] == user for p in m["players"])]
+            wins = sum(1 for m in mine for p in m["players"] if p["user"] == user and p["place"] == 1)
+            h.send_json(200, {"record": {"played": len(mine), "wins": wins}, "matches": [self.match_json(m, user) for m in mine[:50]]})
+            return True
+        m_ = re.fullmatch(r"/api/matches/(\d+)", path)
+        if method == "GET" and m_:
+            mt = next((m for m in self.matches if m["id"] == int(m_.group(1))), None)
+            if not mt or not any(p["user"] == user for p in mt["players"]):
+                h.err(404, "match not found")
+            else:
+                h.send_json(200, self.match_json(mt, user, True))
+            return True
+        if method == "GET" and path == "/api/rooms":
+            rows = []
+            for r in self.rooms.values():
+                k = next((k for k, s in enumerate(r["seats"]) if s["user"] == user and s["status"] == "in"), None)
+                if k is not None and r["status"] != "finished":
+                    rows.append({"code": r["code"], "mode": r["mode"], "rules": r["rules"], "status": r["status"],
+                                 "players": len(r["seats"]), "max_players": r["max"], "you": k, "created": iso(r["created"])})
+            h.send_json(200, rows)
+            return True
+        b = h.body() if method == "POST" else {}
+        if not isinstance(b, dict):
+            h.err(400, "invalid JSON")
+            return True
+        if method == "POST" and path == "/api/rooms":
+            mode, rules, seed = b.get("mode", "race"), b.get("rules", "classic"), b.get("seed")
+            maxp, bots = b.get("max_players", 2), b.get("bots") or []
+            if mode not in mp.MODES or rules not in rules_mod.RULESETS or maxp not in (2, 3, 4) \
+                    or not isinstance(bots, list) or len(bots) > maxp - 1 or any(x not in BOT_NAMES for x in bots) \
+                    or not (seed is None or (isinstance(seed, int) and 0 <= seed <= 0xFFFFFFFF)):
+                h.err(400, "bad room settings")
+                return True
+            room = self.create(user, mode, rules, seed if seed is not None else random.randint(1, 1_000_000), maxp, bots)
+            h.send_json(201, self.view(room, user))
+            return True
+        m_ = re.fullmatch(r"/api/rooms/(\w+)(?:/(\w+))?", path)
+        if not m_:
+            return False
+        code, what = m_.group(1).upper(), m_.group(2)
+        room = self.rooms.get(code)
+        if room is None:
+            h.err(404, "room not found (it may have expired)")
+            return True
+        if user in room["kicked"]:
+            h.err(403, "the host removed you from this room")
+            return True
+        seats = room["seats"]
+        me = next((k for k, s in enumerate(seats) if s["user"] == user), None)
+        host = room["host"] == user
+        lobby = room["status"] == "lobby"
+        if method == "GET" and what is None:
+            if me is not None:
+                self.seen[(code, user)] = time.time()
+            h.send_json(200, self.view(room, user))
+            return True
+        if method != "POST":
+            return False
+        fail = None
+        if what == "join":
+            if me is None:
+                if not lobby:
+                    fail = (409, "the game has already started")
+                elif len(seats) >= room["max"]:
+                    fail = (409, "the room is full")
+                else:
+                    seats.append({"user": user, "bot": None, "ready": False, "status": "in"})
+        elif what == "ready":
+            if me is None or not lobby:
+                fail = (409, "not in this lobby")
+            else:
+                seats[me]["ready"] = bool(b.get("ready", True))
+        elif what == "settings":
+            if not host or not lobby:
+                fail = (403, "only the host can do that, in the lobby")
+            else:
+                for k in ("mode", "rules"):
+                    if b.get(k) is not None:
+                        room[k] = b[k]
+                if b.get("random_seed"):
+                    room["seed"] = random.randint(1, 1_000_000)
+                elif isinstance(b.get("seed"), int):
+                    room["seed"] = b["seed"]
+                if b.get("max_players") in (2, 3, 4):
+                    room["max"] = b["max_players"]
+                if isinstance(b.get("bots"), list):
+                    room["seats"] = seats = [s for s in seats if s["user"]] + \
+                        [{"user": None, "bot": x, "ready": True, "status": "in"} for x in b["bots"] if x in BOT_NAMES]
+                if len(seats) > room["max"]:
+                    fail = (409, "the players don't fit in the seats")
+                    room["seats"] = seats[:room["max"]]
+                for s in room["seats"]:
+                    if s["user"] and s["user"] != user and any(b.get(k) is not None for k in ("mode", "rules", "seed", "random_seed")):
+                        s["ready"] = False
+        elif what == "kick":
+            k = b.get("seat")
+            if not host or not lobby or not isinstance(k, int) or not 0 <= k < len(seats) or seats[k]["user"] == user:
+                fail = (403, "only the host can kick, in the lobby")
+            else:
+                if seats[k]["user"]:
+                    room["kicked"].add(seats[k]["user"])
+                del seats[k]
+        elif what == "start":
+            if not host or not lobby:
+                fail = (403, "only the host can start")
+            elif len(seats) < 2:
+                fail = (409, "a game needs at least 2 players (people or bots)")
+            elif any(s["user"] and s["user"] != user and not s["ready"] for s in seats):
+                fail = (409, "waiting for everyone to be ready")
+            else:
+                self.start(room)
+        elif what == "move":
+            line = " ".join(str(b.get("move", "")).split())
+            if me is None or room["status"] != "playing":
+                fail = (409, "the game is not running")
+            else:
+                try:
+                    room["match"].apply(line, me)
+                except (sim.IllegalMove, ValueError, IndexError) as e:
+                    fail = (400, f"{line}: {e}")
+                self.check_over(room)
+        elif what == "leave":
+            if me is None:
+                fail = (403, "you are not in this room")
+            elif lobby:
+                del seats[me]
+                if host:
+                    nxt = next((s["user"] for s in seats if s["user"]), None)
+                    if nxt is None:
+                        del self.rooms[code]
+                        h.send_json(200, {"deleted": True})
+                        return True
+                    room["host"] = nxt
+            else:
+                if room["status"] == "playing" and not room["match"].players[me].out:
+                    room["match"].leave(me)
+                seats[me]["status"] = "left"
+                self.check_over(room)
+        elif what == "remove":
+            fail = (409, "the mock server never marks anyone as away")
+        elif what == "rematch":
+            if room["status"] != "finished" or me is None:
+                fail = (409, "the game is not over yet")
+            else:
+                if not room["rematch"]:
+                    new = self.create(user, room["mode"], room["rules"],
+                                      room["seed"] if b.get("same_seed") else random.randint(1, 1_000_000),
+                                      room["max"], [s["bot"] for s in seats if s["bot"]])
+                    room["rematch"] = new["code"]
+                    self.bump(room)
+                h.send_json(200, {"code": room["rematch"]})
+                return True
+        else:
+            return False
+        if fail:
+            h.err(*fail)
+            return True
+        self.bump(room)
+        h.send_json(200, self.view(room, user))
+        return True
+
+
 class Handler(SimpleHTTPRequestHandler):
     state = None
     server_version = "PokerRunMock/1.0"
@@ -310,10 +610,28 @@ class Handler(SimpleHTTPRequestHandler):
     # ---- routing
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path.startswith("/api/rooms/"):
+            self.wait_for_room(path)
         if path.startswith("/api/"):
             with LOCK:
                 return self.api("GET", path)
         return super().do_GET()
+
+    def wait_for_room(self, path):
+        """GET /api/rooms/CODE?since=V&wait=S: wait (without the lock) until the version changes."""
+        q = dict(p.split("=", 1) for p in (urlsplit(self.path).query or "").split("&") if "=" in p)
+        try:
+            since, wait = int(q.get("since", "")), min(25.0, float(q.get("wait", "0")))
+        except ValueError:
+            return
+        code = path.rsplit("/", 1)[-1].upper()
+        t_end = time.time() + wait
+        while time.time() < t_end:
+            with LOCK:
+                room = self.state.rooms.rooms.get(code)
+                if room is None or room["version"] != since:
+                    return
+            time.sleep(0.25)
 
     def do_HEAD(self):
         return super().do_HEAD()
@@ -376,9 +694,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, st.leaderboard(bool(u and u[1]["is_admin"])))
 
         # everything below needs a session
-        if path.startswith("/api/submissions") or path.startswith("/api/admin/"):
+        if path.startswith(("/api/submissions", "/api/admin/", "/api/rooms", "/api/matches")):
             if not u:
                 return self.err(401, "not logged in")
+        if path.startswith(("/api/rooms", "/api/matches")) and st.rooms.api(self, method, path, u[0]):
+            return
         name, rec = u if u else (None, None)
         if method == "POST" and path == "/api/submissions":
             b = self.body()

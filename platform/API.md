@@ -110,3 +110,77 @@ Other rules as built: usernames are unique and log in case-insensitively; 10 fai
 - `/play/` the browser game (copied from `poker_run/web/`).
 - `/contest/` contest hub: countdown/status from `/api/contest`; login/register forms when logged out; when logged in: submit form (file upload or paste, kind public/full), my submissions table with live polling, submission detail view.
 - `/contest/leaderboard/` the leaderboard.
+
+## Online multiplayer
+
+Rooms where 2-4 signed-in players (plus optional server-side bots) play the
+same deal from their own devices. Code: `server/prplatform/rooms.py` (an
+APIRouter included by `app.py`), game rules: `poker_run/multiplayer.py` (the
+Python port of `poker_run/web/multiplayer.js`) and `poker_run/bot.py`. Player
+rules and UI: `poker_run/web/MULTIPLAYER.md`. Online matches never touch the
+contest tables or the leaderboard.
+
+**Authority.** The server keeps each room's move log and rebuilds the match
+from it (cached in memory per room version). Every move goes through
+`Match.apply` for the player's seat: whose turn it is (draft, rounds), the shop
+visit order and the shared-shop rule (draft), and the solo rules of that
+player's own game, so each move list stays a valid output for the seed. Each
+write is one `BEGIN IMMEDIATE` transaction that bumps the room's `version`, so
+simultaneous moves are applied one after the other.
+
+**Live updates: long polling.** `GET /api/rooms/{code}?since=V&wait=S` answers
+at once if the room's version is not `V`, otherwise waits up to `S` seconds
+(max 25) for a change. The wait is async (no thread is held: an in-process
+asyncio event per room, plus a re-read every 5 s), so many idle clients cost
+almost nothing. It is a plain JSON response, so it passes through Caddy's
+`reverse_proxy` and `encode` unchanged (no Caddyfile change; Caddy has no
+proxy read timeout by default and `idle 2m` is longer than a poll). The game
+polls with `wait=20` while a room is open. All of this, presence and the rate
+limits live in the one api process: **run a single uvicorn process** (as
+deployed).
+
+**Presence.** Each poll marks the player as seen (in memory, never written).
+Online = seen in the last 30 s. A player who is away (not seen for 30 s) and
+has kept the game waiting for 90 s (their turn in draft/rounds; no move in
+race) is `removable` by any other seated player.
+
+**Expiry.** Lobby idle 30 min: deleted. Game with no move for 2 h: ended and
+saved with `ended: "expired"` (players score what they have). Finished rooms:
+kept 30 min, then deleted (the saved match stays). Checked when a room is
+read and by a sweep at most once a minute.
+
+**Limits** (per user, in memory): 10 new rooms per 10 min; 3 open rooms
+(lobby or playing) at once; 300 moves per minute; 120 other room actions per
+minute; 500 open rooms on the server (503 above). A move is at most 200
+characters and must look like `word [arg ...]` (≤ 5 args of `[A-Za-z0-9_]`).
+
+### Tables (additive; `CREATE TABLE IF NOT EXISTS`)
+
+- `mp_rooms(id, code UNIQUE, host_id, mode 'race'|'draft'|'rounds', rules, seed, max_players, status 'lobby'|'playing'|'finished', version, created, active, started, finished, match_id, rematch_code)`
+- `mp_seats(room_id, seat, user_id NULL for bots, bot 'easy'|'normal'|'hard', ready, status 'in'|'left'|'removed', joined)`; PRIMARY KEY (room_id, seat). Seats are renumbered 0..n-1 in join order at start.
+- `mp_kicked(room_id, user_id)`: kicked users can't rejoin that room.
+- `mp_moves(room_id, n, seat, move, created)`; PRIMARY KEY (room_id, n). Every move in order, bots' included; `!leave` marks a player who left or was removed.
+- `mp_matches(id, code, mode, rules, seed, players, started, finished, ended 'done'|'expired')` and `mp_match_players(match_id, seat, user_id, name, bot, total, cleared, place, left_early, moves)`: saved results; `moves` is the move list joined with newlines.
+
+### Endpoints
+
+All need a signed-in user (401 otherwise); POSTs need `X-Requested-With: fetch`. Room codes are 5 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (case-insensitive in URLs); a bad or unknown code is 404 `room not found (it may have expired)`.
+
+| Method, path | Body | Response |
+| --- | --- | --- |
+| `POST /api/rooms` | `{mode, rules, seed: int or null (random), max_players: 2-4, bots: ["easy"|"normal"|"hard", ...]}` | 201 room view; you are the host in seat 0. 400 bad settings; 429 rate or open-room limit; 503 server full |
+| `GET /api/rooms` | | your open rooms `[{code, mode, rules, status, players, max_players, you, created}]` |
+| `GET /api/rooms/{code}?since=V&wait=S` | | room view (see below). Non-members get the view with `you: null` (to decide to join). 403 if kicked |
+| `POST /api/rooms/{code}/join` | | room view. Already seated: resumes your seat. 409 full or already started; 403 kicked |
+| `POST /api/rooms/{code}/ready` | `{ready: bool}` | room view (lobby only) |
+| `POST /api/rooms/{code}/settings` | any of `{mode, rules, seed, random_seed: bool, max_players, bots}` | host, lobby only. Changing mode, rules or seed resets the others' ready. 409 if the seats don't fit |
+| `POST /api/rooms/{code}/kick` | `{seat}` | host, lobby only. Removes a player (who can't rejoin) or a bot |
+| `POST /api/rooms/{code}/start` | | host; needs 2+ seats and every other person ready (409 otherwise). Bots make their opening moves |
+| `POST /api/rooms/{code}/move` | `{move: "play 3 17 22"}` | room view after the move (and any bot moves it triggers). 400 illegal move or bad syntax (`error` says why); 409 not your turn / game not running / you left |
+| `POST /api/rooms/{code}/leave` | | lobby: frees the seat (host passes on; an empty room is deleted, answer `{deleted: true}`). Game: your run stops and scores what it has |
+| `POST /api/rooms/{code}/remove` | `{seat}` | any seated player; the target must be `removable` (away and idle, see above), else 409. Their run stops |
+| `POST /api/rooms/{code}/rematch` | `{same_seed: bool}` | finished rooms: `{code}` of a new room with the same settings and bots (you host it); later calls return the same code, which also appears as `rematch` in the old room's view |
+| `GET /api/matches` | | `{record: {played, wins}, matches: [match]}` newest first (50); match = `{id, code, mode, rules, seed, started, finished, ended, you: seat, players: [{seat, name, bot, total, cleared, place, left, you}]}` |
+| `GET /api/matches/{id}` | | one match with each player's `moves` list; participants only (404 otherwise) |
+
+**Room view.** `{code, mode, rules, seed, max_players, status, version, host: seat, you: seat|null, turn: {seat, stage: "play"|"shop", round}|null, shop_order: [seats]|null (draft shop), owners: {modifier: seat} (draft), created, started, finished, ended, rematch, match_id, expires_in, server_time, players: [...]}`. In the lobby a player is `{seat, name, bot, host, ready, status, you, online}`. In a game: `{seat, name, bot, host, status 'in'|'left'|'removed', you, online, idle, removable, total, cleared, round, phase, over, moves_made, mods, rounds: [{score, cleared, total, plays: [{hand, points}], discards, buys, sells, shop_moves}], hidden, place}` plus `moves` (the full move list) for yourself, and for everyone once the game is finished. In a race, another player's `rounds` (and the `total`, `cleared` and `mods` derived from them) only include rounds you have finished yourself (`hidden: true` while some are held back).

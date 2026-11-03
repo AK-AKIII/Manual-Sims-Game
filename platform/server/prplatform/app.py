@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, config, db, scoring
+from . import rooms  # online multiplayer
 
 STATE_CHANGING = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -367,6 +368,9 @@ def create_app(settings=None):
                          "raw_total = NULL, cleared_total = NULL, max_time = NULL, tests_ac = NULL, "
                          "tests_done = 0 WHERE id = ?", (sub_id,))
         return {"id": sub_id, "status": "queued"}
+
+    # ---- online multiplayer (prplatform/rooms.py) ---------------------------------------
+    app.include_router(rooms.make_router(settings, ensure_db, get_conn, require_user, ApiError))
 
     return app
 
