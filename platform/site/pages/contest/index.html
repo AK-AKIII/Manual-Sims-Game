@@ -14,9 +14,9 @@
     <div class="page-head">
       <div class="row">
         <div>
-          <span class="eyebrow">Contest hub</span>
+          <span class="eyebrow">Contest</span>
           <h1 id="c-name">Poker Run</h1>
-          <p class="sub">Submit one Python file. The judge runs it on every test in a sandbox and checks each output.</p>
+          <p class="sub">Submit one Python file.</p>
         </div>
         <a class="btn" href="/contest/leaderboard/">Leaderboard <span class="arrow" aria-hidden="true">→</span></a>
       </div>
@@ -36,13 +36,11 @@
     <!-- signed out -->
     <section id="view-auth" class="auth hidden" aria-label="Sign in or create an account">
       <div class="auth-aside">
-        <span class="eyebrow">Join the table</span>
         <h2>Sign in to submit</h2>
-        <p class="muted">An account lets you upload a solver, follow the judge live and appear on the leaderboard.</p>
         <ul>
-          <li><b>Public runs</b> on seeds <span data-c="public_seeds">1–10</span> show your score per seed. They never count.</li>
-          <li><b>Full runs</b> on <span data-c="hidden_count">the hidden</span> tests count for the leaderboard (<span data-c="full_per_hour">a few</span> per hour).</li>
-          <li>Start from <a href="/downloads/starter.py" download>starter.py</a>: it bundles the exact simulator the judge uses.</li>
+          <li><b>Public runs</b>: seeds <span data-c="public_seeds">1–10</span>, feedback only.</li>
+          <li><b>Full runs</b>: <span data-c="hidden_count">hidden</span> tests, ranked (<span data-c="full_per_hour">a few</span> per hour).</li>
+          <li>Start from <a href="/downloads/starter.py" download>starter.py</a>.</li>
         </ul>
       </div>
       <div class="panel">
@@ -82,22 +80,22 @@
         <div class="submit-grid">
           <form id="submit-form" class="panel" novalidate>
             <fieldset class="kind-pick">
-              <legend>What should the judge run?</legend>
-              <label class="kind-opt"><input type="radio" name="kind" value="public" checked><span class="box"><b>Public seeds · feedback</b><span>Seeds <span data-c="public_seeds">1–10</span>, per-seed scores. Doesn't count.</span></span></label>
-              <label class="kind-opt"><input type="radio" name="kind" value="full"><span class="box"><b>Full · counts</b><span><span data-c="hidden_count">All hidden</span> tests, ranked on the leaderboard. <span data-c="full_per_hour">Limited</span> per hour.</span></span></label>
+              <legend>Run on</legend>
+              <label class="kind-opt"><input type="radio" name="kind" value="public" checked><span class="box"><b>Public seeds</b><span>Seeds <span data-c="public_seeds">1–10</span>. Doesn't count.</span></span></label>
+              <label class="kind-opt"><input type="radio" name="kind" value="full"><span class="box"><b>Full</b><span><span data-c="hidden_count">All hidden</span> tests. Ranked. <span data-c="full_per_hour">Limited</span> per hour.</span></span></label>
             </fieldset>
             <label class="dropzone" id="dropzone" for="file-input">
               <span class="ic" aria-hidden="true">⇪</span>
-              <span><span class="t" id="dz-title">Drop your .py file here</span><br><span class="d" id="dz-sub">or click to choose a file. It's read in your browser and shown below.</span></span>
+              <span><span class="t" id="dz-title">Drop a .py file</span><br><span class="d" id="dz-sub">or click to choose one</span></span>
               <input type="file" id="file-input" accept=".py,text/x-python,text/plain">
             </label>
             <div class="editor-bar">
-              <label for="source">Source code <span class="muted" style="font-weight:400">(or paste it here)</span></label>
+              <label for="source">Source</label>
               <span><span id="src-stats">empty</span> · <button type="button" class="btn sm ghost" id="load-starter">Load starter.py</button> <button type="button" class="btn sm ghost" id="clear-src">Clear</button></span>
             </div>
             <div class="editor" id="editor"><textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" placeholder="import sys&#10;&#10;def main():&#10;    data = sys.stdin.read().split()&#10;    ..."></textarea></div>
             <div class="btn-row" style="margin-top:14px;justify-content:space-between">
-              <span class="muted" style="font-size:13px" id="submit-note">One submission is judged at a time.</span>
+              <span class="muted" style="font-size:13px" id="submit-note">Judged one at a time.</span>
               <button type="submit" class="btn primary lg" id="submit-btn">Submit <span class="arrow" aria-hidden="true">→</span></button>
             </div>
             <div class="msg" id="submit-msg" role="alert"></div>
@@ -108,8 +106,8 @@
               <ul id="limits-list"></ul>
             </div>
             <div class="panel side-card">
-              <h3>Before you submit</h3>
-              <p class="muted" style="font-size:14px;margin:0 0 12px">Test locally: <code class="mono" style="font-size:12.5px">python3 main.py &lt; 0001.txt</code>. Your file runs as <code class="mono" style="font-size:12.5px">main.py</code>, reads one test on stdin and prints its moves.</p>
+              <h3>Test locally</h3>
+              <p class="muted" style="font-size:14px;margin:0 0 12px"><code class="mono" style="font-size:12.5px">python3 main.py &lt; 0001.txt</code></p>
               <div class="btn-row">
                 <a class="btn sm" href="/downloads/starter.py" download>starter.py</a>
                 <a class="btn sm" href="/downloads/poker_run_public.zip" download>Public inputs</a>
@@ -137,7 +135,7 @@
           <div class="panel">
             <h2 class="section-title">Your account</h2>
             <div class="facts" id="acct-facts"></div>
-            <div class="note" id="acct-nudge" style="margin-top:14px" hidden><b>No email on this account yet.</b> Add one so the organisers can reach you about results or a password reset. It's never shown publicly.</div>
+            <div class="note" id="acct-nudge" style="margin-top:14px" hidden><b>No email yet.</b> Add one for results and password resets. Never shown publicly.</div>
           </div>
           <form class="panel" id="email-form" novalidate>
             <h2 class="section-title" id="email-form-title">Add an email</h2>
@@ -152,7 +150,7 @@
       <div id="p-all" role="tabpanel" aria-labelledby="t-all" class="tabpanel hidden">
         <div class="lb-tools">
           <span class="updated" id="all-poll"></span>
-          <span class="btn-row"><a class="btn sm ghost" href="/admin/">Open the admin panel <span class="arrow" aria-hidden="true">→</span></a>
+          <span class="btn-row"><a class="btn sm ghost" href="/admin/">Admin panel <span class="arrow" aria-hidden="true">→</span></a>
           <button type="button" class="btn sm" id="all-refresh">Refresh</button></span>
         </div>
         <div class="table-scroll"><table class="data subs" id="all-table">

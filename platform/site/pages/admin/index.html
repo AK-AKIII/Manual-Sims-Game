@@ -15,9 +15,9 @@
     <div class="page-head adm-head">
       <div class="row">
         <div>
-          <span class="eyebrow">Admin panel</span>
-          <h1 id="adm-title">Contest control room</h1>
-          <p class="sub" id="adm-sub">Students, submissions, settings and the judge, in one place.</p>
+          <span class="eyebrow">Admin</span>
+          <h1 id="adm-title">Control room</h1>
+          <p class="sub hidden" id="adm-sub"></p>
         </div>
         <div class="adm-live" id="adm-live" aria-live="off"><span class="dot-live off" id="adm-live-dot" aria-hidden="true"></span><span id="adm-live-text">Connecting…</span></div>
       </div>
@@ -131,7 +131,7 @@
         <!-- ============================== settings -->
         <section id="ap-settings" role="tabpanel" aria-labelledby="at-settings" class="adm-panel tabpanel hidden" tabindex="-1">
           <div class="adm-section-head"><h2>Settings</h2><span class="updated" id="se-updated"></span></div>
-          <p class="muted adm-lead">Overrides saved here win over the environment variables, apply to the API right away, and are logged in Activity. Times are shown in <b id="se-tz">your timezone</b> and stored in UTC.</p>
+          <p class="muted adm-lead">Overrides the environment. Applies at once, logged in Activity. Times in <b id="se-tz">your timezone</b>, stored in UTC.</p>
           <form id="se-form" class="adm-settings" novalidate>
             <div class="panel"><h3 class="section-title">Contest</h3>
               <div class="set-field" data-key="name"><label for="se-name">Name</label><input type="text" id="se-name" maxlength="80" required><div class="set-meta"></div></div>

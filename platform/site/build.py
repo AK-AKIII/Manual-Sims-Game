@@ -329,7 +329,7 @@ NAV_ITEMS = [("play", "/play/", "Play"), ("modes", "/modes/", "Modes"), ("proble
 HEAD = """<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0b2a20">
+<meta name="theme-color" content="#121316">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/site.css">
 <script defer src="/assets/sound.js"></script>
@@ -339,7 +339,7 @@ HEAD = """<meta charset="utf-8">
 
 FOOTER = """<footer class="site-footer">
   <div class="wrap">
-    <div><span class="brand" style="font-size:15px">POKER <b>RUN</b></span><br><span>An 8-round poker puzzle where the input reveals everything.</span></div>
+    <span class="brand">Poker Run</span>
     <nav aria-label="Footer">
       <a href="/play/">Play</a><a href="/modes/">Modes &amp; rules</a><a href="/problem/">Problem</a><a href="/contest/">Contest</a><a href="/contest/leaderboard/">Leaderboard</a><a href="/downloads/starter.py" download>starter.py</a><a href="/?intro=1" data-replay-intro>Replay intro</a>
     </nav>
@@ -354,7 +354,7 @@ def nav(current):
     return """<a class="skip" href="#main">Skip to content</a>
 <header class="site-nav">
   <div class="wrap">
-    <a class="brand" href="/" aria-label="Poker Run home"><span class="pip" aria-hidden="true">♠︎</span><span>POKER <b>RUN</b></span></a>
+    <a class="brand" href="/" aria-label="Poker Run home"><span class="pip" aria-hidden="true">♠︎</span><span>Poker Run</span></a>
     <ul class="nav-links">%s</ul>
     <div class="nav-user" id="nav-user"><button type="button" class="sound-toggle" data-sound-toggle aria-pressed="true" aria-label="Sound"></button></div>
   </div>
@@ -463,9 +463,9 @@ def build_play(out):
     for name in scripts:
         copy(os.path.join(WEB, name), os.path.join(dst, name))
     # Make the game's title a link back to the site, if the markup is the one we know.
-    title = "<h1>POKER <span>RUN</span></h1>"
+    title = "<h1>Poker <span>Run</span></h1>"
     if title in page:
-        page = page.replace(title, '<h1><a href="/" title="Poker Run home" style="color:inherit;text-decoration:none">POKER <span>RUN</span></a></h1>', 1)
+        page = page.replace(title, '<h1><a href="/" title="Poker Run home" style="color:inherit;text-decoration:none">Poker <span>Run</span></a></h1>', 1)
     write(os.path.join(dst, "index.html"), page)
 
 

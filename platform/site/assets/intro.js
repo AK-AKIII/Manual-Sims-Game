@@ -1,21 +1,22 @@
-/* Opening intro for the landing page (~2.8 s, once per session, skippable).
+/* Opening intro for the landing page (~1.8 s, once per session, skippable).
  * One DPR-aware 2D canvas; the 52 card faces are pre-rendered once.
- * Beats: riffle shuffle -> spiral burst with gold motes -> swirl into a fan
- * behind the wordmark (overshoot) -> 8 cards fly into the demo hand while
- * the felt cover opens with a radial wipe. Click, key, wheel or touch skips. */
+ * Beats: quick riffle -> spiral -> fan behind the wordmark -> 8 cards fly into
+ * the demo hand while the flat cover fades open. Click, key, wheel or touch skips. */
 (function () {
   "use strict";
   const root = document.documentElement;
   const KEY = "pr-intro";
-  const T = { riffle: 0.6, burst: 1.4, form: 2.3, end: 2.8 };
+  const T = { riffle: 0.35, burst: 0.8, form: 1.3, end: 1.8 };
+  const RF = T.riffle / 0.6; // the riffle was drawn for 0.6 s; scale its beats
   const GLYPH = ["♠︎", "♥︎", "♦︎", "♣︎"];
   const RANK = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-  const SANS = '"Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif';
+  const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif';
+  const WORD = "Poker Run";
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const lerp = (a, b, t) => a + (b - a) * t;
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);
   const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-  const easeBack = (t) => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+  const easeBack = (t) => { const c1 = 1.1, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
   const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
 
   function rnd(seed) { // mulberry32: same layout every time
@@ -28,12 +29,12 @@
     c.width = Math.ceil(w * s); c.height = Math.ceil(h * s);
     const g = c.getContext("2d");
     g.scale(s, s);
-    const r = w * 0.1, rank = id % 13, suit = Math.floor(id / 13), red = suit === 1 || suit === 2;
+    const r = w * 0.08, rank = id % 13, suit = Math.floor(id / 13), red = suit === 1 || suit === 2;
     g.beginPath(); g.roundRect ? g.roundRect(0.5, 0.5, w - 1, h - 1, r) : g.rect(0.5, 0.5, w - 1, h - 1);
-    g.fillStyle = "#faf7f0"; g.fill(); g.lineWidth = 1; g.strokeStyle = "#e3dccb"; g.stroke();
-    g.fillStyle = red ? "#c82830" : "#1c1c1e"; g.textAlign = "center"; g.textBaseline = "alphabetic";
+    g.fillStyle = "#fbfaf7"; g.fill(); g.lineWidth = 1; g.strokeStyle = "#dedbd3"; g.stroke();
+    g.fillStyle = red ? "#c8282f" : "#17171a"; g.textAlign = "center"; g.textBaseline = "alphabetic";
     const corner = (x, y) => {
-      g.font = `800 ${w * 0.25}px ${SANS}`; g.fillText(RANK[rank], x, y);
+      g.font = `600 ${w * 0.25}px ${SANS}`; g.fillText(RANK[rank], x, y);
       g.font = `400 ${w * 0.2}px ${SANS}`; g.fillText(GLYPH[suit], x, y + w * 0.22);
     };
     corner(w * 0.17, w * 0.27);
@@ -84,7 +85,6 @@
       rad: 0.32 + 0.68 * Math.sqrt((i + 0.5) / 52) * (0.85 + rand() * 0.3),
       hand: handIds.indexOf(id),
     }));
-    const motes = [];
     const fanSpan = Math.PI * 0.82;
     const fanAt = (i, n) => {
       const a = -fanSpan / 2 + (fanSpan * i) / (n - 1);
@@ -92,9 +92,9 @@
       const px = cx, py = cy + fr * 0.55;
       return { x: px + Math.sin(a) * fr, y: py - Math.cos(a) * fr, rot: a, s: 0.9 };
     };
-    const FS = () => clamp(W * 0.1, 40, 124);
+    const FS = () => clamp(W * 0.09, 40, 112);
     function wordHalf() {
-      if (!wh) { ctx.font = `800 ${FS()}px ${SANS}`; wh = ctx.measureText("POKER RUN").width / 2; }
+      if (!wh) { ctx.font = `600 ${FS()}px ${SANS}`; wh = ctx.measureText(WORD).width / 2; }
       return wh;
     }
     let targets = null; // demo card rects, read once at beat 4
@@ -105,20 +105,20 @@
       const stackY = (k) => cy - k * 0.35;
       if (t < T.riffle) {
         const side = c.i % 2 ? 1 : -1;
-        const split = easeInOut(seg(t, 0, 0.18));
-        const back = easeInOut(seg(t, 0.18 + (c.i / 52) * 0.26, 0.26 + (c.i / 52) * 0.26));
+        const split = easeInOut(seg(t, 0, 0.18 * RF));
+        const back = easeInOut(seg(t, (0.18 + (c.i / 52) * 0.26) * RF, (0.26 + (c.i / 52) * 0.26) * RF));
         const half = Math.floor(c.i / 2);
         let x = cx + side * 74 * split * (1 - back), y = lerp(stackY(c.i), stackY(half) - 10 * split, split * (1 - back));
         let rot = side * 0.16 * split * (1 - back) + (back > 0 && back < 1 ? side * 0.06 * Math.sin(back * Math.PI) : 0);
-        const cut = seg(t, 0.48, 0.6);
+        const cut = seg(t, 0.48 * RF, 0.6 * RF);
         if (c.i > 30 && cut > 0) x += Math.sin(cut * Math.PI) * 58;
-        return { x, y, rot, s: 1.3, a: 1 };
+        return { x, y, rot, s: 1.15, a: 1 };
       }
       const burst = (tt) => {
         const k = easeOut(seg(tt, T.riffle, T.burst));
-        const a = c.ang + (1 - k) * 1.3 + tt * 0.35;
+        const a = c.ang + (1 - k) * 1.0 + tt * 0.35;
         const r = R0 * c.rad * k;
-        return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.82, rot: c.spin * k + tt * 0.4 * Math.sign(c.spin), s: lerp(1.3, c.z, k), a: lerp(1, 0.45 + 0.55 * (c.z - 0.55) / 0.95, k) };
+        return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.82, rot: c.spin * k + tt * 0.4 * Math.sign(c.spin), s: lerp(1.15, c.z, k), a: lerp(1, 0.35 + 0.5 * (c.z - 0.55) / 0.95, k) };
       };
       if (t < T.burst) return burst(t);
       const from = burst(T.burst);
@@ -157,57 +157,21 @@
       ctx.save();
       ctx.globalAlpha = clamp(k * 1.6, 0, 1) * (1 - seg(t, T.end - 0.25, T.end));
       ctx.translate(x, y); ctx.scale(sc, sc);
-      ctx.font = `800 ${fs}px ${SANS}`; ctx.textBaseline = "middle";
-      const w1 = ctx.measureText("POKER ").width, w2 = ctx.measureText("RUN").width, x0 = -(w1 + w2) / 2;
-      ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
-      ctx.textAlign = "left";
-      ctx.fillStyle = "#f4efe3"; ctx.fillText("POKER ", x0, 0);
-      ctx.fillStyle = "#f2c14e"; ctx.fillText("RUN", x0 + w1, 0);
-      // shimmer sweep
-      const sw = seg(t, T.burst + 0.25, T.form + 0.05);
-      if (sw > 0 && sw < 1) {
-        ctx.shadowColor = "transparent";
-        const bx = x0 - 120 + (w1 + w2 + 240) * sw;
-        const gr = ctx.createLinearGradient(bx - 70, 0, bx + 70, 0);
-        gr.addColorStop(0, "rgba(255,248,220,0)"); gr.addColorStop(0.5, "rgba(255,248,220,.85)"); gr.addColorStop(1, "rgba(255,248,220,0)");
-        ctx.fillStyle = gr; ctx.fillText("POKER RUN", x0, 0);
-      }
+      ctx.font = `600 ${fs}px ${SANS}`; ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ecebe7"; ctx.fillText(WORD, 0, 0);
       ctx.restore();
     }
 
     function drawCover(t) {
       ctx.save();
-      const bg = ctx.createRadialGradient(cx, cy * 0.9, 0, cx, cy * 0.9, R0 * 1.1);
-      bg.addColorStop(0, "#185440"); bg.addColorStop(0.55, "#0f3a2c"); bg.addColorStop(1, "#082018");
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-      // glow behind the deck / wordmark
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R0 * 0.6);
-      glow.addColorStop(0, `rgba(242,193,78,${0.12 + 0.08 * Math.sin(Math.min(t, 2.3) * 2)})`); glow.addColorStop(1, "rgba(242,193,78,0)");
-      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#121316"; ctx.fillRect(0, 0, W, H);
       const open = easeInOut(seg(t, T.form + 0.05, T.end));
-      if (open > 0) { // radial wipe from the demo panel
-        const o = targets && targets.center ? targets.center : { x: cx, y: cy };
-        const rr = open * R0 * 2.3;
+      if (open > 0) { // the cover fades out while the cards land
         ctx.globalCompositeOperation = "destination-out";
-        const hole = ctx.createRadialGradient(o.x, o.y, rr * 0.55, o.x, o.y, rr);
-        hole.addColorStop(0, "rgba(0,0,0,1)"); hole.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = hole; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = `rgba(0,0,0,${open.toFixed(3)})`; ctx.fillRect(0, 0, W, H);
       }
       ctx.restore();
-    }
-
-    function spawnMotes(t, dt, states) {
-      if (t > T.riffle && t < T.form + 0.2) {
-        const n = t < T.burst ? 5 : 2;
-        for (let k = 0; k < n; k++) {
-          const s = states[(Math.random() * states.length) | 0];
-          motes.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40 - 12, life: 0, max: 0.7 + Math.random() * 0.7, r: 0.8 + Math.random() * 2.2 });
-        }
-      }
-      for (let i = motes.length - 1; i >= 0; i--) {
-        const m = motes[i]; m.life += dt; m.x += m.vx * dt; m.y += m.vy * dt;
-        if (m.life > m.max) motes.splice(i, 1);
-      }
     }
 
     // ?introAt=1.6 renders that moment and holds it (for screenshots / review)
@@ -217,7 +181,6 @@
       let t = (now - t0) / 1000, dt = Math.min(0.05, (now - last) / 1000);
       if (AT !== undefined) {
         t = Number(AT); dt = 1 / 60;
-        if (!motes.warm) { motes.warm = 1; for (let x = Math.max(0, t - 1.2); x < t; x += 1 / 60) spawnMotes(x, 1 / 60, cards.map((c) => cardState(c, x))); }
       }
       last = now;
       if (t >= T.form && !targets) {
@@ -233,15 +196,6 @@
       ctx.clearRect(0, 0, W, H);
       drawCover(t);
       const states = cards.map((c) => Object.assign(cardState(c, t), { c }));
-      spawnMotes(t, dt, states);
-      // motes behind the cards
-      ctx.save(); ctx.globalCompositeOperation = "lighter";
-      for (const m of motes) {
-        const a = (1 - m.life / m.max) * 0.8;
-        ctx.fillStyle = `rgba(242,193,78,${a.toFixed(3)})`;
-        ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.restore();
       if (t > T.riffle && t < T.burst + 0.4) states.sort((a, b) => a.s - b.s); // depth order while scattered
       else if (t >= T.form) states.sort((a, b) => (a.c.hand >= 0) - (b.c.hand >= 0));
       const wordFirst = t < T.form;
@@ -251,7 +205,7 @@
         ctx.save();
         ctx.globalAlpha = s.a;
         ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.scale(s.s, s.s);
-        ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 10 * s.s; ctx.shadowOffsetY = 4 * s.s;
+        ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 4 * s.s; ctx.shadowOffsetY = 1 * s.s;
         ctx.drawImage(sprites[s.c.id], -CW / 2, -CH / 2, CW, CH);
         ctx.restore();
       }

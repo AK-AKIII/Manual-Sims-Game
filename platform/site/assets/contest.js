@@ -320,7 +320,7 @@
     r.onload = () => {
       ed.set(String(r.result));
       $("dz-title").textContent = file.name;
-      $("dz-sub").textContent = `${(file.size / 1024).toFixed(1)} KB loaded. Check it below, then submit. Drop another file to replace it.`;
+      $("dz-sub").textContent = `${(file.size / 1024).toFixed(1)} KB loaded`;
       $("submit-msg").innerHTML = "";
       toast("ok", `Loaded ${file.name}`, { silent: true });
       if (window.Sound) window.Sound.select();
@@ -700,7 +700,7 @@
         if (d && typeof d.source === "string") {
           ed.set(d.source);
           $("dz-title").textContent = `Source of #${d.id}`;
-          $("dz-sub").textContent = "Loaded from a past submission. Edit it below, then submit again.";
+          $("dz-sub").textContent = "From a past submission";
           selectTab("submit");
           $("source").focus();
           toast("info", `Loaded submission #${d.id} into the editor.`, { silent: true });
@@ -741,8 +741,8 @@
     wireDropzone();
     $("submit-form").addEventListener("submit", onSubmit);
     $("clear-src").addEventListener("click", () => {
-      ed.set(""); $("dz-title").textContent = "Drop your .py file here";
-      $("dz-sub").textContent = "or click to choose a file. It's read in your browser and shown below.";
+      ed.set(""); $("dz-title").textContent = "Drop a .py file";
+      $("dz-sub").textContent = "or click to choose one";
       $("source").focus();
     });
     $("load-starter").addEventListener("click", async (ev) => {
@@ -753,7 +753,7 @@
         if (!r.ok) throw new Error("starter.py is not available (" + r.status + ")");
         ed.set(await r.text());
         $("dz-title").textContent = "starter.py";
-        $("dz-sub").textContent = "The starter is loaded. Fill in solve(), or submit it as-is to see the pipeline work.";
+        $("dz-sub").textContent = "Fill in solve(), or submit as-is";
       } catch (e) { $("submit-msg").innerHTML = `<div class="err">${esc(e.message)}</div>`; }
       finally { b.classList.remove("busy"); b.disabled = false; }
     });

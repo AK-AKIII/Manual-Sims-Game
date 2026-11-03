@@ -37,8 +37,8 @@
     body.innerHTML = `
       <div class="demo-stats">
         <div class="stat"><div class="k">Target</div><div class="v" id="d-target">300</div></div>
-        <div class="stat"><div class="k">Round score</div><div class="v gold" id="d-score" data-v="0">0</div></div>
-        <div class="stat"><div class="k">Plays left</div><div class="v" id="d-plays">4</div></div>
+        <div class="stat"><div class="k">Score</div><div class="v gold" id="d-score" data-v="0">0</div></div>
+        <div class="stat"><div class="k">Plays</div><div class="v" id="d-plays">4</div></div>
         <div class="stat"><div class="k">Discards</div><div class="v" id="d-discards">3</div></div>
       </div>
       <div class="progress" id="d-progress" role="progressbar" aria-label="Round score toward the target" aria-valuemin="0" aria-valuemax="300" aria-valuenow="0"><div class="ghost" id="d-ghost"></div><div class="bar" id="d-bar"></div></div>
@@ -53,11 +53,11 @@
           <button type="button" class="btn" id="d-discard" data-quiet>Discard</button>
           <button type="button" class="btn ghost" id="d-best" title="Select the highest-scoring play in this hand">Best play</button>
         </div>
-        <button type="button" class="btn ghost" id="d-new">Deal another seed</button>
+        <button type="button" class="btn ghost" id="d-new">New seed</button>
       </div>
       <div class="demo-foot">
-        <span class="kbd-help">Keys: <span class="kbd">1</span>–<span class="kbd">8</span> select · <span class="kbd">P</span> play · <span class="kbd">D</span> discard · <span class="kbd">Esc</span> clear</span>
-        <a class="btn sm" id="d-full" href="/play/#seed=7">Open the full game <span class="arrow" aria-hidden="true">→</span></a>
+        <span class="kbd-help"><span class="kbd">1</span>–<span class="kbd">8</span> select · <span class="kbd">P</span> play · <span class="kbd">D</span> discard</span>
+        <a id="d-full" href="/play/#seed=7">Full game <span aria-hidden="true">→</span></a>
       </div>`;
     document.getElementById("d-play").addEventListener("click", () => act("play"));
     document.getElementById("d-discard").addEventListener("click", () => act("discard"));
@@ -157,22 +157,22 @@
     // next draws: the input tells you
     const nxt = g.pile.slice(0, 5);
     document.getElementById("d-next").innerHTML = nxt.length
-      ? `<span>Next draws <span class="opt-inline">(the input lists all ${g.pile.length})</span>:</span><span class="cards">${nxt.map((id) => cardHTML(id, { cls: "mini" })).join("")}</span>`
+      ? `<span>Next draws</span><span class="cards">${nxt.map((id) => cardHTML(id, { cls: "mini" })).join("")}</span>`
       : "";
 
     // preview
     const pv = document.getElementById("d-preview");
     if (!res) {
       const tip = seed === 7 && g.plays_left === 4 && g.discards_left === 3
-        ? ` Tip from the statement: discard <button type="button" class="btn sm" id="d-hint">26 16 17 45</button> to draw into a straight.`
+        ? ` Hint: discard <button type="button" class="btn sm" id="d-hint">26 16 17 45</button>`
         : "";
-      pv.innerHTML = `<div class="hand-name" style="font-size:16px">Select 1 to 5 cards</div><div class="sub">Clicking shows the hand they make and exactly what it scores.${tip}</div>`;
+      pv.innerHTML = `<div class="hand-name" style="font-size:15px;font-weight:500">Select 1 to 5 cards</div><div class="sub">See the hand and its score.${tip}</div>`;
       const hb = document.getElementById("d-hint");
       if (hb) hb.addEventListener("click", () => { sel = HINT7.filter((c) => g.hand.includes(c)); render(false); });
     } else {
       const kick = sel.length - res.scored.length;
       const after = g.round_score + res.points;
-      const note = after >= target ? `Reaches the target (${fmtInt(after)} / ${fmtInt(target)}).` : `Round would be at ${fmtInt(after)} / ${fmtInt(target)}.`;
+      const note = after >= target ? `Clears the target.` : `Round: ${fmtInt(after)} / ${fmtInt(target)}.`;
       pv.innerHTML = `<div class="row1"><span class="hand-name">${esc(PR.HAND_NAMES[res.hand])}</span><span class="pts">${fmtInt(res.points)} pts</span></div>
         <div class="formula">base <b>${res.base}</b> × mult <b>${res.mult}</b> · ${esc(formula(res))}</div>
         <div class="sub">${res.scored.length} scored card${res.scored.length === 1 ? "" : "s"}${kick ? `, ${kick} kicker${kick === 1 ? "" : "s"}` : ""}. ${note}</div>`;
@@ -229,12 +229,12 @@
       <h3 id="d-res-title">${cleared ? "Round 1 cleared" : "Run over"}</h3>
       <div class="big">${fmtInt(g.round_score)}</div>
       <p>${cleared
-        ? `You beat the target of ${fmtInt(g.target)}${g.plays_left ? ` with ${g.plays_left} play${g.plays_left === 1 ? "" : "s"} to spare` : ""}. In the full game you'd now have $${g.money} to spend in the shop, and seven more rounds to go, each target twice the last.`
-        : `${fmtInt(g.round_score)} of ${fmtInt(g.target)}: the round ended below its target. Every future card is in the input, so a better line exists. Try again?`}</p>
+        ? `Target ${fmtInt(g.target)} beaten. Seven rounds to go.`
+        : `Target was ${fmtInt(g.target)}. A better line exists.`}</p>
       <div class="btn-row">
-        <a class="btn primary" href="/play/#seed=${seed}">Play seed ${seed} in full <span class="arrow" aria-hidden="true">→</span></a>
-        <button type="button" class="btn" data-r="again">Replay this hand</button>
-        <button type="button" class="btn ghost" data-r="new">Deal another seed</button>
+        <a class="btn primary" href="/play/#seed=${seed}">Play seed ${seed} <span class="arrow" aria-hidden="true">→</span></a>
+        <button type="button" class="btn" data-r="again">Replay</button>
+        <button type="button" class="btn ghost" data-r="new">New seed</button>
       </div></div>`;
     document.getElementById("demo").appendChild(ov);
     if (cleared) SND().success(); else SND().error();
@@ -281,14 +281,14 @@
       const contiguous = ps.every((x, i) => i === 0 || x === ps[i - 1] + 1);
       f("public_seeds").textContent = contiguous && ps.length > 2 ? `${ps[0]}–${ps[ps.length - 1]}` : ps.join(", ");
     }
-    line.innerHTML = `<a class="pill" href="/contest/" style="text-decoration:none;color:inherit"><span class="dot-live" aria-hidden="true"></span><span class="t"></span></a>`;
+    line.innerHTML = `<a class="pill" href="/contest/" style="text-decoration:none"><span class="dot-live" aria-hidden="true"></span><span class="t"></span></a>`;
     const dotEl = line.querySelector(".dot-live"), tEl = line.querySelector(".t");
     const tick = () => {
       const p = window.UI.contestPhase(c);
       const dot = p.phase === "open" || p.phase === "always" ? "" : p.phase === "upcoming" ? " warn" : " off";
-      const txt = p.phase === "open" ? `Contest open · ends in ${window.UI.shortDuration(p.until - Date.now() - p.offset)}`
-        : p.phase === "upcoming" ? `Contest starts in ${window.UI.shortDuration(p.until - Date.now() - p.offset)}`
-        : p.phase === "ended" ? "Contest over · leaderboard is final" : "Contest open · submissions welcome";
+      const txt = p.phase === "open" ? `Open · ends in ${window.UI.shortDuration(p.until - Date.now() - p.offset)}`
+        : p.phase === "upcoming" ? `Starts in ${window.UI.shortDuration(p.until - Date.now() - p.offset)}`
+        : p.phase === "ended" ? "Contest over · final standings" : "Open · no deadline";
       dotEl.className = "dot-live" + dot;
       if (tEl.textContent !== txt) tEl.textContent = txt;
     };
@@ -297,133 +297,12 @@
   }
 
 
-  // ------------------------------------------------------------------ scroll story (desktop)
-  function storyCard(game, id, extra) {
-    const r = game.rank[id], su = game.suit[id];
-    const glyph = GLYPH[su];
-    return `<div class="card${su === 1 || su === 2 ? " red" : ""}${extra ? " " + extra : ""}"><span class="tl">${rankLabel(r)}<i>${glyph}</i></span><span class="cid">${id}</span><span class="mid">${glyph}</span><span class="br">${rankLabel(r)}<i>${glyph}</i></span></div>`;
-  }
-
-  function buildStory() {
-    const vis = document.getElementById("story-visual");
-    if (!vis || !PR) return;
-    const inst = PR.generate(7);
-    const g = new PR.Game(inst);
-    // 1: the input and the first deal
-    const order = inst.orders[0];
-    const text = PR.formatInstance(inst).split("\n");
-    vis.querySelector(".s1").innerHTML =
-      `<div class="infile"><b>${esc(text[0])}</b>\n${esc(text[1])}\n${esc(order.slice(0, 14).join(" "))} …\n${esc(inst.orders[1].slice(0, 14).join(" "))} …\n…\n${esc(inst.offers[0].slice(0, 4).join(" "))} …</div>` +
-      `<div class="row-cards">${order.slice(0, 8).map((id, i) => storyCard(g, id).replace('class="card', `style="--i:${i}" class="card`)).join("")}</div>` +
-      `<div class="cap">Seed 7: your first 8 cards are the first 8 ids of round 1's draw order.</div>`;
-    // 2: discard into a straight, then play it
-    g.apply("discard 26 16 17 45");
-    const play = [33, 8, 9, 23, 50];
-    const res = g.evaluate(play, true);
-    const hand = g.hand.slice().sort((a, b) => g.rank[a] - g.rank[b] || a - b);
-    vis.querySelector(".s2").innerHTML =
-      `<div class="burst">+${fmtInt(res.points)}<small>${esc(PR.HAND_NAMES[res.hand])}</small></div>` +
-      `<div class="row-cards">${hand.map((id, i) => storyCard(g, id, play.includes(id) ? "hit" : "miss").replace('class="card', `style="--i:${play.includes(id) ? i : 0}" class="card`)).join("")}</div>` +
-      `<div class="formula">base ${res.base} × mult ${res.mult} = ${fmtInt(res.points)}</div>` +
-      `<div class="cap">After <b>discard 26 16 17 45</b> the hand holds a straight: target ${fmtInt(g.target)} beaten in one play.</div>`;
-    // 3: the first shop's window
-    const offers = inst.offers[0].slice(0, 3);
-    vis.querySelector(".s3").innerHTML =
-      `<div class="wallet"><span class="pill">Money <b class="gold">$8</b></span><span class="pill">Slots <b>0 / 5</b></span></div>` +
-      `<div class="offers3">${offers.map((m, i) => `<div class="offer" style="--i:${i}"><b>${esc(m.replace(/_/g, " "))}</b><span>${esc(PR.MODIFIERS[m][1])}</span><em>$${PR.MODIFIERS[m][0]}</em></div>`).join("")}</div>` +
-      `<div class="cap">Seed 7's first shop shows three offers at a time. <b>reroll</b> moves the window along the queue.</div>`;
-    // 4: doubling targets
-    const t = inst.targets.map(Number), max = t[t.length - 1];
-    vis.querySelector(".s4").innerHTML =
-      `<div class="bars">${t.map((v, i) => `<div class="bar"><span>${v >= 1000 ? v / 1000 + "k" : v}</span><i style="--i:${i};height:${Math.max(1.5, (100 * v) / max)}%"></i></div>`).join("")}</div>` +
-      `<div class="ticks">${t.map((_, i) => `<span>R${i + 1}</span>`).join("")}</div>` +
-      `<div class="cap">Targets double each round. Round 8 alone needs <b>${fmtInt(max)}</b> points.</div>`;
-    // 5: a submission through the judge
-    vis.querySelector(".s5").innerHTML =
-      `<div class="subcard"><div class="top"><b>#42 <span class="kind full">full</span></b><span class="badge queued" id="s5-badge">queued</span></div>` +
-      `<div class="judge"><div class="top"><span id="s5-label">Waiting in the queue</span><span class="muted num" id="s5-pct"></span></div><div class="pbar"><i id="s5-bar"></i></div></div>` +
-      `<div class="vgrid" id="s5-grid">${"<span class=\"v pending\"></span>".repeat(50)}</div></div>` +
-      `<div class="score" id="s5-score"></div><div class="cap">Live in the contest hub: status, judging test N of 50, per-test verdicts.</div>`;
-
-    let s5timer = null;
-    const runJudge = () => {
-      clearInterval(s5timer);
-      const badge = document.getElementById("s5-badge"), label = document.getElementById("s5-label"), bar = document.getElementById("s5-bar");
-      const cells = document.querySelectorAll("#s5-grid .v"), pct = document.getElementById("s5-pct"), score = document.getElementById("s5-score");
-      cells.forEach((c) => { c.className = "v pending"; });
-      badge.className = "badge queued"; badge.textContent = "queued"; label.textContent = "Waiting in the queue";
-      bar.style.transform = "scaleX(0)"; pct.textContent = ""; score.textContent = ""; score.dataset.v = "0";
-      let k = -8;
-      s5timer = setInterval(() => {
-        k++;
-        if (k <= 0) return;
-        if (k <= 50) {
-          badge.className = "badge running"; badge.textContent = "judging";
-          label.textContent = `Judging test ${k} of 50`;
-          bar.style.transform = `scaleX(${k / 50})`; pct.textContent = Math.round((100 * k) / 50) + "%";
-          cells[k - 1].className = "v " + (k === 17 || k === 38 ? "TLE" : "AC");
-        } else {
-          clearInterval(s5timer);
-          badge.className = "badge done"; badge.textContent = "done"; label.textContent = "48 / 50 valid";
-          countUp(score, 62.97, { dur: 900, fmt: fmtScore });
-        }
-      }, 55);
-    };
-
-    const steps = Array.from(document.querySelectorAll(".story-step"));
-    let active = 1;
-    const setStep = (n) => {
-      if (n === active) return;
-      active = n;
-      vis.dataset.step = String(n);
-      steps.forEach((st) => st.classList.toggle("active", Number(st.dataset.step) === n));
-      if (n === 5) runJudge(); else clearInterval(s5timer);
-    };
-    if ("IntersectionObserver" in window) {
-      const io = new IntersectionObserver((entries) => {
-        for (const e of entries) if (e.isIntersecting) setStep(Number(e.target.dataset.step));
-      }, { rootMargin: "-45% 0px -45% 0px" });
-      steps.forEach((st) => io.observe(st));
-    }
-    // scenes start in their "before" state; let the first one play when it scrolls in
-    vis.dataset.step = "0";
-    active = 0;
-    const M = window.Motion;
-    if (M) M.whenVisible(vis, () => { if (!active) setStep(1); }, { margin: "0px 0px -25% 0px" });
-    else setStep(1);
-  }
-
-  // ------------------------------------------------------------------ hero parallax (desktop, motion allowed)
-  function initParallax() {
-    const M = window.Motion;
-    const hero = document.getElementById("hero");
-    if (!M || !hero || M.reduced()) return;
-    const demo = document.getElementById("demo");
-    const glow = hero.querySelector(".hero-glow");
-    const deco = Array.from(hero.querySelectorAll(".card.deco")).map((el) => ({ el, speed: Number(el.dataset.speed), rot: Number(el.dataset.rot) }));
-    let wide = window.innerWidth > 1000, heroH = hero.offsetHeight;
-    window.addEventListener("resize", () => { wide = window.innerWidth > 1000; heroH = hero.offsetHeight; }, { passive: true });
-    let lastY = -1;
-    M.onScrollFrame((y) => {
-      if (y > heroH + 200 && lastY > heroH + 200) return;
-      lastY = y;
-      const yy = Math.min(y, heroH + 200);
-      if (glow) glow.style.transform = `translate3d(0, ${(yy * 0.35).toFixed(1)}px, 0) scale(${(1 + yy / 3000).toFixed(3)})`;
-      for (const d of deco) d.el.style.transform = `translate3d(0, ${(yy * d.speed).toFixed(1)}px, 0) rotate(${(d.rot + yy * d.speed * 0.04).toFixed(2)}deg)`;
-      if (demo && wide && !document.documentElement.classList.contains("intro-on")) {
-        demo.style.transform = yy > 0 ? `translate3d(0, ${(yy * -0.07).toFixed(1)}px, 0) rotate(${(yy * -0.0025).toFixed(3)}deg)` : "";
-      }
-    });
-  }
-
   document.addEventListener("DOMContentLoaded", () => {
     if (PR && body) {
       skeleton();
       deal(7);
       document.addEventListener("keydown", keys);
     }
-    buildStory();
-    initParallax();
     contest();
   });
 })();

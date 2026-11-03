@@ -150,7 +150,7 @@
       b.classList.add("busy"); b.disabled = true;
       try {
         await API.logout();
-        toast("ok", "Signed out. See you at the table.");
+        toast("ok", "Signed out.");
         render(null);
         document.dispatchEvent(new CustomEvent("auth-change", { detail: null }));
       } catch (e) {

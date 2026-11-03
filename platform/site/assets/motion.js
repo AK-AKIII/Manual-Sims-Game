@@ -163,7 +163,7 @@
     measure();
     initChrome();
     initAnchors();
-    initTilt();
+    // (pointer tilt on cards is off: the site keeps motion to fades)
     // reveals after the page script had its first render
     requestAnimationFrame(() => observeReveals(document));
     window.addEventListener("scroll", onScroll, { passive: true });

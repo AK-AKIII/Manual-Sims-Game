@@ -57,7 +57,7 @@
       if (!enabled && ctx) { ctx.close().catch(() => {}); ctx = null; master = null; }
       document.querySelectorAll("[data-sound-toggle]").forEach(syncToggle);
     },
-    tick() { tone(880, 0, 0.07, { type: "sine", gain: 0.35, attack: 0.004 }); },
+    tick() { tone(760, 0, 0.05, { type: "sine", gain: 0.2, attack: 0.004 }); },
     select() { tone(660, 0, 0.09, { type: "triangle", gain: 0.4, attack: 0.006 }); },
     deselect() { tone(520, 0, 0.09, { type: "triangle", gain: 0.3, attack: 0.006 }); },
     success() {
@@ -77,7 +77,7 @@
       const src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(), t0 = c.currentTime;
       src.buffer = buf; bp.type = "bandpass"; bp.Q.value = 0.9;
       bp.frequency.setValueAtTime(900, t0); bp.frequency.exponentialRampToValueAtTime(2600, t0 + 0.3);
-      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.9, t0 + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
       src.connect(bp); bp.connect(g); g.connect(master); src.start(t0);
     },
     error() { tone(220, 0, 0.32, { type: "sine", gain: 0.8, attack: 0.03, glide: 196 }); },
