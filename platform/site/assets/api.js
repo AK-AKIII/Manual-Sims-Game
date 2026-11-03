@@ -130,6 +130,8 @@
     adminDeleteSubmission: (sid) => request("DELETE", "/api/admin/submissions/" + id(sid)),
     adminCancel: (sid) => request("POST", `/api/admin/submissions/${id(sid)}/cancel`, {}),
     adminRejudgeBulk: (which) => request("POST", "/api/admin/rejudge-bulk", { which }),
+    adminRunFull: (sid) => request("POST", `/api/admin/submissions/${id(sid)}/run-full`, {}),
+    adminRunFullBulk: (which, dryRun) => request("POST", "/api/admin/run-full-bulk" + (dryRun ? "?dry_run=1" : ""), { which }),
     adminSimilarity: (limit) => request("GET", "/api/admin/similarity" + qs({ limit })),
     adminSettings: () => request("GET", "/api/admin/settings"),
     adminSaveSettings: (set, clear) => request("POST", "/api/admin/settings", { set: set || {}, clear: clear || [] }),

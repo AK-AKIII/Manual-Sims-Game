@@ -112,7 +112,8 @@
           </form>
           <div class="adm-bulk">
             <div class="btn-row">
-              <button type="button" class="btn sm" id="sb-bulk-errored">Rejudge all errored</button>
+              <button type="button" class="btn sm primary" id="sb-bulk-runfull" title="Full copies of public submissions, run on the 50 hidden tests">Run public on hidden tests</button>
+              <button type="button" class="btn sm" id="sb-bulk-errored" title="Re-run on the same tests">Rejudge all errored</button>
               <button type="button" class="btn sm" id="sb-bulk-full">Rejudge all full submissions</button>
             </div>
             <div class="btn-row">
@@ -208,7 +209,7 @@
             <div class="field"><label for="au-action">Action</label><select id="au-action">
               <option value="">Everything</option><option value="user.">Users (all)</option><option value="user.disable">user.disable</option><option value="user.enable">user.enable</option>
               <option value="user.password">user.password</option><option value="user.admin">user.admin</option><option value="user.email">user.email</option><option value="user.delete">user.delete</option>
-              <option value="submission.">Submissions (all)</option><option value="submission.rejudge">submission.rejudge</option><option value="submission.rejudge_bulk">submission.rejudge_bulk</option>
+              <option value="submission.">Submissions (all)</option><option value="submission.rejudge">submission.rejudge</option><option value="submission.rejudge_bulk">submission.rejudge_bulk</option><option value="submission.run_full">submission.run_full</option><option value="submission.run_full_bulk">submission.run_full_bulk</option>
               <option value="submission.cancel">submission.cancel</option><option value="submission.delete">submission.delete</option>
               <option value="settings.">Settings (all)</option></select></div>
             <div class="field"><label for="au-target">Target</label><input type="text" id="au-target" autocomplete="off" spellcheck="false" placeholder="username"></div>

@@ -638,6 +638,7 @@
             <span class="dr-sub-id">#${esc(s.id)}</span>${kindTag(s.kind)}${statusBadge(s)}
             <span class="dr-sub-score num">${s.status === "done" ? (s.kind === "full" ? fmtScore(s.score) : fmtInt(s.raw_total)) : ""}</span>
             <span class="muted dr-sub-when">${when(s.created)}</span>
+            ${s.kind === "public" ? `<button type="button" class="btn sm ghost" data-run-full-sub="${s.id}" ${dis ? 'disabled title="Disabled account"' : `title="${RUN_FULL_TIP}"`} aria-label="Run submission ${s.id} on hidden tests">Hidden tests</button>` : ""}
             <button type="button" class="btn sm ghost danger" data-del-sub="${s.id}" ${s.status === "running" ? 'disabled title="Running: wait for it to finish"' : ""} aria-label="Delete submission ${s.id}">Delete</button></li>`).join("")}</ul>`
           : `<p class="muted">No submissions yet.</p>`}`;
     },
@@ -752,10 +753,41 @@
         const a = ev.target.closest("[data-act]");
         if (a && !a.disabled) { this.act(a.dataset.act, a); return; }
         const del = ev.target.closest("[data-del-sub]");
-        if (del && !del.disabled) this.deleteSub(Number(del.dataset.delSub));
+        if (del && !del.disabled) { this.deleteSub(Number(del.dataset.delSub)); return; }
+        const rf = ev.target.closest("[data-run-full-sub]");
+        if (rf && !rf.disabled && this.user) {
+          runFull(Number(rf.dataset.runFullSub), this.user.username, () => this.focusInside())
+            .then((r) => { if (r) { submissionsSec.dirty = true; return this.load(); } return null; }).catch(() => {});
+        }
       });
     },
   };
+
+  // "Run on hidden tests": a new full submission with a public one's code (API.md run-full)
+  const RUN_FULL_TIP = "Creates a full submission with the same code, run on the hidden tests";
+  const REJUDGE_TIP = "Re-run on the same tests (public = 10, full = 50)";
+  function showSubmission(id, username) {
+    if (drawer.el().open) drawer.close();
+    submissionsSec.setFilters({ user: username || "" });
+    submissionsSec.open.add(id);
+    submissionsSec.details.delete(id);
+    selectTab("submissions", { focusPanel: true });
+    submissionsSec.loadDetail(id);
+  }
+  function runFullToast(r, username) {
+    const el = toast("ok", `Full submission <b>#${esc(r.id)}</b> queued for ${esc(username)}. <a href="#submissions" class="toast-link" data-show-sub="${esc(r.id)}">Open it</a>`, { html: true, ms: 7000 });
+    const a = el.querySelector("[data-show-sub]");
+    if (a) a.addEventListener("click", (ev) => { ev.preventDefault(); showSubmission(r.id, username); });
+  }
+  async function runFull(id, username, returnFocus) {
+    const r = await UI.dialog({
+      title: `Run #${id} on hidden tests?`, confirmLabel: "Run on hidden tests", returnFocus,
+      html: `<p>Creates a full submission for <b>${esc(username)}</b> with the same code; it counts on the leaderboard.</p>`,
+      onConfirm: () => API.adminRunFull(id),
+    });
+    if (r) runFullToast(r, username);
+    return r;
+  }
 
   // ================================================================== SUBMISSIONS
   const submissionsSec = {
@@ -830,7 +862,7 @@
       const user = `<button type="button" class="linkish" data-user-open="${esc(s.user_id)}" title="Open ${esc(s.username)}">${esc(s.username || "?")}</button>${s.user_disabled ? ` <span class="badge-disabled">disabled</span>` : ""}`;
       const actions = `<td class="r nw act-cell">` +
         (s.status === "queued" ? `<button type="button" class="btn sm" data-cancel="${s.id}" aria-label="Cancel submission ${s.id}">Cancel</button> ` : "") +
-        `<button type="button" class="btn sm" data-rejudge="${s.id}" ${ACTIVE(s) ? "disabled" : ""} aria-label="Rejudge submission ${s.id}">Rejudge</button> ` +
+        `<button type="button" class="btn sm" data-rejudge="${s.id}" ${ACTIVE(s) ? "disabled" : ""} title="${REJUDGE_TIP}" aria-label="Rejudge submission ${s.id}">Rejudge</button> ` +
         `<button type="button" class="btn sm danger" data-delete="${s.id}" ${s.status === "running" ? 'disabled title="Running: wait for it to finish"' : ""} aria-label="Delete submission ${s.id}">Delete</button></td>`;
       return `<td>${exp}</td><td class="user">${user}</td><td class="opt">${kindTag(s.kind)}</td><td>${statusBadge(s)}</td><td class="r">${scoreCell(s)}</td>` +
         `<td class="r opt nw">${testsCell(s)}</td><td class="r opt nw">${when(s.created)}</td>${actions}`;
@@ -858,8 +890,15 @@
         stats.push(["Raw total", fmtInt(d.raw_total)], ["Tests passed", `${fmtInt(d.tests_ac)} / ${fmtInt(tot)}`], ["Slowest test", fmtSecs(d.max_time)]);
       }
       stats.push(["Submitted", fullDate(d.created)]);
+      if (s.copied_from) stats.push(["Copied from", `public #${s.copied_from}`]);
       if (d.started) stats.push(["Started", fullDate(d.started)]);
       if (d.finished) stats.push(["Finished", fullDate(d.finished)]);
+      if (s.kind === "public") {
+        out += `<div class="btn-row sb-detail-actions">
+          <button type="button" class="btn sm" data-rejudge="${s.id}" ${ACTIVE(s) ? "disabled" : ""} title="${REJUDGE_TIP}">Rejudge</button>
+          <button type="button" class="btn sm primary" data-run-full="${s.id}" ${s.user_disabled ? 'disabled title="Disabled account"' : `title="${RUN_FULL_TIP}"`}>Run on hidden tests</button>
+          <span class="muted">Rejudge reruns the public seeds. Hidden tests makes a new full submission.</span></div>`;
+      }
       out += `<div class="detail-stats">${stats.map(([k, v]) => `<div class="fact"><div class="k">${esc(k)}</div><div class="v" style="font-size:16px">${esc(v)}</div></div>`).join("")}</div>`;
       if (tot && results.length) {
         const chips = results.map((r) => {
@@ -917,6 +956,45 @@
         schedule();
       }
     },
+    async bulkRunFull() {
+      const label = { all_public: "every public submission", latest_public: "each student's latest public submission" };
+      let which = "latest_public", seq = 0;
+      const count = async (api) => {
+        const n = ++seq, out = api.el.querySelector("#dlg-rf-count");
+        out.textContent = "Counting…";
+        if (api.ok) api.ok.disabled = true;
+        try {
+          const d = await API.adminRunFullBulk(which, true);
+          if (n !== seq) return;
+          out.innerHTML = d.count
+            ? `Creates <b>${fmtInt(d.count)}</b> full submission${d.count === 1 ? "" : "s"}${d.skipped ? ` · ${fmtInt(d.skipped)} already copied, skipped` : ""}.`
+            : `Nothing to run${d.skipped ? `: all ${fmtInt(d.skipped)} already copied` : ""}.`;
+          if (api.ok) api.ok.disabled = !d.count;
+        } catch (e) { if (n === seq) out.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+      };
+      const r = await UI.dialog({
+        title: "Run public on hidden tests", confirmLabel: "Run on hidden tests",
+        html: `<p style="margin-top:0">Queues a full copy of <span id="dlg-rf-what">${label[which]}</span>, for active students. It counts on the leaderboard; each student keeps their best.</p>
+          <div class="rf-choice" role="radiogroup" aria-label="Which public submissions">
+            <label><input type="radio" name="dlg-rf" value="latest_public" checked> Latest per student</label>
+            <label><input type="radio" name="dlg-rf" value="all_public"> All public</label>
+          </div>
+          <p class="muted" id="dlg-rf-count" aria-live="polite" style="margin-bottom:0">Counting…</p>`,
+        onOpen: (api) => {
+          api.el.querySelectorAll("input[name=dlg-rf]").forEach((i) => i.addEventListener("change", () => {
+            which = i.value; api.el.querySelector("#dlg-rf-what").textContent = label[which]; count(api);
+          }));
+          count(api);
+        },
+        onConfirm: () => API.adminRunFullBulk(which, false),
+        returnFocus: () => $("ap-submissions").focus(),
+      });
+      if (r) {
+        toast(r.count ? "ok" : "info", r.count ? `${fmtInt(r.count)} full submission${r.count === 1 ? "" : "s"} queued${r.skipped ? ` · ${fmtInt(r.skipped)} skipped` : ""}.` : "Nothing to run.");
+        await this.refresh().catch(() => {});
+        schedule();
+      }
+    },
     wire() {
       const tz = tzLabel();
       document.querySelectorAll(".tz-hint").forEach((el) => { el.textContent = tz.replace(/ \(.*\)$/, "") === tz ? tz : tz.match(/\((.*)\)/)[1]; el.title = tz; });
@@ -932,6 +1010,7 @@
       $("sb-zip-pick").addEventListener("change", () => { $("sb-zip").href = "/api/admin/submissions.zip?pick=" + encodeURIComponent($("sb-zip-pick").value); });
       $("sb-bulk-errored").addEventListener("click", () => this.bulk("errored"));
       $("sb-bulk-full").addEventListener("click", () => this.bulk("full"));
+      $("sb-bulk-runfull").addEventListener("click", () => this.bulkRunFull());
       const table = $("sb-table");
       table.addEventListener("toggle", (ev) => {
         const det = ev.target;
@@ -957,6 +1036,14 @@
           busy(rj, true);
           try { await API.rejudge(id); toast("ok", `Submission #${id} is queued for rejudging.`); this.details.delete(id); await this.refresh(); schedule(); }
           catch (e) { if (!authLost(e)) toast("bad", e.message); busy(rj, false); }
+          return;
+        }
+        const rf = ev.target.closest("[data-run-full]");
+        if (rf) {
+          const id = Number(rf.dataset.runFull);
+          const s = this.list.find((x) => x.id === id);
+          const r = await runFull(id, s ? s.username : "this student", () => $("ap-submissions").focus());
+          if (r) { await this.refresh().catch(() => {}); schedule(); }
           return;
         }
         const cn = ev.target.closest("[data-cancel]");

@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS submissions (
     max_time REAL,
     tests_ac INTEGER,
     tests_total INTEGER,
-    tests_done INTEGER NOT NULL DEFAULT 0
+    tests_done INTEGER NOT NULL DEFAULT 0,
+    copied_from INTEGER
 );
 CREATE TABLE IF NOT EXISTS results (
     submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
@@ -156,12 +157,15 @@ MIGRATIONS = [
     ("users", "disabled_at", "TEXT"),
     ("users", "disabled_reason", "TEXT"),
     ("users", "email", "TEXT"),
+    # A full submission an admin made from a public one (admin run-full): the public id.
+    ("submissions", "copied_from", "INTEGER"),
 ]
 
 # Run after MIGRATIONS (they may refer to migrated columns). Emails are stored
 # lowercase, so a plain unique index is case-insensitive; old accounts have NULL.
 POST_MIGRATION = [
     "CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email) WHERE email IS NOT NULL",
+    "CREATE INDEX IF NOT EXISTS submissions_copied_from ON submissions(copied_from) WHERE copied_from IS NOT NULL",
 ]
 
 

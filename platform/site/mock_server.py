@@ -697,6 +697,7 @@ class State:
             out["username"] = sub["user"]
             out["user_id"] = self.users[sub["user"]]["id"] if sub["user"] in self.users else None
             out["user_disabled"] = not self.active(sub["user"])
+            out["copied_from"] = sub.get("copied_from")
         return out, res
 
     def detail(self, sub, admin):
@@ -765,6 +766,13 @@ class State:
         sub["created_t"] = time.time()
         sub["rejudged"] = sub.get("rejudged", 0) + 1
         self.bump()
+
+    def run_full(self, src):
+        """A queued full copy of public submission `src` (API.md run-full). The real server
+        keeps the original's created time; the mock uses now because its queue runs on it."""
+        sub = self.new_sub(src["user"], "full", src["source"])
+        sub["copied_from"] = src["id"]
+        return sub
 
     def overview(self):
         now = time.time()
@@ -1549,6 +1557,40 @@ class Handler(SimpleHTTPRequestHandler):
                 st.rejudge(st.sub(sid))
             st.log(me, "submission.rejudge_bulk", None, {"which": which, "count": len(ids)})
             return self.send_json(200, {"count": len(ids), "ids": ids})
+        if method == "POST" and parts[0] == "submissions" and len(parts) == 3 and parts[2] == "run-full":
+            sub = st.sub(int_arg(parts[1]))
+            if not sub:
+                return self.err(404, "submission not found")
+            if sub["kind"] == "full":
+                return self.err(400, "this is already a full submission; use rejudge to run it again")
+            if not st.active(sub["user"]):
+                return self.err(409, f"{sub['user']} is disabled; enable the account first")
+            new = st.run_full(sub)
+            st.log(me, "submission.run_full", sub["user"], {"from_id": sub["id"], "new_id": new["id"]})
+            return self.send_json(200, {"id": new["id"], "from": sub["id"], "status": "queued"})
+        if method == "POST" and path == "/api/admin/run-full-bulk":
+            b = self.body()
+            which = b.get("which") if isinstance(b, dict) else None
+            if which not in ("all_public", "latest_public"):
+                return self.err(400, "which must be 'all_public' or 'latest_public'")
+            dry = self.query().get("dry_run", "") in ("1", "true")
+            cands = [x for x in sorted(st.subs, key=lambda x: x["id"])
+                     if x["kind"] == "public" and x["user"] in st.users and st.active(x["user"])]
+            if which == "latest_public":
+                latest = {}
+                for x in cands:
+                    latest[x["user"]] = x
+                cands = sorted(latest.values(), key=lambda x: x["id"])
+            copied = {x.get("copied_from") for x in st.subs if x["kind"] == "full"}
+            todo = [x for x in cands if x["id"] not in copied]
+            skipped = len(cands) - len(todo)
+            if dry:
+                return self.send_json(200, {"count": len(todo), "ids": [], "skipped": skipped, "dry_run": True,
+                                            "from_ids": [x["id"] for x in todo]})
+            new = [st.run_full(x) for x in todo]
+            st.log(me, "submission.run_full_bulk", None, {"which": which, "count": len(new), "skipped": skipped,
+                                                          "pairs": [[a["id"], n["id"]] for a, n in zip(todo, new)][:200]})
+            return self.send_json(200, {"count": len(new), "ids": [n["id"] for n in new], "skipped": skipped})
         if parts[0] == "submissions" and len(parts) >= 2 and parts[1] != "submissions.zip":
             sub = st.sub(int_arg(parts[1]))
             if not sub:

@@ -318,3 +318,64 @@ def rejudge_bulk(conn, actor, which):
     audit(conn, actor, "submission.rejudge_bulk", None,
           {"which": which, "count": len(ids), "ids": ids[:200], "ids_truncated": len(ids) > 200})
     return ids
+
+
+
+def _copy_as_full(conn, settings, src):
+    """Insert a queued full submission with `src`'s user and source (copied_from = src);
+    returns the new id.
+
+    It keeps the original's `created` time: the code was submitted then, so the copy
+    ranks (tie-break) and counts across a freeze as if it had been a full submission
+    from the start."""
+    return conn.execute(
+        "INSERT INTO submissions(user_id, kind, source, created, status, tests_total, tests_done, copied_from) "
+        "SELECT user_id, 'full', source, created, 'queued', ?, 0, id FROM submissions WHERE id = ?",
+        (len(settings.seeds_for("full")), src)).lastrowid
+
+
+def run_full(conn, settings, actor, sid):
+    """Queue a full (hidden tests) copy of public submission `sid`; returns the new id.
+    Bypasses the hourly full limit, the one-waiting-per-user rule and the contest window."""
+    r = _get_sub(conn, sid)
+    if r["kind"] == "full":
+        raise AdminError(400, "this is already a full submission; use rejudge to run it again")
+    if conn.execute("SELECT disabled_at FROM users WHERE id = ?", (r["user_id"],)).fetchone()["disabled_at"]:
+        raise AdminError(409, f"{r['username']} is disabled; enable the account first")
+    new = _copy_as_full(conn, settings, sid)
+    audit(conn, actor, "submission.run_full", r["username"], {"from_id": sid, "new_id": new})
+    return new
+
+
+RUN_FULL_WHICH = ("all_public", "latest_public")
+
+
+def run_full_candidates(conn, which):
+    """Public submissions of active users that run_full_bulk(which) considers, as
+    (id, already_copied) in id order. `already_copied`: some full submission has
+    copied_from = id (made earlier by run-full or run-full-bulk)."""
+    if which not in RUN_FULL_WHICH:
+        raise AdminError(400, "which must be 'all_public' or 'latest_public'")
+    pick = ("s.id = (SELECT MAX(id) FROM submissions WHERE user_id = s.user_id AND kind = 'public')"
+            if which == "latest_public" else "1 = 1")
+    rows = conn.execute(
+        "SELECT s.id, EXISTS (SELECT 1 FROM submissions c WHERE c.copied_from = s.id AND c.kind = 'full') AS done "
+        f"FROM submissions s JOIN users u ON u.id = s.user_id WHERE s.kind = 'public' AND u.disabled_at IS NULL "
+        f"AND {pick} ORDER BY s.id").fetchall()
+    return [(r["id"], bool(r["done"])) for r in rows]
+
+
+def run_full_bulk(conn, settings, actor, which, dry_run=False):
+    """Queue a full copy of each candidate public submission that has none yet.
+    Returns (new_ids, would_copy_ids, skipped); with dry_run nothing is written and
+    new_ids is empty."""
+    cands = run_full_candidates(conn, which)
+    todo = [sid for sid, done in cands if not done]
+    skipped = len(cands) - len(todo)
+    if dry_run:
+        return [], todo, skipped
+    new = [_copy_as_full(conn, settings, sid) for sid in todo]
+    audit(conn, actor, "submission.run_full_bulk", None,
+          {"which": which, "count": len(new), "skipped": skipped,
+           "pairs": [[a, b] for a, b in zip(todo, new)][:200], "pairs_truncated": len(new) > 200})
+    return new, todo, skipped

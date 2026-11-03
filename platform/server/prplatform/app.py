@@ -490,10 +490,11 @@ def admin_routes(app, settings, get_conn, get_cfg, require_admin, sub_json, SUB_
             item["username"] = r["username"]
             item["user_id"] = r["user_id"]
             item["user_disabled"] = bool(r["disabled_at"])
+            item["copied_from"] = r["copied_from"]
             out.append(item)
         return out
 
-    ADMIN_SUB_SELECT = (f"SELECT {SUB_COLS}, u.username, u.disabled_at FROM submissions s "
+    ADMIN_SUB_SELECT = (f"SELECT {SUB_COLS}, s.copied_from, u.username, u.disabled_at FROM submissions s "
                         "JOIN users u ON u.id = s.user_id")
 
     def parse_query_time(text, name):
@@ -694,6 +695,23 @@ def admin_routes(app, settings, get_conn, get_cfg, require_admin, sub_json, SUB_
         with db.transaction(conn, immediate=True):
             ids = admin_ops.rejudge_bulk(conn, actor_of(admin), body.which)
         return {"count": len(ids), "ids": ids}
+
+    @app.post("/api/admin/submissions/{sub_id}/run-full")
+    def admin_run_full(sub_id: int, admin=Depends(require_admin), conn=Depends(get_conn)):
+        with db.transaction(conn, immediate=True):
+            new = admin_ops.run_full(conn, settings, actor_of(admin), sub_id)
+        return {"id": new, "from": sub_id, "status": "queued"}
+
+    @app.post("/api/admin/run-full-bulk")
+    def admin_run_full_bulk(body: BulkBody, dry_run: bool = False, admin=Depends(require_admin),
+                            conn=Depends(get_conn)):
+        with db.transaction(conn, immediate=True):
+            ids, todo, skipped = admin_ops.run_full_bulk(conn, settings, actor_of(admin), body.which, dry_run)
+        out = {"count": len(todo), "ids": ids, "skipped": skipped}
+        if dry_run:
+            out["dry_run"] = True
+            out["from_ids"] = todo
+        return out
 
     @app.get("/api/admin/submissions.zip")
     def admin_zip(pick: str = "best", admin=Depends(require_admin), conn=Depends(get_conn)):

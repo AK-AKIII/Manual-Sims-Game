@@ -107,7 +107,7 @@ All JSON. Errors: `{"error": "human readable message"}` with a 4xx/5xx status. S
 | `GET /api/submissions/{id}` | | the row above plus `source` and `results`. For **public** submissions results are per seed `{seed, verdict, score, cleared, time, message}`; for **full** submissions results are anonymised `{test: 1..N, verdict, time}` (no seeds, no scores) so hidden seeds stay hidden; admins also get `seed, score, cleared, message` and, once the submission is done, `best` (the best raw on that seed) and `relative_pct` (`100 × score / best`, 2 decimals; 0 when best is 0). Own submissions only, admins any. `position` = place in queue while queued |
 | `GET /api/leaderboard` | | `{frozen: bool, rows: [{rank, username, score, relative_total, raw_total, tests_ac, submitted, submissions}]}` (`score` 0–100, 2 decimals) |
 | `GET /api/admin/submissions` | | admin only: all submissions with username (see Admin API for filters) |
-| `POST /api/admin/rejudge/{id}` | | admin only: back to queued, results cleared. 200 `{id, status}`; 409 while running |
+| `POST /api/admin/rejudge/{id}` | | admin only: back to queued, results cleared, on the same tests as its kind (public = public seeds, full = hidden). 200 `{id, status}`; 409 while running. To run a public submission on the hidden tests use `POST /api/admin/submissions/{id}/run-full` |
 
 ## Admin API
 
@@ -115,7 +115,7 @@ Every `/api/admin/*` endpoint: 401 when signed out, 403 for non-admins, CSRF hea
 
 **User row** (`U`): `{id, username, email, created, is_admin, admin_env: bool (listed in PR_ADMINS), status: "active"|"disabled", disabled_at, disabled_reason, last_login, public_submissions, full_submissions, best_score (0–100; null without a finished full run), best_relative_total (null likewise), best_submission_id, rank (null when unranked or disabled; same ranks as the live leaderboard), last_submission (ISO or null)}`.
 
-**Admin submission row** (`S`): the `GET /api/submissions` row plus `username, user_id, user_disabled: bool`.
+**Admin submission row** (`S`): the `GET /api/submissions` row plus `username, user_id, user_disabled: bool, copied_from` (the public submission id a full row was made from by run-full, else null).
 
 | Method, path | Body / query | Response |
 | --- | --- | --- |
@@ -133,6 +133,8 @@ Every `/api/admin/*` endpoint: 401 when signed out, 403 for non-admins, CSRF hea
 | `DELETE /api/admin/submissions/{id}` | | `{deleted: id}`; removes the source and results. 409 while it is running (cancel isn't possible mid-run; wait for it to finish). The audit row keeps username, id, kind, status, raw total, relative total and score |
 | `POST /api/admin/submissions/{id}/cancel` | | `S` with status `error` and error `cancelled by an admin`; 409 unless queued |
 | `POST /api/admin/rejudge-bulk` | `{which: "errored"\|"full"}` | `{count, ids}`. `errored`: every submission in status `error` except cancelled ones; `full`: every full submission that is `done` or `error` (not cancelled). Submissions of disabled users are skipped; running/queued ones are left alone |
+| `POST /api/admin/submissions/{id}/run-full` | | 200 `{id, from, status: "queued"}`: a NEW full submission (hidden tests) for the same user with the same source, `copied_from` = `{id}`, `created` copied from the original (so it ranks and counts across a freeze as if submitted then). The original is untouched. Not limited by `PR_FULL_PER_HOUR`, the one-waiting-per-user rule or the contest window; it counts on the leaderboard as the user's. 400 if `{id}` is already full (use rejudge); 409 if the user is disabled. Repeating it on the same public submission makes another copy. Audit `submission.run_full` (target username, `{from_id, new_id}`) |
+| `POST /api/admin/run-full-bulk` | `{which: "all_public"\|"latest_public"}`, `?dry_run=1` | `{count, ids, skipped}`: queues a full copy (as run-full) of every public submission of an active user (`all_public`) or of each active user's latest public submission (`latest_public`), skipping public submissions that already have a full copy (`skipped` counts those). `dry_run=1` writes nothing and returns `{count, ids: [], skipped, dry_run: true, from_ids}` (`count` = how many would be created). Audit `submission.run_full_bulk` (`{which, count, skipped, pairs: [[from, new]...]}`) |
 | `GET /api/admin/submissions.zip` | `?pick=best\|latest` | ZIP attachment: per student one `<username>.py`: their best finished full submission by score (`best`) or their latest full submission (`latest`), plus `manifest.csv` (username, account active/disabled, file, submission_id, created, status, score, relative_total, raw_total) |
 | `GET /api/admin/leaderboard.csv` | `?view=live\|public` | CSV attachment: `rank, username, score, relative_total, raw_total, tests_ac, submissions, best_submission_id, best_submitted` (`score` 0–100 is the contest score; `relative_total` stays as a secondary column for exact tie-checking). `public` is what students see (frozen during a freeze) |
 | `GET /api/admin/similarity` | `?limit=50` (1-500) | `{pairs: [{a: {username, submission_id}, b: {...}, similarity (0-1), shared, a_size, b_size}], compared, skipped, truncated: bool, method}` most similar first; see Similarity below |
@@ -143,7 +145,7 @@ Every `/api/admin/*` endpoint: 401 when signed out, 403 for non-admins, CSRF hea
 
 Editable settings (env default in brackets): `name` [PR_CONTEST_NAME] 1-80 chars; `start`, `end`, `freeze` [PR_START/PR_END/PR_FREEZE] ISO 8601 or null for "unset" (stored UTC; `start < end`, and `freeze` must be at or after `start` and before `end` when those are set); `invite` [PR_INVITE] "" = open registration, else 4-64 printable characters; `full_per_hour` [PR_FULL_PER_HOUR] integer 0-1000; `announcement` [""] ≤ 500 chars; `announcement_on` [false] bool. Hidden/public seeds, time limit, memory and source size stay env-only (changing them would invalidate scores). The api reads overrides on every request; the worker doesn't use any of them. Audit `details` for `settings.update` is `{KEY: [old, new]}`, with invite codes masked (`ab…yz`, or `(open)`).
 
-Audit actions: `user.disable`, `user.enable`, `user.delete`, `user.password`, `user.admin`, `user.email`, `submission.delete`, `submission.cancel`, `submission.rejudge`, `submission.rejudge_bulk`, `settings.update`, `settings.invite`. The CLI writes them with actor `(cli)`.
+Audit actions: `user.disable`, `user.enable`, `user.delete`, `user.password`, `user.admin`, `user.email`, `submission.delete`, `submission.cancel`, `submission.rejudge`, `submission.rejudge_bulk`, `submission.run_full`, `submission.run_full_bulk`, `settings.update`, `settings.invite`. The CLI writes them with actor `(cli)`.
 
 ### Rules for user actions
 

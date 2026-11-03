@@ -58,7 +58,8 @@ class PermissionTest(AdminBase):
         ("POST", "/api/admin/users/1/email"), ("DELETE", "/api/admin/users/1"),
         ("GET", "/api/admin/submissions"), ("DELETE", "/api/admin/submissions/1"),
         ("POST", "/api/admin/submissions/1/cancel"), ("POST", "/api/admin/rejudge/1"),
-        ("POST", "/api/admin/rejudge-bulk"), ("GET", "/api/admin/submissions.zip"),
+        ("POST", "/api/admin/rejudge-bulk"), ("POST", "/api/admin/submissions/1/run-full"),
+        ("POST", "/api/admin/run-full-bulk"), ("GET", "/api/admin/submissions.zip"),
         ("GET", "/api/admin/leaderboard.csv"), ("GET", "/api/admin/similarity"), ("GET", "/api/admin/settings"),
         ("POST", "/api/admin/settings"), ("POST", "/api/admin/settings/invite/regenerate"),
         ("GET", "/api/admin/audit"),
@@ -98,7 +99,8 @@ class PermissionTest(AdminBase):
                                    ("DELETE", "/api/admin/users/999", {"confirm": "x"}),
                                    ("DELETE", "/api/admin/submissions/999", None),
                                    ("POST", "/api/admin/submissions/999/cancel", None),
-                                   ("POST", "/api/admin/rejudge/999", None)]:
+                                   ("POST", "/api/admin/rejudge/999", None),
+                                   ("POST", "/api/admin/submissions/999/run-full", None)]:
             r = self.boss.request(method, path, json=body)
             self.assertEqual(r.status_code, 404, (method, path, r.text))
             self.assertIn("not found", r.json()["error"])
@@ -110,6 +112,7 @@ class PermissionTest(AdminBase):
         self.assertEqual(self.boss.post(f"/api/admin/users/{a}/admin", json={"is_admin": "yes"}).status_code, 400)
         self.assertEqual(self.boss.post(f"/api/admin/users/{a}/disable", json={"reason": "x" * 201}).status_code, 400)
         self.assertEqual(self.boss.post("/api/admin/rejudge-bulk", json={"which": "all"}).status_code, 400)
+        self.assertEqual(self.boss.post("/api/admin/run-full-bulk", json={"which": "all"}).status_code, 400)
         for q in ({"kind": "x"}, {"status": "x"}, {"verdict": "OK"}, {"since": "yesterday"}):
             self.assertEqual(self.boss.get("/api/admin/submissions", params=q).status_code, 400, q)
         self.assertEqual(self.boss.get("/api/admin/submissions.zip?pick=worst").status_code, 400)
@@ -481,6 +484,113 @@ class SubmissionAdminTest(AdminBase):
         self.boss.post(f"/api/admin/users/{self.uid('alice')}/disable")
         rows = list(csv.reader(io.StringIO(self.boss.get("/api/admin/leaderboard.csv?view=public").text)))
         self.assertEqual([r[1] for r in rows[1:]], ["bob"])
+
+
+class RunFullTest(AdminBase):
+    def setUp(self):
+        super().setUp()
+        self.alice = self.user_client("alice")
+        self.bob = self.user_client("bob")
+
+    def sub_row(self, sid):
+        return self.conn.execute("SELECT * FROM submissions WHERE id = ?", (sid,)).fetchone()
+
+    def test_run_full_creates_copy(self):
+        p = self.submit("public", STARTER, client=self.alice)
+        self.judge_all()
+        before = dict(self.sub_row(p))
+        # the user has a submission waiting: that doesn't block it
+        busy = self.submit("public", WA_SOLVER, client=self.alice)
+        r = self.boss.post(f"/api/admin/submissions/{p}/run-full")
+        self.assertEqual(r.status_code, 200, r.text)
+        new = r.json()["id"]
+        self.assertEqual(r.json(), {"id": new, "from": p, "status": "queued"})
+        n = self.sub_row(new)
+        self.assertEqual((n["kind"], n["status"], n["user_id"], n["source"], n["tests_total"], n["copied_from"],
+                          n["created"]),
+                         ("full", "queued", before["user_id"], STARTER, len(self.settings.hidden_seeds), p,
+                          before["created"]))
+        self.assertEqual(dict(self.sub_row(p)), before)  # original untouched
+        self.assertEqual(self.board(), [])
+        self.judge_all()
+        self.assertEqual(self.sub_row(new)["status"], "done")
+        self.assertEqual(self.sub_row(busy)["status"], "done")
+        self.assertEqual([b[:2] for b in self.board()], [("alice", 1)])
+        self.assertEqual(self.detail(new, client=self.alice)["kind"], "full")  # the user sees it as theirs
+        self.assertEqual(len(self.detail(new, client=self.alice)["results"]), len(self.settings.hidden_seeds))
+        e = self.audit(action="submission.run_full")[0]
+        self.assertEqual((e["target"], e["details"]), ("alice", {"from_id": p, "new_id": new}))
+        rows = self.boss.get("/api/admin/submissions", params={"kind": "full"}).json()
+        self.assertEqual(rows[0]["copied_from"], p)
+
+    def test_refusals(self):
+        f = self.fake_full("alice", [1, 1, 1])
+        r = self.boss.post(f"/api/admin/submissions/{f}/run-full")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("already a full", r.json()["error"])
+        p = self.submit("public", STARTER, client=self.bob)
+        self.judge_all()
+        self.boss.post(f"/api/admin/users/{self.uid('bob')}/disable")
+        r = self.boss.post(f"/api/admin/submissions/{p}/run-full")
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("disabled", r.json()["error"])
+        self.assertEqual(self.audit(action="submission.run_full"), [])
+
+    def test_ignores_contest_window_and_hourly_limit(self):
+        self.boss.post("/api/admin/settings", json={"set": {"full_per_hour": 0,
+                                                            "end": iso_offset(minutes=-1),
+                                                            "start": iso_offset(hours=-2)}})
+        p = self.submit("public", STARTER, client=self.alice)
+        self.submit("full", STARTER, client=self.alice, expect=403)
+        self.judge_all()
+        self.assertEqual(self.boss.post(f"/api/admin/submissions/{p}/run-full").status_code, 200)
+
+    def bulk(self, which, dry=False):
+        r = self.boss.post("/api/admin/run-full-bulk" + ("?dry_run=1" if dry else ""), json={"which": which})
+        self.assertEqual(r.status_code, 200, r.text)
+        return r.json()
+
+    def test_bulk_modes_and_dedupe(self):
+        a1 = self.submit("public", WA_SOLVER, client=self.alice)
+        self.judge_all()
+        a2 = self.submit("public", STARTER, client=self.alice)
+        self.judge_all()
+        b1 = self.submit("public", STARTER, client=self.bob)
+        self.judge_all()
+        carol = self.user_client("carol")
+        c1 = self.submit("public", STARTER, client=carol)
+        self.judge_all()
+        self.boss.post(f"/api/admin/users/{self.uid('carol')}/disable")
+        self.fake_full("bob", [1, 1, 1])  # having a full already doesn't matter
+        # dry run writes nothing
+        d = self.bulk("latest_public", dry=True)
+        self.assertEqual((d["count"], d["ids"], d["skipped"], d["from_ids"], d["dry_run"]), (2, [], 0, [a2, b1], True))
+        self.assertEqual(self.audit(action="submission.run_full_bulk"), [])
+        r = self.bulk("latest_public")
+        self.assertEqual((r["count"], r["skipped"], len(r["ids"])), (2, 0, 2))
+        self.assertEqual([self.sub_row(i)["copied_from"] for i in r["ids"]], [a2, b1])
+        # pressing it again creates nothing
+        self.assertEqual(self.bulk("latest_public"), {"count": 0, "ids": [], "skipped": 2})
+        # all_public adds only alice's older one (carol is disabled)
+        self.assertEqual(self.bulk("all_public", dry=True)["from_ids"], [a1])
+        r = self.bulk("all_public")
+        self.assertEqual((r["count"], r["skipped"]), (1, 2))
+        self.assertEqual(self.sub_row(r["ids"][0])["copied_from"], a1)
+        self.assertEqual(self.bulk("all_public"), {"count": 0, "ids": [], "skipped": 3})
+        self.assertNotIn(c1, [x["copied_from"] for x in self.boss.get("/api/admin/submissions").json()])
+        # a single run-full also counts as a copy for the dedupe
+        self.judge_all()
+        a3 = self.submit("public", STARTER, client=self.alice)
+        self.judge_all()
+        self.boss.post(f"/api/admin/submissions/{a3}/run-full")
+        self.assertEqual(self.bulk("all_public")["count"], 0)
+        self.judge_all()
+        self.assertEqual([b[:2] for b in self.board()], [("alice", 1), ("bob", 2)])
+        e = self.audit(action="submission.run_full_bulk")
+        self.assertEqual([(x["details"]["which"], x["details"]["count"], x["details"]["skipped"]) for x in e],
+                         [("all_public", 0, 4), ("all_public", 0, 3), ("all_public", 1, 2),
+                          ("latest_public", 0, 2), ("latest_public", 2, 0)])
+        self.assertEqual(e[-1]["details"]["pairs"][0][0], a2)
 
 
 class FreezeExportTest(AdminBase):
