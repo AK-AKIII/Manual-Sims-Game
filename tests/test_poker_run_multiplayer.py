@@ -50,6 +50,15 @@ class TestMultiplayer(unittest.TestCase):
         cls.out = json.loads(proc.stdout)
         cls.inputs = {s: format_instance(generate(s)) for s in SEEDS}
 
+    @classmethod
+    def js_bot(cls, seed, rules, level):
+        if not hasattr(cls, "out"):
+            cls.setUpClass()
+        for b in cls.out["bots"]:
+            if (b["seed"], b["rules"], b["level"]) == (seed, rules, level):
+                return b["moves"]
+        raise KeyError((seed, rules, level))
+
     def test_driver_errors(self):
         self.assertEqual(self.out["errors"], [])
 
@@ -72,7 +81,8 @@ class TestMultiplayer(unittest.TestCase):
             if b["level"] == "normal":
                 self.assertEqual(b["moves"], solve(generate(b["seed"]), b["rules"]), (b["rules"], b["seed"]))
 
-    def test_hotseat_games_are_independent(self):
+    def test_rounds_games_are_independent(self):
+        """The engine's `rounds` mode (online Rounds rooms; it was the old same-device pass & play)."""
         for h in self.out["hotseat"]:
             self.assertTrue(h["distinct"])
             self.assertEqual(h["moves"], h["solo"], (h["rules"], h["seed"]))
@@ -139,6 +149,115 @@ class TestMultiplayer(unittest.TestCase):
         self.assertEqual(s["claimAfterSell"], -1)         # selling returns it
 
 
+PARITY_DRIVER = WEB / "draft_parity_driver.js"
+PARITY_CASES = [
+    {"seed": 3, "rules": "classic", "mode": "draft", "players": [{"name": "Ann"}, {"name": "Ben"}, {"name": "Cy", "bot": "hard"}], "rng": 5},
+    {"seed": 8, "rules": "balanced", "mode": "draft", "players": [{"name": "A"}, {"name": "B"}, {"name": "C"}, {"name": "D", "bot": "easy"}], "rng": 9},
+    {"seed": 21, "rules": "classic", "mode": "draft", "players": [{"name": "A"}, {"name": "B"}], "rng": 2},
+    {"seed": 22, "rules": "balanced", "mode": "draft", "players": [{"name": "A", "bot": "normal"}, {"name": "B"}, {"name": "C", "bot": "normal"}], "rng": 3},
+    {"seed": 40, "rules": "classic", "mode": "draft", "players": [{"name": "A"}, {"name": "B"}, {"name": "C"}], "rng": 11},
+    {"seed": 41, "rules": "classic", "mode": "rounds", "players": [{"name": "A"}, {"name": "B"}, {"name": "C", "bot": "easy"}], "rng": 4},
+    {"seed": 42, "rules": "balanced", "mode": "race", "players": [{"name": "A"}, {"name": "B"}, {"name": "Bot", "bot": "hard"}], "rng": 6},
+] + [{"seed": 100 + k, "rules": ("classic", "balanced")[k % 2], "mode": "draft",
+      "players": [{"name": f"P{i}", **({"bot": ("easy", "normal", "hard")[(k + i) % 3]} if (k + i) % 4 == 0 else {})}
+                  for i in range(2 + k % 3)], "rng": 50 + k} for k in range(9)]
+
+
+@unittest.skipIf(NODE is None, "node is not on PATH; install Node.js to run the multiplayer tests")
+class TestPythonPort(unittest.TestCase):
+    """poker_run/multiplayer.py and poker_run/bot.py (the online rooms' authority) agree with
+    multiplayer.js and bot.js: the same move attempts give the same outcomes, errors, turns,
+    shop orders, drafted modifiers, bot moves and standings."""
+
+    @classmethod
+    def setUpClass(cls):
+        proc = subprocess.run([NODE, str(PARITY_DRIVER), json.dumps({"cases": PARITY_CASES})],
+                              capture_output=True, text=True, timeout=600, cwd=str(WEB))
+        if proc.returncode != 0:
+            raise AssertionError(f"node driver failed:\n{proc.stderr}")
+        cls.runs = json.loads(proc.stdout)
+
+    def test_bots_match_bot_js(self):
+        from poker_run import bot
+        for seed in (1, 2, 5):
+            for rules in ("classic", "balanced"):
+                for level in ("easy", "normal", "hard"):
+                    js = TestMultiplayer.js_bot(seed, rules, level)
+                    self.assertEqual(bot.solve(generate(seed), rules, level), js, (seed, rules, level))
+
+    def test_same_attempts_same_outcomes(self):
+        from poker_run.multiplayer import Match
+        from poker_run.sim import IllegalMove
+        kinds = {"ok": 0, "drafted": 0, "turn": 0, "other": 0}
+        for case, run in zip(PARITY_CASES, self.runs):
+            label = (case["mode"], case["seed"], case["rules"])
+            m = Match(generate(case["seed"]), case["mode"], case["rules"], case["players"])
+            for i, (seat, move, err, thrown, snap) in enumerate(run["attempts"]):
+                where = (*label, i, seat, move)
+                self.assertEqual(m.try_move(move, seat), err, where)
+                if err is None:
+                    m.apply(move, seat)
+                    kinds["ok"] += 1
+                else:
+                    with self.assertRaises(IllegalMove) as cm:
+                        m.apply(move, seat)
+                    self.assertEqual(str(cm.exception), thrown, where)
+                    kinds["drafted" if "drafted by" in err else "turn" if "turn" in err else "other"] += 1
+                t = m.turn
+                self.assertEqual(t, snap["turn"], where)
+                order = m.shop_order(t["round"]) if t and m.mode == "draft" and t["stage"] == "shop" else None
+                self.assertEqual(order, snap["order"], where)
+                self.assertEqual(m.owners(), snap["owners"], where)
+                self.assertEqual([p.game.total for p in m.players], snap["totals"], where)
+                self.assertEqual([len(p.moves) for p in m.players], snap["moves"], where)
+            self.assertEqual([list(x) for x in m.log], run["log"], label)
+            self.assertEqual(m.over, run["over"], label)
+            self.assertEqual([[r["seat"], r["total"], r["cleared"], r["place"]] for r in m.standings()], run["standings"], label)
+            self.assertEqual([m.shop_order(r) for r in range(m.inst.rounds - 1)], run["orders"], label)
+            # replaying the log rebuilds the same match
+            again = Match(generate(case["seed"]), case["mode"], case["rules"], case["players"], m.log)
+            self.assertEqual(again.log, m.log)
+        # the random attempts must actually exercise the draft constraint and turn order
+        self.assertGreater(kinds["drafted"], 3, kinds)
+        self.assertGreater(kinds["turn"], 10, kinds)
+        self.assertGreater(kinds["ok"], 500, kinds)
+        sells = sum(1 for run in self.runs for _, mv, err, _, _ in run["attempts"] if mv.startswith("sell ") and err is None)
+        self.assertGreater(sells, 5)
+
+    def test_sell_returns_to_pool_and_leave(self):
+        from poker_run.multiplayer import LEAVE, Match
+        from poker_run import bot
+        m = Match(generate(4), "draft", "classic", [{"name": "Ann"}, {"name": "Ben"}])
+        self.assertEqual(m.try_move("next", 1), "it is not this player's turn")
+        for seat in (0, 1):
+            g = m.players[seat].game.clone()
+            for mv in bot.round_moves(g, "normal", {}):
+                m.apply(mv, seat)
+        first = m.turn["seat"]
+        second = 1 - first
+        g = m.players[first].game
+        pick = next(n for n in g.visible_offers() if g.money >= g.rules.price(n))
+        m.apply("buy " + pick, first)
+        m.apply("next", first)
+        name = m.players[first].name
+        if pick in m.players[second].game.visible_offers():
+            self.assertEqual(m.try_move("buy " + pick, second), f"{pick} was drafted by {name}")
+        self.assertEqual(m.owner_of(pick, second), first)
+        m.leave(second)   # Ben leaves: his run stops, Ann plays on alone
+        self.assertTrue(m.players[second].left)
+        self.assertEqual(m.turn["seat"], first)
+        self.assertEqual(m.try_move("next", second), "you left this match")
+        while m.turn:
+            g = m.players[first].game.clone()
+            for mv in (bot.round_moves(g, "normal", {}) if g.phase == "play" else ["sell " + pick] * (g.has_mod(pick)) + ["next"]):
+                m.apply(mv, first)
+                if mv.startswith("sell "):
+                    self.assertEqual(m.owner_of(pick, second), -1)   # back in the pool
+        self.assertTrue(m.over)
+        self.assertIn((second, LEAVE), m.log)
+        self.assertEqual(Match(generate(4), "draft", "classic", m.setup, m.log).log, m.log)
+
+
 class TestPlayPageScripts(unittest.TestCase):
     def test_scripts_are_loaded_and_shipped(self):
         """index.html loads the bots and the multiplayer layer, and the site build copies them to /play/."""
@@ -174,10 +293,16 @@ class TestPlayPageScripts(unittest.TestCase):
             self.assertIn('aria-current="page">Modes<', modes)
             kinds = set(re.search(r"const KINDS = \{([^}]*)\}", (WEB / "index.html").read_text(encoding="utf-8")).group(1).replace('"', "").split(","))
             kinds = {k.split(":")[0].strip() for k in kinds}
-            self.assertEqual(kinds, {"solo", "bot", "hotseat", "draft"})
+            self.assertEqual(kinds, {"solo", "bot", "online"})   # the same-device modes are gone
             landing = (Path(out) / "index.html").read_text(encoding="utf-8")
             problem = (Path(out) / "problem" / "index.html").read_text(encoding="utf-8")
-            self.assertEqual(sorted(set(re.findall(r'href="/play/#mode=(\w+)"', landing))), sorted(kinds))
+            # Ways to play: Solo, vs Bot, Online race, Online draft
+            self.assertEqual(re.findall(r'class="mode-card" href="/play/#mode=([\w&;=]+)"', landing),
+                             ["solo", "bot", "online&amp;create=race", "online&amp;create=draft"])
+            creates = re.search(r"const ONLINE_MODES = \{([^}]*)\}", (WEB / "index.html").read_text(encoding="utf-8")).group(1)
+            for page in (landing,):
+                for c in re.findall(r"create=(\w+)", page):
+                    self.assertIn(c + ":", creates.replace(" ", ""))
             self.assertIn('href="/modes/"', landing)
             self.assertIn('href="/modes/"', problem)
             self.assertIn("judged with the <b>classic</b> rules", problem)

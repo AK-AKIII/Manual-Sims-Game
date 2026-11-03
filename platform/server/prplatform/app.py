@@ -20,6 +20,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import admin as admin_ops
 from . import auth, config, db, overrides, scoring, similarity
+from . import rooms  # online multiplayer
 
 STATE_CHANGING = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -430,6 +431,9 @@ def create_app(settings=None):
     # ---- admin: see admin_routes() below ------------------------------------------
 
     admin_routes(app, settings, get_conn, get_cfg, require_admin, sub_json, SUB_COLS, contest_json)
+
+    # ---- online multiplayer (prplatform/rooms.py) ---------------------------------------
+    app.include_router(rooms.make_router(settings, ensure_db, get_conn, require_user, ApiError))
 
     return app
 

@@ -773,3 +773,15 @@
     boot();
   });
 })();
+
+/* Coming from the game's Online screen (/contest/?next=/play/#room=CODE): once signed in (or if
+ * already signed in), go back to the game. Only the game's own /play/ path is followed. */
+(function () {
+  "use strict";
+  let next = null;
+  try { next = new URLSearchParams(location.search).get("next"); } catch (e) { next = null; }
+  if (!next || !/^\/play\/(#[A-Za-z0-9=&_-]*)?$/.test(next)) return;
+  const go = () => location.assign(next);
+  document.addEventListener("auth-change", (ev) => { if (ev.detail) setTimeout(go, 700); });
+  if (window.API) window.API.me().then((me) => { if (me) go(); }, () => {});
+})();

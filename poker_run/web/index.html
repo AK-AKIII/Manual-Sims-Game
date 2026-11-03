@@ -290,7 +290,7 @@ button.card:hover::after { opacity: 1; }
 .btn.icon[aria-pressed="false"] { color: var(--muted); }
 
 
-/* ---------- multiplayer: setup, turn bar, hand-off, race, results */
+/* ---------- vs Bot and Online: setup, turn bar, waiting, race, results */
 .source.mp > :not(#sound-btn) { display: none; }
 .kind-pick .tab { padding: 6px 11px; }
 .pdot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--pc, var(--gold)); box-shadow: 0 0 8px var(--pc, var(--gold)); vertical-align: 0.05em; }
@@ -320,11 +320,6 @@ button.card:hover::after { opacity: 1; }
 .card.back { --w: 54px; background: repeating-linear-gradient(45deg, #7a1f2b 0 6px, #63161f 6px 12px); border: 3px solid var(--card); margin: 0 -10px; transform-origin: 50% 120%; animation: breathe 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
 .card.back::before { content: ""; position: absolute; inset: 6px; border-radius: 4px; border: 1px solid rgba(242, 193, 78, 0.45); }
 @keyframes breathe { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
-.recap { display: grid; gap: 6px; text-align: left; max-width: 640px; margin: 20px auto 0; }
-.recap .ev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: baseline; background: var(--panel-2); border-radius: 10px; padding: 8px 12px; border-left: 3px solid var(--pc, var(--gold)); animation: msg 0.5s var(--glide) backwards; animation-delay: var(--d, 0ms); }
-.recap .ev .t { font-size: 14px; overflow-wrap: anywhere; }
-.recap .ev .s { grid-column: 2; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.recap h3 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
 .race .lane { display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto; gap: 10px; align-items: center; margin: 8px 0; }
 .race .lane .nm { display: flex; gap: 7px; align-items: center; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .race .track { height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); overflow: hidden; }
@@ -364,6 +359,56 @@ button.card:hover::after { opacity: 1; }
 .outputs summary { color: var(--cream); }
 .outputs textarea { min-height: 120px; font-size: 12px; margin-top: 8px; }
 
+/* ---------- online rooms */
+a.btn { text-decoration: none; display: inline-block; }
+.online-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px; align-items: start; }
+.online-grid > .panel { margin: 0; }
+.setup .row > .k.lbl { min-width: 5.5em; color: var(--muted); font-size: 13px; font-weight: 600; }
+.setup .tabs .tab { padding: 5px 11px; }
+.setup .tabs { flex-wrap: wrap; }
+label.check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; cursor: pointer; }
+.code-input { font: 700 22px/1.2 var(--mono) !important; letter-spacing: 0.22em; text-transform: uppercase; width: 8.5em; max-width: 100%; text-align: center; }
+.lobby { text-align: center; }
+.lobby .kicker { color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.lobby .kicker b { color: var(--cream); }
+.room-code { font: 800 clamp(44px, 12vw, 76px)/1.05 var(--mono); letter-spacing: 0.16em; color: var(--gold); margin: 10px 0 10px; padding-left: 0.16em; text-shadow: 0 0 30px rgba(242, 193, 78, 0.3); user-select: all; }
+.lobby .seats { display: grid; gap: 8px; text-align: left; max-width: 640px; margin: 0 auto; }
+.lobby .seat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; background: var(--panel-2); border-radius: 10px; padding: 9px 12px; border-left: 3px solid var(--pc); animation: msg 0.4s var(--glide) backwards; }
+.lobby .seat.open { border-left-style: dashed; opacity: 0.85; }
+.lobby .actions { justify-content: center; }
+.ready { font-size: 12px; font-weight: 700; color: var(--muted); padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.25); white-space: nowrap; }
+.ready.yes { color: #10291c; background: var(--ok); }
+.host-badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #1b1a14; background: var(--gold); border-radius: 6px; padding: 1px 6px; }
+.presence { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.presence::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; background: rgba(244, 239, 227, 0.3); vertical-align: 0.05em; }
+.presence.on { color: var(--ok); }
+.presence.on::before { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.host-settings { text-align: left; max-width: 640px; margin: 12px auto 0; background: var(--panel-2); border-radius: 10px; padding: 8px 12px; }
+.host-settings summary { cursor: pointer; font-weight: 700; }
+.host-settings .grid { display: grid; gap: 8px; }
+.host-settings .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.host-settings .k.lbl { min-width: 4.5em; color: var(--muted); font-size: 13px; font-weight: 600; }
+.host-settings .tabs .tab { padding: 4px 10px; font-size: 13px; }
+.room-chip { font-weight: 800; color: var(--gold); letter-spacing: 0.1em; }
+.match-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 9px 4px; border-bottom: 1px solid rgba(244, 239, 227, 0.06); }
+.match-row .mp-chip { display: inline-flex; align-items: center; gap: 5px; margin: 4px 4px 0 0; white-space: normal; }
+.place-badge { display: inline-grid; place-items: center; min-width: 2.6em; height: 2.6em; border-radius: 50%; background: var(--panel-2); font-weight: 800; color: var(--muted); font-size: 13px; }
+.place-badge.win { background: var(--gold); color: #1b1a14; }
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgba(226, 88, 76, 0.18); border: 1px solid rgba(226, 88, 76, 0.45); color: #ffd6cf; border-radius: 10px; padding: 9px 14px; margin-bottom: 12px; animation: msg 0.35s var(--glide) backwards; }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 214, 207, 0.35); border-top-color: #ffd6cf; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#toasts { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); pointer-events: none; }
+.toast { background: rgba(8, 32, 24, 0.94); border: 1px solid var(--line); border-left: 4px solid var(--pc, var(--gold)); border-radius: 12px; padding: 10px 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); font-size: 14px; animation: toast-in 0.45s var(--spring) backwards; transition: opacity 0.4s ease, transform 0.4s ease; overflow-wrap: anywhere; }
+.toast.out { opacity: 0; transform: translateY(6px); }
+@keyframes toast-in { from { transform: translateY(14px) scale(0.96); opacity: 0; } }
+.handoff .presence { font-size: 14px; vertical-align: middle; }
+@media (max-width: 860px) { .online-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .match-row { grid-template-columns: auto minmax(0, 1fr); }
+  .match-row > .actions { grid-column: 1 / -1; }
+  #toasts { right: 10px; left: 10px; bottom: 10px; width: auto; }
+}
+
 @media (max-width: 600px) {
   :root { --cw: 54px; }
   .wrap { padding: 10px 10px 30px; }
@@ -401,8 +446,7 @@ button.card:hover::after { opacity: 1; }
       <span class="lbl" aria-hidden="true">Mode</span>
       <button class="tab" role="radio" aria-checked="true" data-act="kind" data-v="solo" title="Play alone (the contest)">Solo</button>
       <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="bot" title="Race a computer player on the same deal">vs Bot</button>
-      <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="hotseat" title="2 to 4 players on one device, taking turns round by round">Pass &amp; play</button>
-      <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="draft" title="Pass and play with one shared shop: what someone buys is gone for everyone else">Draft</button>
+      <button class="tab" role="radio" aria-checked="false" data-act="kind" data-v="online" title="Play people on their own devices: rooms with a code (needs an account)">Online</button>
     </div>
     <div class="source" id="source-bar">
       <label for="seed">Seed</label>
@@ -414,6 +458,7 @@ button.card:hover::after { opacity: 1; }
     </div>
   </header>
   <div id="fx" aria-hidden="true"></div>
+  <div id="toasts" role="status" aria-live="polite"></div>
   <div id="scroll-line" aria-hidden="true"></div>
   <button type="button" id="mini" aria-label="Back to the round status" tabindex="-1"></button>
 
@@ -682,12 +727,16 @@ const UI = (function (PR) {
     return "";
   }
 
-  // The page's URL hash: "#seed=7", "#seed=7&rules=balanced", "#mode=bot", "#mode=draft&seed=12".
-  // Values are returned as written (seed as a number); the app checks them against its modes and rulesets.
+  // The page's URL hash: "#seed=7", "#seed=7&rules=balanced", "#mode=bot", "#mode=online&create=draft",
+  // "#room=K7M3Q" (an online room), "#match=12" (a saved online match).
+  // Values are returned as written (seed and match as numbers, the room code upper-cased); the app
+  // checks them against its modes, rulesets and code format.
   function parseHash(hash) {
     const get = (re) => { const m = re.exec(String(hash || "")); return m ? m[1] : null; };
     const seed = get(/(?:^#|&)seed=(-?\d+)/), rules = get(/(?:^#|&)rules=(\w+)/), mode = get(/(?:^#|&)mode=(\w+)/);
-    return { seed: seed === null ? null : Number(seed), rules, mode: mode === null ? null : mode.toLowerCase() };
+    const room = get(/(?:^#|&)room=(\w+)/), match = get(/(?:^#|&)match=(\d+)/), create = get(/(?:^#|&)create=(\w+)/);
+    return { seed: seed === null ? null : Number(seed), rules, mode: mode === null ? null : mode.toLowerCase(),
+      room: room === null ? null : room.toUpperCase(), match: match === null ? null : Number(match), create: create === null ? null : create.toLowerCase() };
   }
 
   return { SUIT_GLYPH, SUIT_LETTER, esc, rankLabel, faceText, isRed, isModified, num, prettyMod, rulesTitle, rulesChanges, parseHash,
@@ -716,29 +765,26 @@ function startApp(PR) {
     sort: "draw",
     msg: null,           // {kind: 'err'|'ok', text}
     rp: null,            // replay state
+    rpRules: null,       // rules for the Replay tab when they differ from S.rules (an online match's)
     rpStep: 0,
-    kind: "solo",        // solo | bot | hotseat | draft (multiplayer modes, see M below)
-    who: "",             // "" for the solo game, "<kind>:<seat>" while a multiplayer player is shown
+    kind: "solo",        // solo | bot | online (see M and ON below)
+    who: "",             // "" for the solo game, "bot:0" or "online:<code>" while another game is shown
   };
 
-  // Multiplayer state. While a multiplayer player's game is on screen, S.source/inputText/inst/
-  // moves/labels/game/sel/deckPick/msg are theirs and the solo game waits in M.stash.
+  // vs Bot and online state. While a vs Bot or online game is on screen, S.source/inputText/inst/
+  // moves/labels/game/sel/deckPick/msg are that game's and the solo game waits in M.stash.
   const M = {
     stash: null,
-    rules: "classic",    // ruleset for new multiplayer matches
-    setups: {
-      bot: { seed: 1, name: "You", level: "normal" },
-      hotseat: { seed: 1, n: 2, players: [1, 2, 3, 4].map((i) => ({ name: `Player ${i}`, bot: null })) },
-      draft: { seed: 1, n: 3, players: [1, 2, 3, 4].map((i) => ({ name: i <= 2 ? `Player ${i}` : `Bot ${i}`, bot: i <= 2 ? null : "normal" })) },
-    },
-    games: { bot: null, hotseat: null, draft: null },  // the match of each mode (see mpStart)
+    rules: "classic",    // ruleset for new vs Bot matches
+    setups: { bot: { seed: 1, name: "You", level: "normal" } },
+    games: { bot: null },  // the vs Bot match (see mpStart)
   };
 
   // ---------- persistence (per-viewer convenience only)
   function save() {
     const solo = M.stash || S;   // always the solo game, even while a multiplayer one is shown
     try { localStorage.setItem(STORE_KEY, JSON.stringify({ source: solo.source, moves: solo.moves, sort: S.sort, rules: S.rules })); } catch (e) { /* storage unavailable */ }
-    if (S.kind !== "solo") saveMP();
+    if (S.kind === "bot") saveMP();
   }
   function restore() {
     try {
@@ -1056,7 +1102,7 @@ function startApp(PR) {
   }
 
   function doMove(line) {
-    if (M.stash) return mpMove(line);
+    if (M.stash) return S.kind === "online" ? onlineMove(line) : mpMove(line);
     const before = S.game;
     const g = S.game.clone();
     const label = UI.describe(S.game, line);
@@ -1078,6 +1124,7 @@ function startApp(PR) {
   }
 
   function undo() {
+    if (M.stash && S.kind === "online") { S.msg = { kind: "err", text: "Moves sent to the room can't be undone." }; Sound.oops(); render(); return; }
     if (M.stash) { mpUndo(); return; }
     if (!S.moves.length) return;
     const last = S.moves[S.moves.length - 1];
@@ -1251,20 +1298,20 @@ function startApp(PR) {
   function shopHTML(g) {
     const prices = g.prices();
     const queue = g.inst.offers[g.round];
-    const st = M.stash ? mpCur() : null, seat = st ? st.viewer : -1;   // a multiplayer player's shop
-    const slots = st ? st.match.shopSlots(seat) : g.visibleSlots();
-    const offers = slots.map(({ name, taken, owner }) => {
+    const ctx = shopCtx(g);   // the shared shop of an online draft: who owns what
+    const offers = g.visibleSlots().map(({ name, taken }) => {
       const [price, fx] = g.rules.modifiers[name];
+      const owner = ctx.owner(name);
       if (taken) return `<div class="offer sold"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Bought</div></div>`;
-      if (owner >= 0) return `<div class="offer sold" style="--pc:${COLORS[owner]}"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Drafted by <span class="pname">${esc(st.match.players[owner].name)}</span></div></div>`;
-      const err = st ? st.match.tryMove("buy " + name, seat) : g.tryMove("buy " + name);
+      if (owner) return `<div class="offer sold" style="--pc:${COLORS[owner.seat]}"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">Drafted by <span class="pname">${esc(owner.name)}</span></div></div>`;
+      const err = ctx.buyErr(name);
       return `<div class="offer"><div class="name">${esc(UI.prettyMod(name))}</div><div class="fx">${esc(fx)}</div>
         <div class="row"><span class="cost">$${price}</span>${btn("Buy", "buy", { v: name, cls: "primary small", err, aria: `Buy ${name} for $${price}` })}</div></div>`;
     }).join("");
     const later = queue.slice(g.offer_pos + g.rules.shop_window).map((m) => {
-      const owner = st ? st.match.ownerOf(m, seat) : -1;
-      const tip = owner >= 0 ? `drafted by ${st.match.players[owner].name}` : g.rules.modifiers[m] ? `$${g.rules.modifiers[m][0]}: ${g.rules.modifiers[m][1]}` : "";
-      return `<span class="chip" title="${esc(tip)}"${owner >= 0 ? ' style="opacity:.45;text-decoration:line-through"' : ""}>${esc(UI.prettyMod(m))}</span>`;
+      const owner = ctx.owner(m);
+      const tip = owner ? `drafted by ${owner.name}` : g.rules.modifiers[m] ? `$${g.rules.modifiers[m][0]}: ${g.rules.modifiers[m][1]}` : "";
+      return `<span class="chip" title="${esc(tip)}"${owner ? ' style="opacity:.45;text-decoration:line-through"' : ""}>${esc(UI.prettyMod(m))}</span>`;
     }).join("");
     const pick = S.deckPick;
     let deckActions = '<span class="muted">Pick a card below to remove, paint or promote it.</span>';
@@ -1282,8 +1329,8 @@ function startApp(PR) {
       : cardHTML(g, c, { size: "deckc", cls: "gone", aria: "removed" })).join("");
     return `<section class="panel" aria-label="Shop">
       <div class="toolbar"><h2 style="margin:0">Shop after round ${g.round + 1}</h2>
-        <div class="actions">${btn(st && st.match.mode === "draft" ? "Done shopping →" : st && st.match.mode === "rounds" ? "Next round · end turn →" : "Next round →", "next", { cls: "primary", err: g.tryMove("next") })}</div></div>
-      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + g.rules.shop_window, queue.length)} of ${queue.length} in this shop's queue.${st && st.match.mode === "draft" ? ` ${esc(draftNote(st, seat))}` : ""}</p>
+        <div class="actions">${btn(ctx.next, "next", { cls: "primary", err: g.tryMove("next") })}</div></div>
+      <p class="muted" style="margin:6px 0 10px;font-size:13px">Offers ${g.offer_pos + 1}–${Math.min(g.offer_pos + g.rules.shop_window, queue.length)} of ${queue.length} in this shop's queue.${ctx.note ? ` ${esc(ctx.note)}` : ""}</p>
       <div class="offers">${offers || '<p class="muted">No offers.</p>'}</div>
       <div class="actions" style="margin-top:10px">
         ${btn("Reroll", "reroll", { price: prices.reroll, err: g.tryMove("reroll") })}
@@ -1347,8 +1394,16 @@ function startApp(PR) {
   function sourceLabel() { return S.source.type === "seed" ? `seed ${S.source.seed}` : "custom input"; }
 
   function renderPlay() {
-    if (S.kind !== "solo" && mpRender()) return;
+    if (S.kind === "bot" && mpRender()) return;
+    if (S.kind === "online" && onlineRender()) return;
     const g = S.game;
+    if (S.kind === "online") {   // your own game in an online room
+      $("play-main").innerHTML = onlinePlayHTML(g);
+      $("play-side").innerHTML = onlinePlayersHTML(ON.view) + sideHTML(g);
+      Feel.afterRender(g);
+      Scroll.fill(g);
+      return;
+    }
     const st = M.stash ? mpCur() : null;
     let main = (st ? mpTopHTML(st) : "") + statusHTML(g);
     if (g.phase === "play") {
@@ -1374,14 +1429,15 @@ function startApp(PR) {
   // ---------- replay
   function runReplay() {
     const input = $("rp-input").value, output = $("rp-output").value;
-    const [code, v] = PR.check(input, output, S.rules);
-    const rp = { code, verdict: v, rules: S.rules, inst: null, moves: [], states: null, errorAt: null, error: null, labels: [] };
+    const rules = S.rpRules || S.rules;
+    const [code, v] = PR.check(input, output, rules);
+    const rp = { code, verdict: v, rules, inst: null, moves: [], states: null, errorAt: null, error: null, labels: [] };
     try { rp.inst = PR.parseInstance(input); } catch (e) { if (!(e instanceof PR.BadInput)) throw e; }
     if (rp.inst) {
       try { rp.moves = PR.parseOutput(output); } catch (e) { rp.moves = null; }
     }
     if (rp.inst && rp.moves) {
-      const r = UI.replayStates(rp.inst, rp.moves, S.rules);
+      const r = UI.replayStates(rp.inst, rp.moves, rules);
       rp.states = r.states; rp.errorAt = r.errorAt; rp.error = r.error;
       rp.labels = rp.moves.map((m, i) => (i < r.states.length ? UI.describe(r.states[i], m) : ""));
     }
@@ -1467,6 +1523,7 @@ function startApp(PR) {
     $("source-bar").classList.toggle("hidden", S.mode !== "play");
     $("source-bar").classList.toggle("mp", S.kind !== "solo");
     $("kind-pick").classList.toggle("hidden", S.mode !== "play");
+    $("rules-pick").classList.toggle("hidden", S.mode === "play" && S.kind === "online");   // a room has its own rules
     const rules = curRules();
     document.querySelectorAll('[data-act="rules"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === rules)));
     document.querySelectorAll('[data-act="kind"]').forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === S.kind)));
@@ -1494,12 +1551,14 @@ function startApp(PR) {
   }
 
   // ======================================================================
-  // Multiplayer: vs Bot, pass-and-play and the shared-shop draft (bot.js, multiplayer.js).
-  // Each mode keeps one match (M.games[kind]); the solo game is never touched.
+  // Other players: vs Bot (a computer player on this device: bot.js, multiplayer.js) and
+  // Online (rooms on the Poker Run server, which is the authority: platform/API.md,
+  // "Online multiplayer"). The solo game is never touched.
   // ======================================================================
   const MP_KEY = "poker-run:mp:v1", KIND_KEY = "poker-run:kind";
-  const KINDS = { solo: "Solo", bot: "vs Bot", hotseat: "Pass & play", draft: "Draft" };
-  const MODE_OF = { bot: "race", hotseat: "rounds", draft: "draft" };
+  const KINDS = { solo: "Solo", bot: "vs Bot", online: "Online" };
+  // The same-device modes that were removed: their old links and saved choices open Online.
+  const OLD_KINDS = { hotseat: "rounds", draft: "draft" };
   const COLORS = ["#f2c14e", "#6fd0e0", "#f08a76", "#b8a4f4"];
   const LEVEL_NAMES = { easy: "Easy", normal: "Normal", hard: "Hard" };
   const isRules = (r) => typeof r === "string" && Object.prototype.hasOwnProperty.call(PR.RULESETS, r);
@@ -1507,28 +1566,32 @@ function startApp(PR) {
   const randomSeed = () => Math.floor(Math.random() * 1000000) + 1;
   const scrollTop = () => { try { scrollTo({ top: 0, behavior: Feel.calm ? "auto" : "smooth" }); } catch (e) { /* old browsers */ } };
 
-  function mpCur() { return S.kind !== "solo" ? M.games[S.kind] : null; }
+  function mpCur() { return S.kind === "bot" ? M.games.bot : null; }
   function curRules() {
-    if (S.mode !== "play" || S.kind === "solo") return S.rules;
+    if (S.mode === "replay") return S.rpRules || S.rules;
+    if (S.kind === "solo") return S.rules;
+    if (S.kind === "online") return ON.view ? ON.view.rules : ON.form.rules;
     const st = mpCur();
     return st && !st.match.over ? st.match.rules : M.rules;
   }
   function mpWho() {
-    const st = M.stash ? mpCur() : null;
+    if (!M.stash) return null;
+    if (S.kind === "online") { const me = onMe(); return me ? { name: me.name, color: COLORS[me.seat] } : null; }
+    const st = mpCur();
     return st ? { name: st.match.players[st.viewer].name, color: COLORS[st.viewer] } : null;
   }
   function undoErr() {
     if (!M.stash) return S.moves.length ? "" : "Nothing to undo";
-    return mpCur().match.canUndo() ? "" : "Only moves made in this turn can be undone";
+    if (S.kind === "online") return "Moves sent to the room can't be undone";
+    return mpCur().match.canUndo() ? "" : "Only moves of the round or shop you are in can be undone";
   }
 
-  // ---- persistence: setups and each mode's match (its seed and move log), per viewer
+  // ---- vs Bot persistence: the setup and the match (its seed and move log), per viewer.
+  // Saves from older versions may hold same-device matches (hotseat, draft): they are dropped.
   function saveMP() {
-    const games = {};
-    for (const [k, st] of Object.entries(M.games)) {
-      if (st) games[k] = { seed: st.seed, match: st.match.toJSON(), screen: st.screen, viewer: st.viewer, revealed: st.revealed, from: st.from };
-    }
-    try { localStorage.setItem(MP_KEY, JSON.stringify({ rules: M.rules, setups: M.setups, games })); } catch (e) { /* storage unavailable */ }
+    const st = M.games.bot;
+    const games = st ? { bot: { seed: st.seed, match: st.match.toJSON(), screen: st.screen, revealed: st.revealed } } : {};
+    try { localStorage.setItem(MP_KEY, JSON.stringify({ rules: M.rules, setups: { bot: M.setups.bot }, games })); } catch (e) { /* storage unavailable */ }
   }
 
   function restoreMP() {
@@ -1536,111 +1599,101 @@ function startApp(PR) {
     try { raw = JSON.parse(localStorage.getItem(MP_KEY) || "null"); } catch (e) { raw = null; }
     if (!raw || typeof raw !== "object") return;
     if (isRules(raw.rules)) M.rules = raw.rules;
-    const su = raw.setups || {};
-    if (su.bot && typeof su.bot === "object") {
-      if (typeof su.bot.name === "string") M.setups.bot.name = su.bot.name.slice(0, 24);
-      if (LEVEL_NAMES[su.bot.level]) M.setups.bot.level = su.bot.level;
-      if (Number.isSafeInteger(su.bot.seed)) M.setups.bot.seed = su.bot.seed;
+    const su = raw.setups && raw.setups.bot;
+    if (su && typeof su === "object") {
+      if (typeof su.name === "string") M.setups.bot.name = su.name.slice(0, 24);
+      if (LEVEL_NAMES[su.level]) M.setups.bot.level = su.level;
+      if (Number.isSafeInteger(su.seed)) M.setups.bot.seed = su.seed;
     }
-    for (const k of ["hotseat", "draft"]) {
-      const s = su[k];
-      if (!s || typeof s !== "object") continue;
-      if ([2, 3, 4].includes(s.n)) M.setups[k].n = s.n;
-      if (Number.isSafeInteger(s.seed)) M.setups[k].seed = s.seed;
-      (Array.isArray(s.players) ? s.players : []).slice(0, 4).forEach((p, i) => {
-        if (p && typeof p.name === "string") M.setups[k].players[i].name = p.name.slice(0, 24);
-        if (p && (p.bot === null || LEVEL_NAMES[p.bot])) M.setups[k].players[i].bot = p.bot;
-      });
-    }
-    for (const k of Object.keys(M.games)) {
-      const g = raw.games && raw.games[k];
-      if (!g || !Number.isSafeInteger(g.seed) || !g.match) continue;
+    const g = raw.games && raw.games.bot;
+    if (g && Number.isSafeInteger(g.seed) && g.match && typeof g.match === "object") {
       try {
-        const st = newMatch(k, g.seed, g.match);
-        st.screen = ["turn", "handoff", "results"].includes(g.screen) ? g.screen : "handoff";
-        st.viewer = Number.isInteger(g.viewer) ? g.viewer : -1;
+        const st = newMatch(g.seed, g.match);
+        st.screen = g.screen === "results" ? "results" : "turn";
         st.revealed = Number.isInteger(g.revealed) ? g.revealed : 0;
-        st.from = Number.isInteger(g.from) ? g.from : -1;
         st.celebrated = st.screen === "results";
-        M.games[k] = st;
-      } catch (e) { M.games[k] = null; /* a stale or broken save: start over */ }
+        M.games.bot = st;
+      } catch (e) { M.games.bot = null; /* a stale or broken save: start over */ }
     }
+    if (raw.games && Object.keys(raw.games).some((k) => k !== "bot")) saveMP();   // clear the old modes' saves
   }
 
-  function newMatch(kind, seed, opts) {
+  function newMatch(seed, opts) {
     const inst = PR.generate(seed);
     const match = new PokerMulti.Match(inst, opts);
-    if (match.mode !== MODE_OF[kind]) throw new Error("mode mismatch");
-    return { kind, seed, text: PR.formatInstance(inst), match, screen: "handoff", viewer: -1, revealed: 0, from: -1, labels: {}, celebrated: false };
+    if (match.mode !== "race" || match.players.length !== 2 || !match.players[1].bot) throw new Error("not a vs Bot match");
+    return { kind: "bot", seed, text: PR.formatInstance(inst), match, screen: "turn", viewer: 0, revealed: 0, labels: {}, celebrated: false };
   }
 
-  function mpStart(kind, seed) {
-    const su = M.setups[kind];
-    const players = kind === "bot"
-      ? [{ name: su.name.trim() || "You" }, { name: "Bot", bot: su.level }]
-      : su.players.slice(0, su.n).map((p, i) => ({ name: p.name.trim() || `Player ${i + 1}`, bot: p.bot || null }));
-    const st = newMatch(kind, seed, { mode: MODE_OF[kind], rules: M.rules, players });
-    const mt = st.match, humans = players.filter((p) => !p.bot).length;
-    if (mt.over) st.screen = "results";
-    else if (kind === "bot" || (humans === 1 && !mt.history.length)) { st.screen = "turn"; st.viewer = mt.turn.seat; }
+  function mpStart(seed) {
+    const su = M.setups.bot;
+    const players = [{ name: su.name.trim() || "You" }, { name: "Bot", bot: su.level }];
+    const st = newMatch(seed, { mode: "race", rules: M.rules, players });
+    if (st.match.over) st.screen = "results";
     su.seed = seed;
-    M.games[kind] = st;
+    M.games.bot = st;
     S.who = "";   // a new match: every hand is dealt fresh
     saveMP();
     return st;
   }
 
-  // ---- whose game is on screen
-  function useSeat(st, seat) {
+  // ---- whose game is on screen (the solo game waits in M.stash)
+  function stashSolo() {
     if (!M.stash) M.stash = { source: S.source, inputText: S.inputText, inst: S.inst, moves: S.moves, labels: S.labels, game: S.game, sel: S.sel, deckPick: S.deckPick, msg: S.msg, who: S.who };
-    const who = `${st.kind}:${seat}`;
+  }
+  function showGame(who, seed, text, inst, game, moves, labels) {
+    stashSolo();
     if (S.who !== who) { S.sel = []; S.deckPick = null; S.msg = null; S.who = who; }
-    const pl = st.match.players[seat];
-    S.source = { type: "seed", seed: st.seed };
-    S.inputText = st.text;
-    S.inst = st.match.inst;
-    S.game = pl.game;
-    S.moves = pl.moves.slice();
-    S.labels = labelsOf(st, seat);
+    S.source = { type: "seed", seed };
+    S.inputText = text;
+    S.inst = inst;
+    S.game = game;
+    S.moves = moves.slice();
+    S.labels = labels;
+  }
+  function useSeat(st, seat) {
+    showGame(`bot:${seat}`, st.seed, st.text, st.match.inst, st.match.players[seat].game, st.match.players[seat].moves, labelsOf(st, seat));
   }
   function useSolo() { if (M.stash) { Object.assign(S, M.stash); M.stash = null; } }
 
-  function labelsOf(st, seat) {
-    const pl = st.match.players[seat], key = pl.moves.join("\n");
-    const c = st.labels[seat];
-    if (c && c.key === key) return c.labels;
-    const g = new PR.Game(st.match.inst, st.match.rules), labels = [];
-    for (const m of pl.moves) { labels.push(UI.describe(g, m)); g.apply(m); }
-    st.labels[seat] = { key, labels };
+  // describe() of each move, cached per move list
+  function movesLabels(cache, key, inst, rules, moves) {
+    const k = moves.join("\n");
+    const c = cache[key];
+    if (c && c.k === k) return c.labels;
+    const g = new PR.Game(inst, rules), labels = [];
+    for (const m of moves) { labels.push(UI.describe(g, m)); try { g.apply(m); } catch (e) { break; } }
+    cache[key] = { k, labels };
     return labels;
   }
+  function labelsOf(st, seat) { return movesLabels(st.labels, seat, st.match.inst, st.match.rules, st.match.players[seat].moves); }
 
   function setKind(k, quiet) {
     if (!KINDS[k] || k === S.kind) return;
+    if (S.kind === "online") onlineStop();
     S.kind = k;
     try { localStorage.setItem(KIND_KEY, k); } catch (e) { /* storage unavailable */ }
     if (!quiet) Sound.tap();
-    if (k === "solo") { useSolo(); soloHash(); } else {
-      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* no URL updates here */ }
-    }
+    useSolo();
+    if (k === "solo") soloHash();
+    else if (k === "online") { onlineHash(); onlineEnter(); }
+    else bareHash();
     if (!quiet) render();
   }
+  function bareHash() { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* no URL updates here */ } }
 
-  // ---- moves
+  // ---- vs Bot moves
   function mpMove(line) {
-    const st = mpCur(), mt = st.match, seat = st.viewer;
+    const st = mpCur(), mt = st.match, seat = 0;
     const err = mt.tryMove(line, seat);
     if (err) { S.msg = { kind: "err", text: `${line}: ${err}` }; Sound.oops(); renderKeepFocus(); return false; }
-    const before = S.game.clone(), n0 = mt.history.length;
-    mt.apply(line, seat);   // the bots move now too, if their turn comes
+    const before = S.game.clone();
+    mt.apply(line, seat);
     const after = mt.players[seat].game;
-    const others = mt.history.slice(n0 + 1).some((h) => h.seat !== seat);
     S.msg = null;
     S.sel = after.phase === "play" ? S.sel.filter((c) => after.hand.includes(c)) : [];
     if (S.deckPick !== null && (!after.in_deck[S.deckPick] || after.phase !== "shop")) S.deckPick = null;
-    st.from = seat;
     if (mt.over) st.screen = "results";
-    else if (mt.mode !== "race" && (mt.turn.seat !== seat || others)) st.screen = "handoff";
     saveMP();
     renderKeepFocus();
     Feel.afterMove(line, before, after);
@@ -1650,7 +1703,7 @@ function startApp(PR) {
 
   function mpUndo() {
     const st = mpCur(), mt = st.match;
-    if (!mt.canUndo()) { S.msg = { kind: "err", text: "Only moves made in this turn can be undone." }; Sound.oops(); render(); return; }
+    if (!mt.canUndo()) { S.msg = { kind: "err", text: "Only moves of the round or shop you are in can be undone." }; Sound.oops(); render(); return; }
     const last = mt.history[mt.history.length - 1].move;
     mt.undo();
     S.sel = []; S.deckPick = null;
@@ -1662,84 +1715,55 @@ function startApp(PR) {
   function mpRules(v) {
     if (!isRules(v) || v === curRules()) return;
     const st = mpCur();
-    const live = st && !st.match.over && st.match.history.some((h) => !st.match.players[h.seat].bot);
+    const live = st && !st.match.over && st.match.players[0].moves.length;
     if (live && !window.confirm(`Switch to the ${UI.rulesTitle(v)} rules? This match starts again on the same seed.`)) return;
     M.rules = v;
     Sound.shuffle();
-    if (st && !st.match.over) mpStart(S.kind, st.seed);
+    if (st && !st.match.over) mpStart(st.seed);
     saveMP();
     render();
   }
 
-  // ---- what to show
-  // Renders setup, hand-off or results and returns true; or points S at the player whose turn it is.
+  // ---- vs Bot: what to show. Renders the setup or the results and returns true, or points S at your game.
   function mpRender() {
     const st = mpCur();
-    if (!st) { useSolo(); $("play-main").innerHTML = setupHTML(S.kind); $("play-side").innerHTML = setupSideHTML(S.kind); Scroll.request(); return true; }
-    const mt = st.match;
-    if (mt.over) st.screen = "results";
+    if (!st) { useSolo(); $("play-main").innerHTML = setupHTML(); $("play-side").innerHTML = setupSideHTML(); Scroll.request(); return true; }
+    if (st.match.over) st.screen = "results";
     if (st.screen === "results") { useSolo(); renderResults(st); Scroll.request(); return true; }
-    const t = mt.turn;
-    if (mt.mode === "race") { st.viewer = t.seat; st.screen = "turn"; }
-    if (st.screen !== "turn" || st.viewer !== t.seat) {
-      st.screen = "handoff";
-      useSolo();
-      $("play-main").innerHTML = handoffHTML(st) + boardHTML(st, t.seat);
-      $("play-side").innerHTML = mpSideHTML(st);
-      const go = document.querySelector('[data-act="mp-reveal"]');
-      if (go) go.focus({ preventScroll: true });   // Enter or Space shows the next hand
-      Scroll.request();
-      return true;
-    }
-    useSeat(st, t.seat);
+    st.viewer = 0;
+    useSeat(st, 0);
     return false;
-  }
-
-  function stageText(st, t) {
-    const mt = st.match, R = mt.inst.rounds;
-    if (t.stage === "play") return `plays round ${t.round + 1} of ${R}`;
-    if (mt.mode === "draft") {
-      const order = mt.shopOrder(t.round), k = order.indexOf(t.seat) + 1;
-      return `picks ${ordinal(k)} of ${order.length} in the shared shop after round ${t.round + 1}`;
-    }
-    return `shops after round ${t.round + 1}`;
-  }
-
-  function draftNote(st, seat) {
-    const order = st.match.shopOrder(st.match.players[seat].game.round);
-    const k = order.indexOf(seat) + 1;
-    return `Shared shop: you pick ${ordinal(k)} of ${order.length} (lowest total first). A modifier another player owns is gone for you; one they sell comes back.`;
   }
 
   function chipsHTML(st) {
     const mt = st.match;
-    const lvl = mt.mode === "race" ? ` (${LEVEL_NAMES[mt.players[1].bot]})` : "";
-    return `<span class="mp-chip">${esc(KINDS[st.kind])}${lvl}</span><span class="mp-chip">seed <b>${st.seed}</b></span>` +
+    return `<span class="mp-chip">vs Bot (${esc(LEVEL_NAMES[mt.players[1].bot])})</span><span class="mp-chip">seed <b>${st.seed}</b></span>` +
       (mt.rules !== "classic" ? `<span class="rules-tag" style="margin:0">${esc(UI.rulesTitle(mt.rules))} rules</span>` : "");
   }
 
-  // The turn indicator above the game, and (vs Bot) the race.
+  // The turn indicator above the game, and the race.
   function mpTopHTML(st) {
     const mt = st.match, t = mt.turn, pl = mt.players[t.seat];
-    const what = mt.mode === "race" ? (t.stage === "play" ? `round ${t.round + 1} of ${mt.inst.rounds}` : `shop after round ${t.round + 1}`) : stageText(st, t);
+    const what = t.stage === "play" ? `round ${t.round + 1} of ${mt.inst.rounds}` : `shop after round ${t.round + 1}`;
     const bar = `<section class="panel turnbar" style="--pc:${COLORS[t.seat]}" aria-label="Whose turn">
       <span class="who"><span class="pdot"></span><span class="pname">${esc(pl.name)}</span></span><span class="what">${esc(what)}</span>
       <span class="tags">${chipsHTML(st)}</span></section>`;
-    return bar + (mt.mode === "race" ? raceHTML(st) : "");
+    return bar + raceHTML(st);
   }
 
-  // vs Bot: how many of the bot's rounds are shown (one per round the player has finished).
+  // How many of the bot's rounds are shown (one per round the player has finished).
   function revealCount(st) {
     const me = st.match.players[0];
     return me.game.over ? st.match.inst.rounds : me.rounds.filter((r) => r.cleared !== null).length;
   }
   const roundsTotal = (pl, n) => pl.rounds.slice(0, n).reduce((a, r) => a + r.score, 0);
 
-  function pipsHTML(pl, n, fresh) {
-    const R = pl.game.inst.rounds, out = [];
+  // Round pips: rounds = [{score, cleared}] (cleared: true, false or null while playing)
+  function pipsHTML(rounds, R, fresh) {
+    const out = [];
     for (let r = 0; r < R; r++) {
-      const rec = r < n ? pl.rounds[r] : null;
-      const done = rec && rec.cleared !== null;
+      const rec = rounds[r] || null;
+      const done = rec && rec.cleared !== null && rec.cleared !== undefined;
       const cls = done ? (rec.cleared ? "ok" : "bad") : "";
       const pop = done && fresh && r >= fresh[0] && r < fresh[1] ? ` pop" style="--d:${(r - fresh[0]) * 140}ms` : "";
       out.push(`<span class="pip ${cls}${pop}" title="Round ${r + 1}${done ? `: ${rec.cleared ? "cleared" : "out"} with ${UI.num(rec.score)}` : ""}">${done ? (rec.cleared ? "✓" : "✗") + "&#8239;" + (r + 1) : r + 1}</span>`);
@@ -1747,8 +1771,8 @@ function startApp(PR) {
     return out.join("");
   }
 
-  function playsChips(rec) {
-    return rec.plays.map((p) => `<span class="chip">${esc(PR.HAND_NAMES[p.hand])} ${UI.num(p.points)}</span>`).join("");
+  function playsChips(plays) {
+    return plays.map((p) => `<span class="chip">${esc(PR.HAND_NAMES[p.hand])} ${UI.num(p.points)}</span>`).join("");
   }
 
   // One player's moves of one round (and its shop), with descriptions.
@@ -1769,7 +1793,7 @@ function startApp(PR) {
     const max = Math.max(1, myTotal, botTotal);
     const lane = (pl, total, shown, f) => `<div class="lane" style="--pc:${COLORS[pl.seat]}"><span class="nm"><span class="pdot"></span>${esc(pl.name)}</span>
       <span class="track"><i data-race-bar="${pl.seat}" style="width:${(100 * total) / max}%"></i></span><span class="score" data-race="${pl.seat}">${UI.num(total)}</span></div>
-      <div class="pips" style="--pc:${COLORS[pl.seat]};margin:-2px 0 10px">${pipsHTML(pl, shown, f)}</div>`;
+      <div class="pips" style="--pc:${COLORS[pl.seat]};margin:-2px 0 10px">${pipsHTML(pl.rounds.slice(0, shown), mt.inst.rounds, f)}</div>`;
     const diff = myTotal - botTotal;
     const lead = diff > 0 ? `${esc(me.name)} ${me.name === "You" ? "lead" : "leads"} by ${UI.num(diff)}` : diff < 0 ? `Bot leads by ${UI.num(-diff)}` : "Level";
     let reveal = `<p class="muted" style="margin:8px 0 0;font-size:13px">The bot plays the same deal. Its round ${me.game.round + 1} shows up when you finish yours.</p>`;
@@ -1778,7 +1802,7 @@ function startApp(PR) {
       const head = rec.cleared ? `cleared round ${r + 1}: <b>${UI.num(rec.score)}</b> / ${UI.num(mt.inst.targets[r])}` : `went out in round ${r + 1}: ${UI.num(rec.score)} / ${UI.num(mt.inst.targets[r])}`;
       const buys = rec.shop.filter((m) => m.startsWith("buy ")).map((m) => UI.prettyMod(m.slice(4)));
       reveal = `<div class="reveal${fresh ? " fresh" : ""}" style="--pc:${COLORS[1]}"><div><span class="pname">Bot</span> ${head}</div>
-        <div class="plays">${playsChips(rec)}${buys.length ? `<span class="chip on">bought ${esc(buys.join(", "))}</span>` : ""}</div>
+        <div class="plays">${playsChips(rec.plays)}${buys.length ? `<span class="chip on">bought ${esc(buys.join(", "))}</span>` : ""}</div>
         ${roundMovesHTML(st, 1, r)}</div>`;
     } else if (n > 0 && bot.game.over) {
       reveal = `<div class="reveal" style="--pc:${COLORS[1]}"><span class="pname">Bot</span> went out in round ${bot.game.round + 1}; you're racing its final ${UI.num(bot.game.total)}.</div>`;
@@ -1790,7 +1814,6 @@ function startApp(PR) {
 
   // After a vs Bot render: animate the bot's newly revealed rounds.
   function mpAfterRender(st) {
-    if (st.match.mode !== "race") return;
     const n = revealCount(st);
     if (n <= st.revealed) return;
     const bot = st.match.players[1], from = roundsTotal(bot, st.revealed), to = roundsTotal(bot, n);
@@ -1808,93 +1831,45 @@ function startApp(PR) {
     setTimeout(() => Sound.next(), 650);
   }
 
-  // Round-by-round scores of everyone. In a race, the bot's unrevealed rounds stay hidden.
-  function boardHTML(st, current, all) {
-    const mt = st.match, R = mt.inst.rounds;
-    const rows = mt.standings(), place = Object.fromEntries(rows.map((r) => [r.seat, r.place]));
-    const shown = (pl) => (all || mt.mode !== "race" || !pl.bot ? R : revealCount(st));
-    const done = Math.max(0, ...mt.players.map((p) => Math.min(shown(p), p.rounds.filter((r) => r.cleared !== null).length)));
+  // Round-by-round scores. rows: [{seat, name, tag, rounds: [{score, cleared}], total, place}]
+  function boardTableHTML(rows, R, current, title) {
+    const done = Math.max(0, ...rows.map((p) => p.rounds.filter((r) => r && r.cleared !== null && r.cleared !== undefined).length));
     const head = [...Array(R).keys()].map((r) => `<th>R${r + 1}</th>`).join("");
-    const body = mt.players.map((pl) => {
-      const n = shown(pl);
+    const body = rows.map((pl) => {
       const cells = [...Array(R).keys()].map((r) => {
-        const rec = r < n ? pl.rounds[r] : null;
+        const rec = pl.rounds[r];
         if (rec && rec.cleared === true) return `<td>${UI.num(rec.score)}</td>`;
         if (rec && rec.cleared === false) return `<td class="out" title="out">✗ ${UI.num(rec.score)}</td>`;
-        return `<td class="wait">${pl.game.over && r < n ? "" : "·"}</td>`;
+        return `<td class="wait">${pl.over && rec === undefined && r < pl.rounds.length ? "" : "·"}</td>`;
       }).join("");
-      const total = mt.mode === "race" && pl.bot && !all ? roundsTotal(pl, n) : pl.game.total;
-      return `<tr class="${pl.seat === current ? "me" : ""}" style="--pc:${COLORS[pl.seat]}"><td><span class="place">${all || mt.over ? place[pl.seat] : ""}</span><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span>${pl.bot ? ` <span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[pl.bot])} bot</span>` : ""}</td>${cells}<td class="tot">${UI.num(total)}</td></tr>`;
+      return `<tr class="${pl.seat === current ? "me" : ""}" style="--pc:${COLORS[pl.seat]}"><td><span class="place">${pl.place || ""}</span><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span>${pl.tag ? ` <span class="muted" style="font-size:12px">${esc(pl.tag)}</span>` : ""}</td>${cells}<td class="tot">${UI.num(pl.total)}</td></tr>`;
     }).join("");
-    return `<section class="panel" aria-label="Standings"><div class="toolbar"><h2 style="margin:0">Standings</h2><span class="muted" style="font-size:13px">${done ? `after round ${done}` : "no rounds played yet"}</span></div>
+    return `<section class="panel" aria-label="${esc(title || "Standings")}"><div class="toolbar"><h2 style="margin:0">${esc(title || "Standings")}</h2><span class="muted" style="font-size:13px">${done ? `after round ${done}` : "no rounds played yet"}</span></div>
       <div class="scroll-x" style="margin-top:8px"><table class="board"><thead><tr><th>Player</th>${head}<th>Total</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
   }
 
-  // Everything other players did since `seat` last moved, one line per turn.
-  function recapHTML(st, seat) {
-    const mt = st.match;
-    let from = 0;
-    for (let i = mt.history.length - 1; i >= 0; i--) if (mt.history[i].seat === seat) { from = i + 1; break; }
-    const groups = [];
-    for (let i = from; i < mt.history.length; i++) {
-      const h = mt.history[i], last = groups[groups.length - 1];
-      if (last && last.seat === h.seat && last.round === h.round && last.phase === h.phase) last.moves.push(h.move);
-      else groups.push({ seat: h.seat, round: h.round, phase: h.phase, moves: [h.move] });
-    }
-    if (!groups.length) return "";
-    const items = groups.slice(-12).map((gr, i) => {
-      const pl = mt.players[gr.seat], rec = pl.rounds[gr.round];
-      let t, sub = "";
-      if (gr.phase === "play") {
-        const target = UI.num(mt.inst.targets[gr.round]);
-        t = rec.cleared === null ? `is playing round ${gr.round + 1}` : rec.cleared ? `cleared round ${gr.round + 1}: <b>${UI.num(rec.score)}</b> / ${target}` : `went out in round ${gr.round + 1}: ${UI.num(rec.score)} / ${target}`;
-        sub = rec.plays.map((p) => `${PR.HAND_NAMES[p.hand]} ${UI.num(p.points)}`).join(" · ");
-      } else {
-        const buys = gr.moves.filter((m) => m.startsWith("buy ")).map((m) => UI.prettyMod(m.slice(4)));
-        const sells = gr.moves.filter((m) => m.startsWith("sell ")).map((m) => UI.prettyMod(m.slice(5)));
-        t = `shop after round ${gr.round + 1}: ${buys.length ? `bought <b>${esc(buys.join(", "))}</b>` : "bought no modifier"}${sells.length ? `, sold ${esc(sells.join(", "))}` : ""}`;
-        const other = gr.moves.filter((m) => !/^(buy|sell|next)\b/.test(m)).length;
-        sub = other ? `${other} other shop move${other === 1 ? "" : "s"} (levels, deck edits, rerolls)` : "";
-      }
-      return `<div class="ev" style="--pc:${COLORS[gr.seat]};--d:${i * 70}ms"><span class="pdot"></span><span class="t"><span class="pname">${esc(pl.name)}</span> ${t}</span>${sub ? `<span class="s">${esc(sub)}</span>` : ""}</div>`;
-    }).join("");
-    return `<div class="recap"><h3>Since ${esc(mt.players[seat].name)}'s last turn</h3>${items}</div>`;
-  }
-
-  function handoffHTML(st) {
-    const mt = st.match, t = mt.turn, pl = mt.players[t.seat];
-    const humans = mt.players.filter((p) => !p.bot).length;
-    const title = humans > 1 && st.from !== t.seat ? (st.from < 0 && !mt.history.length ? "First up" : "Pass to") : "Your turn,";
-    const backs = [0, 1, 2, 3, 4].map((i) => `<span class="card back" style="rotate:${(i - 2) * 7}deg;--d:${i * 0.18}s"></span>`).join("");
-    const label = humans > 1 ? `I'm ${pl.name}: show my hand` : "Continue";
-    return `<section class="panel handoff" style="--pc:${COLORS[t.seat]}" aria-label="Pass the device">
-      <div class="kicker">${esc(KINDS[st.kind])} · seed ${st.seed} · round ${t.round + 1} of ${mt.inst.rounds}</div>
-      <div class="fan" aria-hidden="true">${backs}</div>
-      <div class="to">${esc(title)}</div>
-      <div class="big-name">${esc(pl.name)}</div>
-      <p class="task">${esc(pl.name)} ${esc(stageText(st, t))}.</p>
-      ${humans > 1 ? `<p class="muted" style="margin:-8px 0 16px;font-size:13px">The other hands are hidden. Press when only ${esc(pl.name)} is looking.</p>` : ""}
-      <button type="button" class="btn primary" data-act="mp-reveal">${esc(label)}</button>
-      ${recapHTML(st, t.seat)}
-    </section>`;
+  function boardHTML(st, current) {
+    const mt = st.match, place = Object.fromEntries(mt.standings().map((r) => [r.seat, r.place]));
+    const rows = mt.players.map((pl) => ({ seat: pl.seat, name: pl.name, tag: pl.bot ? `${LEVEL_NAMES[pl.bot]} bot` : "", rounds: pl.rounds,
+      total: pl.game.total, place: mt.over ? place[pl.seat] : "", over: pl.game.over }));
+    return boardTableHTML(rows, mt.inst.rounds, current);
   }
 
   function statusOf(st, pl) {
-    const mt = st.match, g = pl.game, t = mt.turn;
-    if (mt.mode === "race" && pl.bot && !mt.over) {
+    const mt = st.match, g = pl.game;
+    if (pl.bot && !mt.over) {
       const n = revealCount(st);
       return n ? `round ${Math.min(n, pl.rounds.length)} shown` : "waiting for your round 1";
     }
     if (g.over) return g.cleared === mt.inst.rounds ? `cleared all ${mt.inst.rounds} rounds` : `out in round ${g.round + 1}`;
-    if (t && t.seat === pl.seat) return t.stage === "play" ? `playing round ${g.round + 1}` : "in the shop";
-    return g.phase === "shop" ? `waiting to shop (round ${g.round + 1})` : `waiting · round ${g.round + 1}`;
+    return g.phase === "play" ? `playing round ${g.round + 1}` : "in the shop";
   }
 
   function mpSideHTML(st) {
-    const mt = st.match, t = mt.turn;
+    const mt = st.match;
     const rows = mt.players.map((pl) => {
-      const total = mt.mode === "race" && pl.bot && !mt.over ? roundsTotal(pl, revealCount(st)) : pl.game.total;
-      return `<div class="pr${t && t.seat === pl.seat ? " now" : ""}" style="--pc:${COLORS[pl.seat]}"><span class="pdot"></span>
+      const total = pl.bot && !mt.over ? roundsTotal(pl, revealCount(st)) : pl.game.total;
+      return `<div class="pr${!pl.bot ? " now" : ""}" style="--pc:${COLORS[pl.seat]}"><span class="pdot"></span>
         <span style="min-width:0"><span class="pname">${esc(pl.name)}</span>${pl.bot ? ` <span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[pl.bot])} bot</span>` : ""}<br><span class="muted" style="font-size:12px">${esc(statusOf(st, pl))}</span></span>
         <span class="gold" style="font-weight:800;font-variant-numeric:tabular-nums">${UI.num(total)}</span></div>`;
     }).join("");
@@ -1905,46 +1880,23 @@ function startApp(PR) {
     </section>`;
   }
 
-  // ---- setup
-  const MODE_TEXT = {
-    bot: "Race a computer player on the same deal. You both play every round; when you finish a round, the bot's same round is revealed.",
-    hotseat: "2 to 4 players on one device, all on the same deal, each with their own run. Turns go round by round, with a pass screen in between.",
-    draft: "Pass and play with one shared shop: after each round the players visit the shop one at a time, and a modifier someone owns is gone for everyone else.",
-  };
-
-  function modeRulesHTML(kind) {
-    const common = "<li>Everyone gets the <b>same seed and rules</b>: the same draw orders and shop queues. Every player's game is independent, so each move list is a valid output file for that seed.</li><li>Highest total score wins; on a tie, more rounds cleared; otherwise it's shared.</li>";
-    if (kind === "bot") return `<ul class="mode-rules"><li>The bot plays its whole run on its own (it doesn't see your moves). <b>Easy</b> plays its best hand and rarely shops; <b>Normal</b> is the reference greedy bot (<span class="mono">baseline.py</span>); <b>Hard</b> also looks ahead when it discards.</li><li>Its rounds are revealed one at a time: when you finish round r, you see its round r.</li>${common}</ul>`;
-    if (kind === "hotseat") return `<ul class="mode-rules"><li>Turns go <b>round by round</b>: player 1 plays round 1 and the shop after it, then player 2 plays round 1 and its shop, and so on; then round 2.</li><li>Between turns a <b>pass screen</b> hides the hand. You can undo moves of your own turn only.</li><li>A player who goes out is skipped; the others play on.</li>${common}</ul>`;
-    return `<ul class="mode-rules"><li>Every round has two stages. <b>Play</b>: each player plays round r, in seat order. <b>Shop</b>: then the shop after round r is visited one player at a time, <b>lowest total first</b> (catch-up); ties go in seat order starting with a seat that moves on by one each round.</li>
-      <li><b>One pool of modifiers.</b> A modifier another player owns can't be bought: it shows as "drafted by" them, in this round's shop and every later one, wherever it is in the queue.</li>
-      <li>Each player's queue, window of 3 and reroll work as in solo: a drafted offer keeps its place in the window (it isn't replaced), and a reroll shows the next 3 of the queue.</li>
-      <li><b>Selling returns a modifier</b> to the pool: from then on anyone may buy it where it is offered. A player who goes out keeps theirs.</li>
-      <li>Levels, deck edits, +discards and +hand size are private. Bots take part: they buy greedily from what is left.</li>${common}</ul>`;
+  // ---- vs Bot setup
+  function botRulesHTML() {
+    return `<ul class="mode-rules"><li>The bot plays its whole run on its own (it doesn't see your moves). <b>Easy</b> plays its best hand and rarely shops; <b>Normal</b> is the reference greedy bot (<span class="mono">baseline.py</span>); <b>Hard</b> also looks ahead when it discards.</li><li>Its rounds are revealed one at a time: when you finish round r, you see its round r.</li>
+      <li>You both get the <b>same seed and rules</b>: the same draw orders and shop queues. Each move list is a valid output file for that seed.</li><li>Highest total score wins; on a tie, more rounds cleared; otherwise it's shared.</li>
+      <li>Want to play people? Pick <b>Online</b> above: rooms with a code, on separate devices.</li></ul>`;
   }
 
-  function setupHTML(kind) {
-    const su = M.setups[kind];
-    let seats;
-    if (kind === "bot") {
-      const lv = Object.keys(LEVEL_NAMES).map((l) => `<button class="tab" role="radio" aria-checked="${su.level === l}" data-act="mp-level" data-v="${l}" title="${esc(PokerBot.LEVELS[l])}">${LEVEL_NAMES[l]}</button>`).join("");
-      seats = `<div class="seat" style="--pc:${COLORS[0]}"><span class="pdot"></span><input type="text" maxlength="24" data-mp-name="0" value="${esc(su.name)}" aria-label="Your name" placeholder="You"></div>
-        <div class="seat" style="--pc:${COLORS[1]}"><span class="pdot"></span><span class="pname">Bot</span><span class="tabs" role="radiogroup" aria-label="Bot level">${lv}</span>
-        <span class="muted" style="font-size:13px">${esc(PokerBot.LEVELS[su.level])}</span></div>`;
-    } else {
-      const count = [2, 3, 4].map((n) => `<button class="tab" role="radio" aria-checked="${su.n === n}" data-act="mp-n" data-v="${n}">${n}</button>`).join("");
-      seats = `<div class="row"><label class="k">Players</label><span class="tabs" role="radiogroup" aria-label="Number of players">${count}</span></div>` +
-        su.players.slice(0, su.n).map((p, i) => `<div class="seat" style="--pc:${COLORS[i]}"><span class="pdot"></span>
-          <input type="text" maxlength="24" data-mp-name="${i}" value="${esc(p.name)}" aria-label="Player ${i + 1} name" placeholder="Player ${i + 1}">
-          <select data-mp-type="${i}" aria-label="Player ${i + 1}: human or bot">
-            <option value=""${!p.bot ? " selected" : ""}>Human</option>
-            ${Object.keys(LEVEL_NAMES).map((l) => `<option value="${l}"${p.bot === l ? " selected" : ""}>Bot · ${LEVEL_NAMES[l]}</option>`).join("")}
-          </select></div>`).join("");
-    }
+  function setupHTML() {
+    const su = M.setups.bot;
+    const lv = Object.keys(LEVEL_NAMES).map((l) => `<button class="tab" role="radio" aria-checked="${su.level === l}" data-act="mp-level" data-v="${l}" title="${esc(PokerBot.LEVELS[l])}">${LEVEL_NAMES[l]}</button>`).join("");
+    const seats = `<div class="seat" style="--pc:${COLORS[0]}"><span class="pdot"></span><input type="text" maxlength="24" data-mp-name="0" value="${esc(su.name)}" aria-label="Your name" placeholder="You"></div>
+      <div class="seat" style="--pc:${COLORS[1]}"><span class="pdot"></span><span class="pname">Bot</span><span class="tabs" role="radiogroup" aria-label="Bot level">${lv}</span>
+      <span class="muted" style="font-size:13px">${esc(PokerBot.LEVELS[su.level])}</span></div>`;
     const rulesLine = M.rules === "classic" ? "Classic (the contest's)" : `${UI.rulesTitle(M.rules)}: ${UI.rulesChanges(M.rules).length} changes from classic`;
     return `<section class="panel setup" aria-label="Set up a match">
-      <h2>${esc(KINDS[kind])}</h2>
-      <p class="lead">${esc(MODE_TEXT[kind])}</p>
+      <h2>vs Bot</h2>
+      <p class="lead">Race a computer player on the same deal. You both play every round; when you finish a round, the bot's same round is revealed.</p>
       <div class="grid">
         <div class="row"><label class="k" for="mp-seed">Seed</label><input type="number" id="mp-seed" value="${su.seed}" step="1" inputmode="numeric">${btn("Random", "mp-seed-random")}</div>
         <div class="row"><span class="k" style="min-width:5.5em;color:var(--muted);font-size:13px;font-weight:600">Rules</span><span>${esc(rulesLine)} <span class="muted" style="font-size:13px">· switch with Rules above</span></span></div>
@@ -1955,53 +1907,725 @@ function startApp(PR) {
     </section>`;
   }
 
-  function setupSideHTML(kind) {
-    return `<section class="panel" aria-label="How it works"><h2>How ${esc(KINDS[kind])} works</h2>${modeRulesHTML(kind)}</section>${rulesBoxHTML(M.rules)}`;
+  function setupSideHTML() {
+    return `<section class="panel" aria-label="How it works"><h2>How vs Bot works</h2>${botRulesHTML()}</section>${rulesBoxHTML(M.rules)}`;
   }
 
-  // ---- results
+  // ---- results: shared by vs Bot and Online. rows: standings best first [{seat, name, tag, total, cleared, moves, money?, place, note}]
+  function podiumHTML(rows, R) {
+    return rows.map((r, i) => {
+      const how = r.cleared === R ? `cleared all ${R} rounds` : `cleared ${r.cleared} of ${R}`;
+      return `<div class="pl${r.place === 1 ? " first" : ""}" style="--pc:${COLORS[r.seat]};--d:${i * 120}ms"><span class="place">${r.place}</span>
+        <span style="min-width:0"><span class="pdot"></span> <span class="pname">${esc(r.name)}</span>${r.tag ? ` <span class="muted" style="font-size:12px">${esc(r.tag)}</span>` : ""}</span>
+        <span class="pts" data-to="${r.total}">${UI.num(r.total)}</span><span class="sub">${esc(how)} · ${r.moves} moves${r.money !== undefined ? ` · $${r.money}` : ""}${r.note ? ` · ${esc(r.note)}` : ""}</span></div>`;
+    }).join("");
+  }
+
+  function celebrate(won) {
+    document.querySelectorAll(".podium .pts").forEach((el) => Feel.countUp(el, 0, Number(el.dataset.to), ""));
+    setTimeout(() => { if (won) Sound.clear(); else Sound.lose(); }, 250);
+    const first = document.querySelector(".podium .pl.first");
+    if (first) setTimeout(() => Feel.motes(30, first), 300);
+  }
+
   function renderResults(st) {
     const mt = st.match, rows = mt.standings(), win = mt.winners();
-    let title;
-    if (mt.mode === "race") title = win.length > 1 ? "A tie!" : win[0] === 0 ? `${mt.players[0].name === "You" ? "You win" : mt.players[0].name + " wins"}!` : "The bot wins";
-    else title = win.length > 1 ? `Tie: ${win.map((s) => mt.players[s].name).join(" & ")}` : `${mt.players[win[0]].name} wins!`;
-    const podium = rows.map((r, i) => {
-      const pl = mt.players[r.seat], g = pl.game;
-      const how = g.cleared === mt.inst.rounds ? `cleared all ${mt.inst.rounds} rounds` : `cleared ${g.cleared} of ${mt.inst.rounds}, out in round ${g.round + 1}`;
-      return `<div class="pl${r.place === 1 ? " first" : ""}" style="--pc:${COLORS[r.seat]};--d:${i * 120}ms"><span class="place">${r.place}</span>
-        <span style="min-width:0"><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span>${pl.bot ? ` <span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[pl.bot])} bot</span>` : ""}</span>
-        <span class="pts" data-to="${g.total}">${UI.num(g.total)}</span><span class="sub">${esc(how)} · ${pl.moves.length} moves · $${g.money}</span></div>`;
-    }).join("");
+    const title = win.length > 1 ? "A tie!" : win[0] === 0 ? `${mt.players[0].name === "You" ? "You win" : mt.players[0].name + " wins"}!` : "The bot wins";
+    const prow = rows.map((r) => { const pl = mt.players[r.seat]; return { seat: r.seat, name: pl.name, tag: pl.bot ? `${LEVEL_NAMES[pl.bot]} bot` : "", total: pl.game.total, cleared: pl.game.cleared, moves: pl.moves.length, money: pl.game.money, place: r.place }; });
     const col = COLORS[win[0] || 0];
     $("play-main").innerHTML = `<section class="panel summary results" style="--pc:${win.length > 1 ? "var(--gold)" : col}" aria-label="Results">
-        <div class="kicker">${esc(KINDS[st.kind])} · seed ${st.seed} · ${esc(UI.rulesTitle(mt.rules))} rules</div>
+        <div class="kicker">vs Bot · seed ${st.seed} · ${esc(UI.rulesTitle(mt.rules))} rules</div>
         <div class="winner">${esc(title)}</div>
-        <div class="podium">${podium}</div>
+        <div class="podium">${podiumHTML(prow, mt.inst.rounds)}</div>
         <div class="actions" style="justify-content:center;margin-top:14px">${btn("Rematch (same seed)", "mp-rematch", { cls: "primary" })}${btn("New seed", "mp-new-seed")}${btn("Change setup", "mp-setup")}</div>
-      </section>${boardHTML(st, -1, true)}`;
-    const outs = mt.players.map((pl) => {
-      const [code, v] = PR.check(st.text, mt.output(pl.seat), mt.rules);
-      const verdict = code === 0 ? `valid · ${UI.num(v.score)}` : "invalid";
-      return `<details style="--pc:${COLORS[pl.seat]}"><summary><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span> <span class="muted">· ${pl.moves.length} moves · ${esc(verdict)}</span></summary>
-        <textarea readonly spellcheck="false" id="mp-out-${pl.seat}" aria-label="${esc(pl.name)}'s output file">${esc(mt.output(pl.seat))}</textarea>
-        <div class="actions" style="margin-top:6px">${btn("Copy", "mp-copy", { v: pl.seat, cls: "small" })}${btn("Download", "mp-download", { v: pl.seat, cls: "small" })}</div>
-        <div class="msg" id="mp-out-msg-${pl.seat}" role="status" aria-live="polite"></div></details>`;
-    }).join("");
-    $("play-side").innerHTML = `<section class="panel outputs" aria-label="Move lists"><h2>Move lists</h2>
-      <p class="muted" style="margin:0;font-size:13px">Each is an output file for seed ${st.seed}${mt.rules !== "classic" ? `, scored with <span class="mono">--rules ${esc(mt.rules)}</span>` : ""}; check it with <span class="mono">python -m poker_run check</span> or the Replay tab.</p>${outs}</section>`;
+      </section>${boardHTML(st, -1)}`;
+    $("play-side").innerHTML = outputsHTML(st.text, mt.rules, st.seed, mt.players.map((pl) => ({ seat: pl.seat, name: pl.name, moves: pl.moves })), null);
     if (!st.celebrated) {
       st.celebrated = true;
-      document.querySelectorAll(".podium .pts").forEach((el) => Feel.countUp(el, 0, Number(el.dataset.to), ""));
-      const human = mt.players.some((p) => !p.bot && win.includes(p.seat));
-      setTimeout(() => { if (human || mt.mode !== "race") Sound.clear(); else Sound.lose(); }, 250);
-      const first = document.querySelector(".podium .pl.first");
-      if (first) setTimeout(() => Feel.motes(30, first), 300);
+      celebrate(win.includes(0));
     }
   }
 
-  function mpOutputName(st, seat) {
-    const slug = st.match.players[seat].name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `player${seat + 1}`;
-    return `poker_run_seed${st.seed}${st.match.rules !== "classic" ? "_" + st.match.rules : ""}_${slug}_out.txt`;
+  // Every player's move list with its checker verdict; matchId: online match (adds Replay links)
+  function outputsHTML(text, rules, seed, players, matchId) {
+    const outs = players.map((pl) => {
+      const out = PR.formatOutput(pl.moves);
+      const [code, v] = PR.check(text, out, rules);
+      const verdict = code === 0 ? `valid · ${UI.num(v.score)}` : "invalid";
+      return `<details style="--pc:${COLORS[pl.seat]}"><summary><span class="pdot"></span> <span class="pname">${esc(pl.name)}</span> <span class="muted">· ${pl.moves.length} moves · ${esc(verdict)}</span></summary>
+        <textarea readonly spellcheck="false" id="mp-out-${pl.seat}" aria-label="${esc(pl.name)}'s output file">${esc(out)}</textarea>
+        <div class="actions" style="margin-top:6px">${btn("Copy", "mp-copy", { v: pl.seat, cls: "small" })}${btn("Download", "mp-download", { v: pl.seat, cls: "small" })}${btn("Replay", "mp-replay", { v: pl.seat, cls: "small", title: "Step through this run in the Replay tab" })}</div>
+        <div class="msg" id="mp-out-msg-${pl.seat}" role="status" aria-live="polite"></div></details>`;
+    }).join("");
+    return `<section class="panel outputs" aria-label="Move lists"><h2>Move lists</h2>
+      <p class="muted" style="margin:0;font-size:13px">Each is an output file for seed ${seed}${rules !== "classic" ? `, scored with <span class="mono">--rules ${esc(rules)}</span>` : ""}; check it with <span class="mono">python -m poker_run check</span> or the Replay tab.${matchId ? ` Saved to your account: <a href="#match=${matchId}">link to this match</a>.` : ""}</p>${outs}</section>`;
+  }
+
+  function outputName(seed, rules, name, seat) {
+    const slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `player${seat + 1}`;
+    return `poker_run_seed${seed}${rules !== "classic" ? "_" + rules : ""}_${slug}_out.txt`;
+  }
+
+  // The results on screen (vs Bot or an online match): {text, rules, seed, players: [{seat, name, moves}]}
+  function shownOutputs() {
+    if (S.kind === "online" && !ON.code && ON.detail) {
+      const d = ON.detail;
+      return { text: PR.formatInstance(onInst(d.seed)), rules: d.rules, seed: d.seed, players: d.players.map((p) => ({ seat: p.seat, name: p.name, moves: p.moves })) };
+    }
+    if (S.kind === "online" && ON.view && ON.view.status === "finished") {
+      const v = ON.view;
+      return { text: PR.formatInstance(onInst(v.seed)), rules: v.rules, seed: v.seed, players: v.players.map((p) => ({ seat: p.seat, name: p.name, moves: p.moves || [] })) };
+    }
+    const st = mpCur();
+    if (!st) return null;
+    return { text: st.text, rules: st.match.rules, seed: st.seed, players: st.match.players.map((pl) => ({ seat: pl.seat, name: pl.name, moves: pl.moves })) };
+  }
+
+  // Open a move list in the Replay tab, checked by its own rules.
+  function openReplay(text, moves, rules) {
+    $("rp-input").value = text;
+    $("rp-output").value = PR.formatOutput(moves);
+    S.rpRules = rules !== S.rules ? rules : null;
+    S.mode = "replay";
+    render();
+    runReplay();
+    scrollTop();
+  }
+
+  // ======================================================================
+  // Online: rooms on the server. Signed-in players only; the server checks every move
+  // (turns, the draft, the solo rules) and keeps the room. This page polls the room
+  // (a long poll: the server answers as soon as something changes) and shows your own
+  // game in full, the others' as summaries (scores, hand types, purchases, rounds).
+  // ======================================================================
+  const ROOM_RE = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/;
+  const ONLINE_MODES = { race: "Race", draft: "Draft", rounds: "Rounds" };
+  const ONLINE_TEXT = {
+    race: "Everyone plays the same deal at the same time, each on their own. You see the others' progress live; each of their rounds is revealed when you finish the same round.",
+    draft: "Turns round by round with one shared shop: everyone plays round r, then the shop is visited one at a time, lowest total first, and a modifier someone owns is gone for everyone else.",
+    rounds: "Turns round by round: each player plays a round and the shop after it, then the next player. Everyone sees everyone's scores as they come.",
+  };
+  const ON = {
+    me: undefined,          // undefined: not asked yet; null: signed out; {username}
+    api: true,              // false: no server here (the page was opened on its own)
+    form: { mode: "race", rules: "classic", seed: "", random: true, max: 2, bots: 0, level: "normal", join: "" },
+    code: null,             // the room on screen
+    view: null,             // its latest state from the server
+    error: null,            // why the room can't be shown: { text }
+    lost: false,            // the connection dropped: retrying
+    gen: 0,                 // poll loop generation (a new room or leaving stops the old loop)
+    abort: null,
+    rooms: null, matches: null, record: null, homeErr: null, detail: null, settingsOpen: false, apiErr: null, rules: null,
+    game: null, moves: [], seed: null, pending: 0, chain: Promise.resolve(),
+    labels: {}, insts: {}, celebrated: null, key: "",
+    busy: false, msg: null,
+  };
+
+  function onInst(seed) { return ON.insts[seed] || (ON.insts[seed] = PR.generate(seed)); }
+  function onMe(v) { v = v || ON.view; return v ? v.players.find((p) => p.you) || null : null; }
+  function onPlayer(v, seat) { return v.players.find((p) => p.seat === seat) || null; }
+  function onlineHash() {
+    if (ON.code) { try { history.replaceState(null, "", "#room=" + ON.code); } catch (e) { /* no URL updates */ } }
+    else bareHash();
+  }
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function api(method, path, body, signal) {
+    const opts = { method, credentials: "same-origin", headers: { Accept: "application/json" }, signal };
+    if (method !== "GET") {
+      opts.headers["X-Requested-With"] = "fetch";
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body || {});
+    }
+    let res;
+    try { res = await fetch(path, opts); } catch (e) {
+      const err = new Error(e && e.name === "AbortError" ? "aborted" : "Can't reach the server. Check your connection.");
+      err.status = e && e.name === "AbortError" ? -2 : 0;
+      throw err;
+    }
+    let data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+    if (!res.ok) {
+      const err = new Error(data && typeof data.error === "string" ? data.error : `The server answered ${res.status}.`);
+      err.status = res.status;
+      throw err;
+    }
+    if (data === null) { const err = new Error("The server sent an unexpected answer."); err.status = -1; throw err; }
+    return data;
+  }
+
+  function toast(html, color) {
+    const box = $("toasts");
+    if (!box) return;
+    const el = document.createElement("div");
+    el.className = "toast";
+    if (color) el.style.setProperty("--pc", color);
+    el.innerHTML = html;
+    box.appendChild(el);
+    while (box.children.length > 4) box.firstChild.remove();
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, 4200);
+  }
+
+  async function checkMe() {
+    try { ON.me = await api("GET", "/api/me"); ON.api = true; } catch (e) {
+      if (e.status === 401) ON.me = null;
+      else { ON.me = null; ON.api = false; ON.apiErr = e.message; }
+    }
+  }
+
+  async function onlineEnter() {
+    if (ON.me === undefined || !ON.api) { await checkMe(); if (S.kind === "online") render(); }
+    if (!ON.me || S.kind !== "online") return;
+    if (ON.code) startPolling(); else loadHome();
+  }
+
+  function onlineStop() {
+    ON.gen++;
+    if (ON.abort) { try { ON.abort.abort(); } catch (e) { /* ignore */ } ON.abort = null; }
+  }
+
+  async function loadHome() {
+    ON.homeErr = null;
+    try {
+      const [rooms, hist] = await Promise.all([api("GET", "/api/rooms"), api("GET", "/api/matches")]);
+      ON.rooms = rooms; ON.matches = hist.matches; ON.record = hist.record;
+    } catch (e) {
+      if (e.status === 401) ON.me = null;
+      ON.homeErr = e.message;
+    }
+    if (S.kind === "online" && !ON.code && S.mode === "play") render();
+  }
+
+  function enterRoom(code, view) {
+    onlineStop();
+    ON.code = code; ON.view = null; ON.error = null; ON.lost = false; ON.msg = null; ON.key = "";
+    ON.game = null; ON.moves = []; ON.seed = null; ON.pending = 0; ON.celebrated = null;
+    onlineHash();
+    if (view) gotView(view, true);
+    startPolling();
+    render();
+    scrollTop();
+  }
+
+  function leaveRoomScreen() {
+    onlineStop();
+    ON.code = null; ON.view = null; ON.error = null; ON.lost = false; ON.msg = null;
+    onlineHash();
+    useSolo();
+    loadHome();
+    render();
+    scrollTop();
+  }
+
+  function startPolling() {
+    onlineStop();
+    const gen = ON.gen;
+    pollLoop(gen);
+  }
+
+  async function pollLoop(gen) {
+    let delay = 0;
+    while (gen === ON.gen && ON.code && S.kind === "online") {
+      const code = ON.code;
+      const since = ON.view && ON.view.code === code ? ON.view.version : null;
+      const ctl = typeof AbortController === "function" ? new AbortController() : null;
+      ON.abort = ctl;
+      const t0 = Date.now();
+      try {
+        // a long poll, except right after a dropped connection: then find out at once that we are back
+        const q = since === null ? "" : `?since=${since}&wait=${ON.lost ? 0 : 20}`;
+        const v = await api("GET", `/api/rooms/${code}${q}`, undefined, ctl ? ctl.signal : undefined);
+        if (gen !== ON.gen) return;
+        if (ON.lost) { ON.lost = false; toast("Connected again."); render(); }
+        delay = 0;
+        gotView(v);
+        // a server that doesn't hold the poll open (or a quiet room): don't ask again at once
+        if (since !== null && v.version === since && Date.now() - t0 < 1000 && !q.endsWith("wait=0")) await sleep(1000);
+      } catch (e) {
+        if (gen !== ON.gen || e.status === -2) return;
+        if (e.status === 401) { ON.me = null; render(); return; }
+        if (e.status === 404 || e.status === 403) {
+          ON.error = { text: e.status === 404 ? `Room ${code} wasn't found. It may have expired (rooms close after a while without activity), or the code is mistyped.` : e.message, status: e.status };
+          ON.view = null;
+          useSolo();
+          render();
+          return;
+        }
+        if (!ON.lost) { ON.lost = true; render(); }
+        delay = Math.min(10000, delay ? delay * 2 : 1000);
+        await sleep(delay);
+      }
+    }
+  }
+
+  // A view's identity for "did anything change on screen" (ignores the clocks).
+  function viewKey(v) {
+    return JSON.stringify(v, (k, x) => (k === "server_time" || k === "expires_in" || k === "idle" ? undefined : x));
+  }
+
+  function gotView(v, quiet) {
+    if (!v || v.code !== ON.code) return;
+    const prev = ON.view;
+    if (prev && v.version < prev.version) return;   // an older answer that arrived late
+    ON.view = v;
+    if (!quiet && prev) announce(prev, v);
+    const me = onMe(v);
+    if (me && me.moves && !ON.pending) syncGame(v, me);
+    const key = viewKey(v);
+    if (key === ON.key) return;
+    ON.key = key;
+    if (S.kind === "online" && S.mode === "play") renderKeepFocus();
+  }
+
+  function syncGame(v, me) {
+    if (ON.game && ON.seed === v.seed && ON.rules === v.rules && ON.moves.join("\n") === me.moves.join("\n")) return;
+    const g = new PR.Game(onInst(v.seed), v.rules);
+    for (const m of me.moves) { try { g.apply(m); } catch (e) { break; } }
+    ON.game = g; ON.moves = me.moves.slice(); ON.seed = v.seed; ON.rules = v.rules;
+  }
+
+  // Toasts for what the others did since the last view.
+  function announce(a, b) {
+    const name = (p) => `<span class="pname" style="--pc:${COLORS[p.seat]}">${esc(p.name)}</span>`;
+    if (a.status === "lobby" && b.status === "lobby") {
+      for (const p of b.players) {
+        const q = a.players.find((x) => x.seat === p.seat && x.name === p.name);
+        if (!q && !p.you) { toast(`${name(p)} joined the room.`, COLORS[p.seat]); Sound.tap(); }
+        else if (q && !q.ready && p.ready && !p.you && !p.bot) toast(`${name(p)} is ready.`, COLORS[p.seat]);
+      }
+      for (const q of a.players) if (!b.players.some((p) => p.seat === q.seat && p.name === q.name) && !q.you) toast(`${name(q)} left the room.`, COLORS[q.seat]);
+      return;
+    }
+    if (a.status === "lobby" && b.status === "playing") { toast("The game is on. Good luck!"); Sound.shuffle(); return; }
+    if (b.status !== "playing") return;
+    for (const p of b.players) {
+      if (p.you) continue;
+      const q = a.players.find((x) => x.seat === p.seat);
+      if (!q) continue;
+      for (let r = 0; r < p.rounds.length; r++) {
+        const now = p.rounds[r], was = q.rounds[r];
+        if (now.cleared !== null && (!was || was.cleared === null)) {
+          toast(now.cleared ? `${name(p)} cleared round ${r + 1} with <b>${UI.num(now.score)}</b>.` : `${name(p)} went out in round ${r + 1} (${UI.num(now.score)}).`, COLORS[p.seat]);
+        }
+        const nb = now.buys.filter((x, i) => !was || i >= was.buys.length);
+        if (nb.length && (!was || now.shop_moves > was.shop_moves)) toast(`${name(p)} bought <b>${esc(nb.map(UI.prettyMod).join(", "))}</b>.`, COLORS[p.seat]);
+      }
+      if (q.status === "in" && p.status !== "in") toast(`${name(p)} ${p.status === "removed" ? "was removed (away)" : "left the game"}; their run scores what it has.`, COLORS[p.seat]);
+      else if (q.online && !p.online && p.status === "in" && !p.over) toast(`${name(p)} seems to be away.`, COLORS[p.seat]);
+    }
+    const me = onMe(b);
+    const mine = (v) => v.turn && me && v.turn.seat === me.seat;
+    if (b.mode !== "race" && mine(b) && !mine(a)) { toast("<b>Your turn.</b>", COLORS[me.seat]); Sound.next(); }
+  }
+
+  function canIMove(v, g) {
+    const me = onMe(v);
+    if (!me || me.status !== "in" || me.over || !g || g.over) return "";
+    if (v.status !== "playing") return "";
+    if (v.mode === "race") return "ok";
+    if (!v.turn || v.turn.seat !== me.seat) return "";
+    if (v.turn.round !== g.round || v.turn.stage !== g.phase) return "";   // our last move is still on its way
+    return "ok";
+  }
+
+  function onlineMove(line) {
+    const v = ON.view, g = ON.game, me = onMe(v);
+    let err = "";
+    if (!canIMove(v, g)) {
+      const t = v && v.turn && onPlayer(v, v.turn.seat);
+      err = t && me && t.seat !== me.seat ? `it's ${t.name}'s turn` : "wait for the room to catch up";
+    } else {
+      const tok = line.split(/\s+/);
+      const owner = tok[0] === "buy" && tok.length === 2 && v.mode === "draft" ? v.owners[tok[1]] : undefined;
+      if (owner !== undefined && owner !== me.seat) err = `${tok[1]} was drafted by ${onPlayer(v, owner).name}`;
+      else err = g.tryMove(line) || "";
+    }
+    if (err) { S.msg = { kind: "err", text: `${line}: ${err}` }; Sound.oops(); renderKeepFocus(); return false; }
+    const before = g, after = g.clone();
+    after.apply(line);
+    ON.game = after;
+    ON.moves = ON.moves.concat([line]);
+    ON.pending++;
+    S.game = after; S.moves = ON.moves.slice();
+    S.labels = movesLabels(ON.labels, "me", onInst(v.seed), v.rules, ON.moves);
+    S.msg = null;
+    S.sel = after.phase === "play" ? S.sel.filter((c) => after.hand.includes(c)) : [];
+    if (S.deckPick !== null && (!after.in_deck[S.deckPick] || after.phase !== "shop")) S.deckPick = null;
+    renderKeepFocus();
+    Feel.afterMove(line, before, after);
+    const code = ON.code;
+    ON.chain = ON.chain.then(async () => {
+      try {
+        const nv = await api("POST", `/api/rooms/${code}/move`, { move: line });
+        ON.pending = Math.max(0, ON.pending - 1);
+        if (code === ON.code) gotView(nv);
+        if (code === ON.code && !ON.pending) { const m = onMe(nv); if (m) { syncGame(nv, m); renderKeepFocus(); } }
+      } catch (e) {
+        ON.pending = Math.max(0, ON.pending - 1);
+        if (code !== ON.code) return;
+        S.msg = { kind: "err", text: `${line}: ${e.message}` };
+        Sound.oops();
+        ON.game = null;   // rebuilt from the server's copy of your moves
+        try { const nv = await api("GET", `/api/rooms/${code}`); ON.view = null; gotView(nv, true); const m = onMe(nv); if (m) syncGame(nv, m); } catch (e2) { /* the poll loop recovers */ }
+        renderKeepFocus();
+      }
+    });
+    return true;
+  }
+
+  async function roomAction(what, body, okText) {
+    if (ON.busy) return null;
+    ON.busy = true;
+    const code = ON.code;
+    try {
+      const v = await api("POST", `/api/rooms/${code}/${what}`, body || {});
+      ON.msg = okText ? { kind: "ok", text: okText } : null;
+      if (v && v.code === ON.code) gotView(v, true);
+      return v;
+    } catch (e) {
+      ON.msg = { kind: "err", text: e.message };
+      Sound.oops();
+      if (e.status === 404 || e.status === 403) { ON.error = { text: e.message }; ON.view = null; onlineStop(); }
+      return null;
+    } finally {
+      ON.busy = false;
+      if (S.kind === "online") renderKeepFocus();
+    }
+  }
+
+  function roomLink(code) { return `${location.origin}${location.pathname}#room=${code}`; }
+  function signInHref() {
+    const next = location.pathname + (ON.code ? "#room=" + ON.code : "#mode=online");
+    return `/contest/?next=${encodeURIComponent(next)}`;
+  }
+
+  function copyText(text, done, fail) {
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+      if (ok) done(); else fail();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  // ---- online screens
+  function onMsgHTML() {
+    return `<div class="msg" id="on-msg" role="status" aria-live="polite">${ON.msg ? `<div class="${ON.msg.kind === "err" ? "err" : "okmsg"}">${esc(ON.msg.text)}</div>` : ""}</div>`;
+  }
+  function bannerHTML() {
+    return ON.lost ? `<div class="banner" role="alert"><span class="spin" aria-hidden="true"></span> Connection lost. Retrying… <span class="muted">Your seat is kept.</span></div>` : "";
+  }
+  function onlineSideHowHTML(mode) {
+    const m = mode || ON.form.mode;
+    return `<section class="panel" aria-label="How online play works"><h2>How online play works</h2><ul class="mode-rules">
+      <li><b>${esc(ONLINE_MODES[m])}</b>: ${esc(ONLINE_TEXT[m])}</li>
+      <li>Everyone gets the <b>same seed and rules</b>. Each player's move list is a valid output for that seed; the server checks every move.</li>
+      <li>Players need an account. Share the room's code or link; the host starts the game when everyone is ready. Bots can fill seats.</li>
+      <li>You see your own hand; for the others, their scores, hand types, purchases and rounds.</li>
+      <li>Reload or switch devices any time: signing in again puts you back in your seat. A player who is away for a while can be removed by the others; their run scores what it has.</li>
+      <li>Results are saved to your account (Your matches, below). They don't count for the contest leaderboard.</li></ul></section>`;
+  }
+
+  function noServerHTML() {
+    return `<section class="panel setup" aria-label="Online play"><h2>Online</h2><p class="lead">Online play needs the Poker Run website: this copy of the game can't reach its server${ON.apiErr ? ` (${esc(ON.apiErr)})` : ""}.</p>
+      <div class="actions">${btn("Try again", "on-retry", { cls: "primary" })}${btn("Play vs Bot instead", "kind", { v: "bot" })}</div></section>`;
+  }
+
+  function signedOutHTML() {
+    const room = ON.code ? ` You'll come back to room <b class="mono">${esc(ON.code)}</b> afterwards.` : "";
+    return `<section class="panel setup online-signin" aria-label="Sign in to play online"><h2>Play online</h2>
+      <p class="lead">Play Poker Run with friends on their own devices: make a room, share its code, and race or draft on the same deal. You need an account so the room knows who you are and your results are saved.${room}</p>
+      <div class="actions"><a class="btn primary" href="${esc(signInHref())}#signin">Sign in</a><a class="btn" href="${esc(signInHref())}#register">Create an account</a>${btn("I've signed in", "on-retry", { cls: "small", title: "Check again" })}</div></section>`;
+  }
+
+  function tabsHTML(act, cur, items, label) {
+    return `<span class="tabs" role="radiogroup" aria-label="${esc(label)}">${Object.entries(items).map(([k, t]) => `<button type="button" class="tab" role="radio" aria-checked="${String(k) === String(cur)}" data-act="${act}" data-v="${esc(k)}">${esc(t)}</button>`).join("")}</span>`;
+  }
+
+  function homeHTML() {
+    const f = ON.form;
+    const botsMax = f.max - 1;
+    const botTabs = {};
+    for (let k = 0; k <= botsMax; k++) botTabs[k] = k ? String(k) : "None";
+    const create = `<section class="panel setup" aria-label="Create a room"><h2>Create a room</h2>
+      <div class="grid">
+        <div class="row"><span class="k lbl">Mode</span>${tabsHTML("on-form-mode", f.mode, ONLINE_MODES, "Mode")}</div>
+        <p class="muted" style="margin:-2px 0 2px;font-size:13px">${esc(ONLINE_TEXT[f.mode])}</p>
+        <div class="row"><span class="k lbl">Rules</span>${tabsHTML("on-form-rules", f.rules, { classic: "Classic", balanced: "Balanced" }, "Rules")}</div>
+        <div class="row"><span class="k lbl">Players</span>${tabsHTML("on-form-max", f.max, { 2: "2", 3: "3", 4: "4" }, "Seats")}</div>
+        <div class="row"><span class="k lbl">Bots</span>${tabsHTML("on-form-bots", Math.min(f.bots, botsMax), botTabs, "Bot seats")}${f.bots ? tabsHTML("on-form-level", f.level, LEVEL_NAMES, "Bot level") : ""}</div>
+        <div class="row"><label class="k lbl" for="on-seed">Seed</label><input type="number" id="on-seed" data-on-form="seed" value="${esc(f.seed)}" step="1" min="0" inputmode="numeric" placeholder="random" ${f.random ? "disabled" : ""}>
+          <label class="check"><input type="checkbox" data-on-form="random" ${f.random ? "checked" : ""}> Random</label></div>
+        <div class="actions" style="margin-top:4px">${btn("Create room", "on-create", { cls: "primary", err: ON.busy ? "Working…" : "" })}</div>
+      </div></section>`;
+    const join = `<section class="panel setup" aria-label="Join a room"><h2>Join with a code</h2>
+      <form class="row" data-form="join" onsubmit="return false">
+        <input type="text" id="on-join" data-on-form="join" class="code-input" value="${esc(f.join)}" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE" aria-label="Room code">
+        ${btn("Join", "on-join", { cls: "primary" })}
+      </form>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">Codes are 5 letters and digits (no 0, O, 1 or I). A shared link opens the room directly.</p></section>`;
+    const rooms = ON.rooms && ON.rooms.length ? `<section class="panel" aria-label="Your open rooms"><h2>Your open rooms</h2><div class="plist">${ON.rooms.map((r) =>
+      `<div class="pr"><span class="mono room-chip">${esc(r.code)}</span><span style="min-width:0">${esc(ONLINE_MODES[r.mode] || r.mode)} · ${esc(UI.rulesTitle(r.rules))} · ${r.players}/${r.max_players} players<br><span class="muted" style="font-size:12px">${r.status === "lobby" ? "in the lobby" : "game in progress"}</span></span>${btn(r.status === "lobby" ? "Open" : "Resume", "on-open", { v: r.code, cls: "small primary" })}</div>`).join("")}</div></section>` : "";
+    return `<section class="panel online-head"><div class="toolbar"><h2 style="margin:0">Play online</h2><span class="muted" style="font-size:13px">Signed in as <b>${esc(ON.me.username)}</b></span></div>
+      <p class="muted" style="margin:6px 0 0">Make a room and share its code, or join a friend's. Everyone plays the same deal on their own device.</p>${onMsgHTML()}</section>
+      <div class="online-grid">${create}${join}</div>${rooms}${matchesHTML()}`;
+  }
+
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return iso; }
+  }
+
+  function matchesHTML() {
+    if (ON.homeErr) return `<section class="panel"><h2>Your matches</h2><div class="err">${esc(ON.homeErr)}</div></section>`;
+    if (!ON.matches) return `<section class="panel"><h2>Your matches</h2><p class="muted">Loading…</p></section>`;
+    const rec = ON.record;
+    const rows = ON.matches.map((m) => {
+      const me = m.players.find((p) => p.you);
+      const ps = m.players.slice().sort((a, b) => a.place - b.place).map((p) => `<span class="mp-chip" style="--pc:${COLORS[p.seat]}"><span class="pdot"></span> ${esc(p.name)} ${UI.num(p.total)}${p.left ? " (left)" : ""}</span>`).join(" ");
+      return `<div class="match-row"><span class="place-badge${me && me.place === 1 ? " win" : ""}" title="your place">${me ? ordinal(me.place) : "–"}</span>
+        <span style="min-width:0"><b>${esc(ONLINE_MODES[m.mode] || m.mode)}</b> · seed ${m.seed}${m.rules !== "classic" ? ` · ${esc(UI.rulesTitle(m.rules))}` : ""}${m.ended === "expired" ? ' · <span class="muted">ended (idle)</span>' : ""} <span class="muted" style="font-size:12px">${esc(fmtDate(m.finished))}</span><br>${ps}</span>
+        <span class="actions">${btn("Replay", "on-replay", { v: m.id, cls: "small", title: "Step through your run in the Replay tab" })}${btn("Details", "on-match", { v: m.id, cls: "small" })}</span></div>`;
+    }).join("");
+    return `<section class="panel" aria-label="Your matches"><div class="toolbar"><h2 style="margin:0">Your matches</h2><span class="muted" style="font-size:13px">${rec ? `${rec.played} played · ${rec.wins} won` : ""}</span></div>
+      ${rows || '<p class="muted" style="margin:6px 0 0">No online matches yet. Finished games show up here with every move list.</p>'}</section>`;
+  }
+
+  function settingsLine(v) {
+    return `${esc(ONLINE_MODES[v.mode])} · ${esc(UI.rulesTitle(v.rules))} rules · seed <b>${v.seed}</b> · ${v.max_players} seats`;
+  }
+
+  function lobbyHTML(v) {
+    const me = onMe(v), host = me && me.host;
+    const seats = [];
+    for (let k = 0; k < v.max_players; k++) {
+      const p = v.players.find((x) => x.seat === k);
+      if (!p) {
+        seats.push(`<div class="seat open" style="--pc:${COLORS[k]}"><span class="pdot" style="opacity:.35"></span><span class="muted">Open seat</span>
+          ${host ? `<span class="actions" style="margin-left:auto">${Object.keys(LEVEL_NAMES).map((l) => btn(`+ ${LEVEL_NAMES[l]} bot`, "on-add-bot", { v: l, cls: "small" })).join("")}</span>` : ""}</div>`);
+        continue;
+      }
+      const tick = p.ready ? `<span class="ready yes" title="ready">✓ ready</span>` : `<span class="ready" title="not ready yet">not ready</span>`;
+      const pres = p.bot ? `<span class="muted" style="font-size:12px">${esc(LEVEL_NAMES[p.bot])} bot</span>` : `<span class="presence${p.online ? " on" : ""}">${p.online ? "online" : "away"}</span>`;
+      const kick = host && !p.you ? btn(p.bot ? "Remove" : "Kick", "on-kick", { v: p.seat, cls: "small", aria: `${p.bot ? "Remove" : "Kick"} ${p.name}` }) : "";
+      seats.push(`<div class="seat" style="--pc:${COLORS[k]}"><span class="pdot"></span><span class="pname">${esc(p.name)}</span>${p.you ? ' <span class="muted">(you)</span>' : ""}${p.host ? ' <span class="host-badge" title="host">host</span>' : ""} ${pres}
+        <span style="margin-left:auto;display:flex;gap:8px;align-items:center">${tick}${kick}</span></div>`);
+    }
+    const others = v.players.filter((p) => !p.bot && !p.host && !p.ready).map((p) => p.name);
+    const startErr = v.players.length < 2 ? "Wait for a player to join, or add a bot" : others.length ? `Waiting for ${others.join(", ")} to be ready` : "";
+    let controls;
+    if (!me) controls = `${btn("Take a seat", "on-take-seat", { cls: "primary", err: v.players.length >= v.max_players ? "The room is full" : "" })}`;
+    else if (host) controls = `${btn("Start game", "on-start", { cls: "primary", err: startErr })}${startErr ? `<span class="muted" style="font-size:13px">${esc(startErr)}</span>` : ""}`;
+    else controls = `<button type="button" class="btn${me.ready ? "" : " primary"}" data-act="on-ready" aria-pressed="${me.ready}">${me.ready ? "✓ Ready (click to wait)" : "I'm ready"}</button><span class="muted" style="font-size:13px">The host starts the game.</span>`;
+    const hostSettings = host ? `<details class="host-settings"${ON.settingsOpen ? " open" : ""}><summary>Room settings</summary><div class="grid" style="margin-top:8px">
+        <div class="row"><span class="k lbl">Mode</span>${tabsHTML("on-set-mode", v.mode, ONLINE_MODES, "Mode")}</div>
+        <div class="row"><span class="k lbl">Rules</span>${tabsHTML("on-set-rules", v.rules, { classic: "Classic", balanced: "Balanced" }, "Rules")}</div>
+        <div class="row"><span class="k lbl">Seats</span>${tabsHTML("on-set-max", v.max_players, { 2: "2", 3: "3", 4: "4" }, "Seats")}</div>
+        <div class="row"><span class="k lbl">Seed</span><span class="mono">${v.seed}</span>${btn("New random seed", "on-set-seed", { cls: "small" })}</div>
+        <p class="muted" style="margin:0;font-size:12px">Changing the mode, rules or seed asks everyone to confirm "ready" again.</p></div></details>` : "";
+    return `${bannerHTML()}<section class="panel lobby" aria-label="Room lobby">
+      <div class="kicker">Online room · ${settingsLine(v)}</div>
+      <div class="room-code" aria-label="Room code ${esc(v.code.split("").join(" "))}">${esc(v.code)}</div>
+      <div class="actions" style="justify-content:center">${btn("Copy link", "on-copy-link", { cls: "primary small" })}${btn("Copy code", "on-copy-code", { cls: "small" })}</div>
+      <p class="muted" style="margin:8px 0 14px;font-size:13px">Friends open the link (or pick Online and enter the code) and sign in. The room closes after 30 minutes without activity.</p>
+      <div class="seats">${seats.join("")}</div>
+      <div class="actions" style="margin-top:12px">${controls}</div>
+      ${hostSettings}
+      ${onMsgHTML()}
+      <div class="actions" style="margin-top:10px;justify-content:flex-end">${me ? btn("Leave room", "on-leave", { cls: "small" }) : ""}${btn("All rooms", "on-home", { cls: "small" })}</div>
+    </section>`;
+  }
+
+  function errorHTML() {
+    return `<section class="panel setup" aria-label="Room unavailable"><h2>Online</h2><p class="lead">${esc(ON.error.text)}</p>
+      <div class="actions">${btn("Back to online play", "on-home", { cls: "primary" })}</div></section>`;
+  }
+
+  function statusText(v, p) {
+    if (p.status === "left") return "left the game";
+    if (p.status === "removed") return "removed (away)";
+    const R = onInst(v.seed).rounds;
+    if (p.over && !p.hidden) return p.cleared === R ? `cleared all ${R} rounds` : `out in round ${p.round + 1}`;
+    if (p.over) return "finished";
+    const mine = v.turn && v.turn.seat === p.seat;
+    if (v.mode === "race") return p.phase === "play" ? `playing round ${p.round + 1}` : `shop after round ${p.round + 1}`;
+    if (mine) return p.phase === "play" ? `playing round ${p.round + 1}` : `in the shop after round ${p.round + 1}`;
+    return p.phase === "shop" ? `waiting to shop (round ${p.round + 1})` : `waiting · round ${p.round + 1}`;
+  }
+
+  function onlinePlayersHTML(v) {
+    const rows = v.players.map((p) => {
+      const now = v.status === "playing" && (v.mode === "race" ? p.you : v.turn && v.turn.seat === p.seat);
+      const pres = p.bot ? `${esc(LEVEL_NAMES[p.bot])} bot` : p.online ? '<span class="presence on">online</span>' : '<span class="presence">away</span>';
+      const rm = p.removable ? btn("Remove", "on-remove", { v: p.seat, cls: "small", title: `${p.name} has been away for a while: stop their run so the game can go on` }) : "";
+      const shownTotal = `${UI.num(p.total)}${p.hidden ? '<span class="muted" title="rounds you have finished too" style="font-size:11px"> so far</span>' : ""}`;
+      return `<div class="pr${now ? " now" : ""}" style="--pc:${COLORS[p.seat]}"><span class="pdot"></span>
+        <span style="min-width:0"><span class="pname">${esc(p.name)}</span>${p.you ? ' <span class="muted" style="font-size:12px">(you)</span>' : ""} <span style="font-size:12px">${pres}</span><br><span class="muted" style="font-size:12px">${esc(statusText(v, p))}</span>${rm ? `<br>${rm}` : ""}</span>
+        <span class="gold" style="font-weight:800;font-variant-numeric:tabular-nums;text-align:right">${shownTotal}</span></div>`;
+    }).join("");
+    return `<section class="panel" aria-label="Players">
+      <div class="toolbar"><h2 style="margin:0">Players</h2><span class="actions"><span class="mp-chip">${esc(ONLINE_MODES[v.mode])}</span><span class="mp-chip mono">${esc(v.code)}</span><span class="mp-chip">seed <b>${v.seed}</b></span>${v.rules !== "classic" ? `<span class="rules-tag" style="margin:0">${esc(UI.rulesTitle(v.rules))} rules</span>` : ""}</span></div>
+      <div class="plist" style="margin-top:6px">${rows}</div>
+      <div class="actions" style="margin-top:10px">${btn("Copy link", "on-copy-link", { cls: "small" })}${btn("Leave game", "on-leave", { cls: "small", title: "Stop playing: your run scores what it has" })}</div>
+      ${onMsgHTML()}
+    </section>`;
+  }
+
+  function onlineRaceHTML(v) {
+    const R = onInst(v.seed).rounds, max = Math.max(1, ...v.players.map((p) => p.total));
+    const lanes = v.players.map((p) => `<div class="lane" style="--pc:${COLORS[p.seat]}"><span class="nm"><span class="pdot"></span>${esc(p.name)}</span>
+      <span class="track"><i style="width:${(100 * p.total) / max}%"></i></span><span class="score">${UI.num(p.total)}</span></div>
+      <div class="pips" style="--pc:${COLORS[p.seat]};margin:-2px 0 10px">${pipsHTML(p.rounds, R, null)}</div>`).join("");
+    return `<section class="panel race" aria-label="Race"><div class="toolbar"><h2 style="margin:0">Race</h2><span class="muted" style="font-size:13px">the others' rounds show up when you finish yours</span></div>${lanes}</section>`;
+  }
+
+  function turnText(v, p) {
+    if (p.phase === "play") return `round ${p.round + 1} of ${onInst(v.seed).rounds}`;
+    if (v.mode === "draft" && v.shop_order) {
+      const k = v.shop_order.indexOf(p.seat) + 1;
+      return `picks ${ordinal(k)} of ${v.shop_order.length} in the shared shop after round ${p.round + 1}`;
+    }
+    return `shop after round ${p.round + 1}`;
+  }
+
+  function onlineTopHTML(v) {
+    const me = onMe(v);
+    const t = v.mode === "race" ? me : v.turn ? onPlayer(v, v.turn.seat) : me;
+    const yours = t && t.seat === me.seat;
+    const bar = `<section class="panel turnbar" style="--pc:${COLORS[t.seat]}" aria-label="Whose turn" aria-live="polite">
+      <span class="who"><span class="pdot"></span><span class="pname">${yours && v.mode !== "race" ? "Your turn" : esc(t.name)}</span></span><span class="what">${esc(turnText(v, t))}</span>
+      <span class="tags"><span class="mp-chip">Online · ${esc(ONLINE_MODES[v.mode])}</span><span class="mp-chip">room <b class="mono">${esc(v.code)}</b></span></span></section>`;
+    return bannerHTML() + bar + (v.mode === "race" ? onlineRaceHTML(v) : "");
+  }
+
+  function waitingHTML(v) {
+    const me = onMe(v), t = v.turn ? onPlayer(v, v.turn.seat) : null;
+    if (!t || t.seat === me.seat) {
+      return `<section class="panel handoff" aria-label="Waiting"><div class="fan" aria-hidden="true">${[0, 1, 2].map((i) => `<span class="card back" style="rotate:${(i - 1) * 7}deg;--d:${i * 0.18}s"></span>`).join("")}</div><p class="task">Sending your move…</p></section>`;
+    }
+    const backs = [0, 1, 2, 3, 4].map((i) => `<span class="card back" style="rotate:${(i - 2) * 7}deg;--d:${i * 0.18}s"></span>`).join("");
+    const away = !t.bot && !t.online ? ` <span class="presence">away</span>` : "";
+    return `<section class="panel handoff" style="--pc:${COLORS[t.seat]}" aria-label="Waiting for ${esc(t.name)}">
+      <div class="kicker">Online · ${esc(ONLINE_MODES[v.mode])} · room ${esc(v.code)}</div>
+      <div class="fan" aria-hidden="true">${backs}</div>
+      <div class="to">Waiting for</div>
+      <div class="big-name">${esc(t.name)}${away}</div>
+      <p class="task">${esc(t.name)} ${esc(turnText(v, t).replace(/^round/, "plays round").replace(/^shop/, "shops"))}.</p>
+      ${t.removable ? `<p class="muted" style="font-size:13px">${esc(t.name)} has been away for a while. ${btn(`Remove ${esc(t.name)}`, "on-remove", { v: t.seat, cls: "small" })}</p>` : `<p class="muted" style="margin:-8px 0 0;font-size:13px">You'll hear a soft chime when it's your turn. Your hand is below.</p>`}
+    </section>`;
+  }
+
+  function myDoneHTML(v, g) {
+    const o = UI.outcome(g), me = onMe(v);
+    const left = me.status !== "in";
+    return `<section class="panel summary" aria-label="Your run">
+      <div class="muted" style="text-transform:uppercase;letter-spacing:.14em;font-size:13px">${left ? "You left this game" : o.won ? "Run complete" : "Run over"}</div>
+      <div class="big">${UI.num(g.total)}</div>
+      <div class="sub">points · cleared ${g.cleared} of ${g.inst.rounds} rounds</div>
+      <p class="muted">Waiting for the others to finish; the results show up here.</p></section>`;
+  }
+
+  function onlineResultsHTML(v) {
+    const R = onInst(v.seed).rounds;
+    const rows = v.players.slice().sort((a, b) => a.place - b.place || a.seat - b.seat);
+    const win = rows.filter((p) => p.place === 1);
+    const me = onMe(v);
+    const title = win.length > 1 ? `Tie: ${win.map((p) => p.name).join(" & ")}` : win[0].you ? "You win!" : `${win[0].name} wins!`;
+    const prow = rows.map((p) => ({ seat: p.seat, name: p.name, tag: p.bot ? `${LEVEL_NAMES[p.bot]} bot` : p.you ? "you" : "", total: p.total, cleared: p.cleared,
+      moves: (p.moves || []).length, place: p.place, note: p.status === "left" ? "left early" : p.status === "removed" ? "removed (away)" : "" }));
+    const rematchOther = v.rematch ? btn(`Join the rematch (${v.rematch})`, "on-open", { v: v.rematch, cls: "primary" }) : btn("Rematch", "on-rematch", { cls: "primary", title: "A new room with the same settings and bots; the others get a button to join it" });
+    const board = boardTableHTML(v.players.map((p) => ({ seat: p.seat, name: p.name, tag: p.bot ? `${LEVEL_NAMES[p.bot]} bot` : "", rounds: p.rounds, total: p.total, place: p.place, over: true })), R, me ? me.seat : -1);
+    return `<section class="panel summary results" style="--pc:${win.length > 1 ? "var(--gold)" : COLORS[win[0].seat]}" aria-label="Results">
+        <div class="kicker">Online · ${settingsLine(v)}${v.ended === "expired" ? " · ended after a long pause" : ""}</div>
+        <div class="winner">${esc(title)}</div>
+        <div class="podium">${podiumHTML(prow, R)}</div>
+        <div class="actions" style="justify-content:center;margin-top:14px">${rematchOther}${btn("Rematch on the same seed", "on-rematch", { v: "same", title: "A new room, same seed" , err: v.rematch ? "A rematch room exists already" : "" })}${btn("Back to online play", "on-home")}</div>
+        ${onMsgHTML()}
+      </section>${board}`;
+  }
+
+  // Renders the online screens and returns true, or points S at your game and returns false.
+  function onlineRender() {
+    let main = null, side = "";
+    const v = ON.view;
+    if (!ON.api) main = noServerHTML();
+    else if (ON.me === undefined) main = `<section class="panel"><p class="muted">Checking your account…</p></section>`;
+    else if (ON.me === null) { main = signedOutHTML(); side = onlineSideHowHTML(); }
+    else if (ON.error) main = errorHTML();
+    else if (!ON.code && ON.detail) {
+      const d = ON.detail;
+      main = matchDetailHTML(d);
+      side = outputsHTML(PR.formatInstance(onInst(d.seed)), d.rules, d.seed, d.players.map((p) => ({ seat: p.seat, name: p.name, moves: p.moves })), d.id);
+    } else if (!ON.code) { main = homeHTML(); side = onlineSideHowHTML() + rulesBoxHTML(ON.form.rules); }
+    else if (!v) main = `${bannerHTML()}<section class="panel"><p class="muted">Opening room ${esc(ON.code)}…</p></section>`;
+    else if (v.status === "lobby") { main = lobbyHTML(v); side = onlineSideHowHTML(v.mode) + rulesBoxHTML(v.rules); }
+    else if (v.status === "finished") {
+      main = onlineResultsHTML(v);
+      side = outputsHTML(PR.formatInstance(onInst(v.seed)), v.rules, v.seed, v.players.map((p) => ({ seat: p.seat, name: p.name, moves: p.moves || [] })), v.match_id);
+    } else {
+      const me = onMe(v);
+      if (!me) main = `<section class="panel setup"><h2>Room ${esc(v.code)}</h2><p class="lead">This game started without you. Ask the host for a rematch, or make your own room.</p><div class="actions">${btn("Back to online play", "on-home", { cls: "primary" })}</div></section>`;
+      else {
+        if (!ON.game || ON.seed !== v.seed) syncGame(v, me);
+        showGame(`online:${v.code}`, v.seed, PR.formatInstance(onInst(v.seed)), onInst(v.seed), ON.game, ON.moves, movesLabels(ON.labels, "me", onInst(v.seed), v.rules, ON.moves));
+        return false;
+      }
+    }
+    useSolo();
+    $("play-main").innerHTML = main;
+    $("play-side").innerHTML = side;
+    if (v && v.status === "finished" && ON.celebrated !== v.code) {
+      ON.celebrated = v.code;
+      const me = onMe(v);
+      celebrate(!!(me && me.place === 1));
+    }
+    Scroll.request();
+    return true;
+  }
+
+  // The play view of your own online game.
+  function onlinePlayHTML(g) {
+    const v = ON.view, me = onMe(v);
+    let main = onlineTopHTML(v);
+    const mine = canIMove(v, g);
+    if (g.over || me.status !== "in") {
+      main += myDoneHTML(v, g);
+      main += boardTableHTML(v.players.map((p) => ({ seat: p.seat, name: p.name, tag: p.bot ? `${LEVEL_NAMES[p.bot]} bot` : "", rounds: p.rounds, total: p.total, over: p.over })), g.inst.rounds, me.seat);
+      return main;
+    }
+    if (!mine && v.mode !== "race") main += waitingHTML(v);
+    main += statusHTML(g);
+    if (g.phase === "play") {
+      main += mine ? playPanelHTML(g, true) : `<section class="panel" aria-label="Your hand"><h2>Your hand</h2><div class="hand">${handHTML(g, { interactive: false, sort: S.sort })}</div></section>`;
+      main += pileHTML(g, g.pile, "Draw pile", "next card first", mine && S.sel.length ? Math.min(S.sel.length, g.pile.length) : 0);
+      main += handTableHTML(g, mine, mine && S.sel.length && S.sel.length <= 5 ? g.evaluate(S.sel).hand : null);
+    } else if (g.phase === "shop") {
+      if (mine) main += shopHTML(g);
+      main += handTableHTML(g, !!mine, null);
+      main += pileHTML(g, UI.nextRoundPile(g), `Round ${g.round + 2} draw order`, "in draw order · gold = your opening hand", Math.min(g.hand_size, UI.nextRoundPile(g).length));
+    }
+    if (v.mode !== "race") main += boardTableHTML(v.players.map((p) => ({ seat: p.seat, name: p.name, tag: p.bot ? `${LEVEL_NAMES[p.bot]} bot` : "", rounds: p.rounds, total: p.total, over: p.over })), g.inst.rounds, me.seat);
+    return main;
+  }
+
+  // The shared shop: who owns what, as seen by the player in the shop.
+  function shopCtx(g) {
+    if (S.kind === "online" && M.stash && ON.view && ON.view.status === "playing") {
+      const v = ON.view, me = onMe(v);
+      const owner = (name) => { const s = v.owners[name]; return s !== undefined && me && s !== me.seat ? onPlayer(v, s) : null; };
+      let note = "";
+      if (v.mode === "draft" && v.shop_order && me) {
+        const k = v.shop_order.indexOf(me.seat) + 1;
+        note = `Shared shop: you pick ${ordinal(k)} of ${v.shop_order.length} (lowest total first). A modifier another player owns is gone for you; one they sell comes back.`;
+      }
+      return { owner, buyErr: (n) => { const o = owner(n); return o ? `${n} was drafted by ${o.name}` : g.tryMove("buy " + n); },
+        next: v.mode === "draft" ? "Done shopping →" : v.mode === "rounds" ? "Next round · end turn →" : "Next round →", note };
+    }
+    return { owner: () => null, buyErr: (n) => g.tryMove("buy " + n), next: "Next round →", note: "" };
   }
 
   // ---------- actions
@@ -2024,11 +2648,13 @@ function startApp(PR) {
   const actions = {
     mode(el) {
       S.mode = el.dataset.v; Sound.tap(); render();
-      if (S.mode === "replay" && S.rp && S.rp.rules !== S.rules) runReplay();   // checked with other rules
+      if (S.mode === "replay" && S.rp && S.rp.rules !== (S.rpRules || S.rules)) runReplay();   // checked with other rules
     },
     rules(el) {
       const v = el.dataset.v;
-      if (S.mode === "play" && S.kind !== "solo") { mpRules(v); return; }
+      if (S.mode === "play" && S.kind === "bot") { mpRules(v); return; }
+      if (S.mode === "play" && S.kind === "online") return;
+      if (S.mode === "replay" && S.rpRules) { S.rpRules = null; if (v === S.rules) { Sound.tap(); runReplay(); render(); return; } }
       if (v === S.rules || !Object.prototype.hasOwnProperty.call(PR.RULESETS, v)) return;
       if (S.moves.length && !S.game.over &&
           !window.confirm(`Switch to the ${UI.rulesTitle(v)} rules? Your current run (${S.moves.length} moves) starts again from the first move.`)) return;
@@ -2137,34 +2763,23 @@ function startApp(PR) {
       if (!LEVEL_NAMES[el.dataset.v]) return;
       M.setups.bot.level = el.dataset.v; saveMP(); Sound.tap(); renderKeepFocus();
     },
-    "mp-n"(el) {
-      const su = M.setups[S.kind];
-      if (!su || !su.players) return;
-      su.n = Number(el.dataset.v); saveMP(); Sound.tap(); renderKeepFocus();
-    },
     "mp-seed-random"() { $("mp-seed").value = String(randomSeed()); Sound.shuffle(); },
     "mp-start"() {
       const seed = Number($("mp-seed").value);
       if (!Number.isSafeInteger(seed)) { flash("mp-msg", "err", "The seed must be a whole number."); Sound.oops(); return; }
-      mpStart(S.kind, seed); Sound.shuffle(); render(); scrollTop();
+      mpStart(seed); Sound.shuffle(); render(); scrollTop();
     },
-    "mp-reveal"() {
-      const st = mpCur();
-      if (!st || !st.match.turn) return;
-      st.viewer = st.match.turn.seat; st.screen = "turn"; saveMP();
-      Sound.next(); render(); scrollTop();
-    },
-    "mp-rematch"() { const st = mpCur(); if (st) { mpStart(S.kind, st.seed); Sound.shuffle(); render(); scrollTop(); } },
-    "mp-new-seed"() { mpStart(S.kind, randomSeed()); Sound.shuffle(); render(); scrollTop(); },
+    "mp-rematch"() { const st = mpCur(); if (st) { mpStart(st.seed); Sound.shuffle(); render(); scrollTop(); } },
+    "mp-new-seed"() { mpStart(randomSeed()); Sound.shuffle(); render(); scrollTop(); },
     "mp-restart"() {
       const st = mpCur();
       if (!st || !window.confirm("Restart this match from round 1 on the same seed?")) return;
-      mpStart(S.kind, st.seed); Sound.shuffle(); render(); scrollTop();
+      mpStart(st.seed); Sound.shuffle(); render(); scrollTop();
     },
     "mp-setup"() {
       const st = mpCur();
       if (st && !st.match.over && !window.confirm("Leave this match for the setup? It can't be resumed.")) return;
-      M.games[S.kind] = null; saveMP(); Sound.tap(); render(); scrollTop();
+      M.games.bot = null; saveMP(); Sound.tap(); render(); scrollTop();
     },
     "mp-copy"(el) {
       const seat = Number(el.dataset.v), ta = $("mp-out-" + seat);
@@ -2180,20 +2795,129 @@ function startApp(PR) {
       else fallback();
     },
     "mp-download"(el) {
-      const st = mpCur(), seat = Number(el.dataset.v);
-      if (!st || !st.match.players[seat]) return;
-      const blob = new Blob([st.match.output(seat)], { type: "text/plain" });
+      const o = shownOutputs(), seat = Number(el.dataset.v), pl = o && o.players.find((p) => p.seat === seat);
+      if (!pl) return;
+      const blob = new Blob([PR.formatOutput(pl.moves)], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = mpOutputName(st, seat);
+      a.href = url; a.download = outputName(o.seed, o.rules, pl.name, seat);
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
       flash("mp-out-msg-" + seat, "ok", `Saved ${a.download}.`);
     },
+    "mp-replay"(el) {
+      const o = shownOutputs(), seat = Number(el.dataset.v), pl = o && o.players.find((p) => p.seat === seat);
+      if (pl) openReplay(o.text, pl.moves, o.rules);
+    },
+    // ---- online
+    "on-retry"() { ON.me = undefined; ON.api = true; ON.apiErr = null; render(); onlineEnter(); },
+    "on-form-mode"(el) { if (ONLINE_MODES[el.dataset.v]) { ON.form.mode = el.dataset.v; Sound.tap(); renderKeepFocus(); } },
+    "on-form-rules"(el) { if (isRules(el.dataset.v)) { ON.form.rules = el.dataset.v; Sound.tap(); renderKeepFocus(); } },
+    "on-form-max"(el) {
+      const n = Number(el.dataset.v);
+      if (![2, 3, 4].includes(n)) return;
+      ON.form.max = n; ON.form.bots = Math.min(ON.form.bots, n - 1); Sound.tap(); renderKeepFocus();
+    },
+    "on-form-bots"(el) {
+      const n = Number(el.dataset.v);
+      if (!(n >= 0 && n < ON.form.max)) return;
+      ON.form.bots = n; Sound.tap(); renderKeepFocus();
+    },
+    "on-form-level"(el) { if (LEVEL_NAMES[el.dataset.v]) { ON.form.level = el.dataset.v; Sound.tap(); renderKeepFocus(); } },
+    async "on-create"() {
+      const f = ON.form;
+      let seed = null;
+      if (!f.random) {
+        seed = Number(f.seed);
+        if (String(f.seed).trim() === "" || !Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) {
+          ON.msg = { kind: "err", text: "The seed must be a whole number from 0 to 4294967295 (or tick Random)." }; Sound.oops(); render(); return;
+        }
+      }
+      if (ON.busy) return;
+      ON.busy = true; ON.msg = null;
+      try {
+        const v = await api("POST", "/api/rooms", { mode: f.mode, rules: f.rules, seed, max_players: f.max, bots: Array(Math.min(f.bots, f.max - 1)).fill(f.level) });
+        ON.busy = false;
+        Sound.shuffle();
+        enterRoom(v.code, v);
+      } catch (e) {
+        ON.busy = false;
+        if (e.status === 401) ON.me = null;
+        ON.msg = { kind: "err", text: e.message }; Sound.oops(); render();
+      }
+    },
+    async "on-join"() {
+      const code = String(ON.form.join || "").trim().toUpperCase();
+      if (!ROOM_RE.test(code)) { ON.msg = { kind: "err", text: "A room code is 5 letters and digits, like K7M3Q." }; Sound.oops(); render(); return; }
+      await joinRoom(code);
+    },
+    async "on-open"(el) {
+      const code = el.dataset.v;
+      if (!ROOM_RE.test(code)) return;
+      Sound.tap();
+      if (ON.view && ON.view.rematch === code) { await joinRoom(code); return; }
+      ON.detail = null;
+      enterRoom(code);
+    },
+    "on-take-seat"() { roomAction("join").then((v) => { if (v) Sound.shuffle(); }); },
+    "on-ready"() { const me = onMe(); if (me) { Sound.tap(); roomAction("ready", { ready: !me.ready }); } },
+    "on-start"() { Sound.shuffle(); roomAction("start"); },
+    "on-kick"(el) {
+      const p = ON.view && onPlayer(ON.view, Number(el.dataset.v));
+      if (!p || (!p.bot && !window.confirm(`Remove ${p.name} from the room? They can't join it again.`))) return;
+      roomAction("kick", { seat: p.seat });
+    },
+    "on-add-bot"(el) {
+      if (!ON.view || !LEVEL_NAMES[el.dataset.v]) return;
+      const bots = ON.view.players.filter((p) => p.bot).map((p) => p.bot).concat([el.dataset.v]);
+      Sound.tap(); roomAction("settings", { bots });
+    },
+    "on-set-mode"(el) { if (ONLINE_MODES[el.dataset.v]) roomAction("settings", { mode: el.dataset.v }); },
+    "on-set-rules"(el) { if (isRules(el.dataset.v)) roomAction("settings", { rules: el.dataset.v }); },
+    "on-set-max"(el) { const n = Number(el.dataset.v); if ([2, 3, 4].includes(n)) roomAction("settings", { max_players: n }); },
+    "on-set-seed"() { Sound.shuffle(); roomAction("settings", { random_seed: true }); },
+    "on-copy-link"() {
+      const link = roomLink(ON.code);
+      copyText(link, () => { toast(`Link copied: <span class="mono">${esc(link)}</span>`); Sound.tap(); }, () => toast(`Copy this link: <span class="mono">${esc(link)}</span>`));
+    },
+    "on-copy-code"() { const c = ON.code; copyText(c, () => { toast(`Code <b class="mono">${esc(c)}</b> copied.`); Sound.tap(); }, () => toast(`The code is <b class="mono">${esc(c)}</b>.`)); },
+    async "on-leave"() {
+      const v = ON.view, me = onMe(v);
+      if (v && me && v.status === "playing" && me.status === "in" && !me.over &&
+          !window.confirm("Leave this game? Your run stops here and scores what it has; the others play on.")) return;
+      if (v && me && (v.status !== "finished" || me.status === "in")) {
+        try { await api("POST", `/api/rooms/${v.code}/leave`); } catch (e) { /* gone already */ }
+      }
+      Sound.tap();
+      leaveRoomScreen();
+    },
+    "on-home"() { Sound.tap(); ON.detail = null; leaveRoomScreen(); },
+    "on-remove"(el) {
+      const p = ON.view && onPlayer(ON.view, Number(el.dataset.v));
+      if (!p || !window.confirm(`Remove ${p.name} from the game? Their run stops and scores what it has.`)) return;
+      roomAction("remove", { seat: p.seat });
+    },
+    async "on-rematch"(el) {
+      try {
+        const r = await api("POST", `/api/rooms/${ON.code}/rematch`, { same_seed: el.dataset.v === "same" });
+        Sound.shuffle();
+        enterRoom(r.code);
+      } catch (e) { ON.msg = { kind: "err", text: e.message }; Sound.oops(); render(); }
+    },
+    async "on-replay"(el) {
+      try {
+        const d = await api("GET", `/api/matches/${Number(el.dataset.v)}`);
+        const me = d.players.find((p) => p.you) || d.players[0];
+        openReplay(PR.formatInstance(onInst(d.seed)), me.moves, d.rules);
+      } catch (e) { ON.msg = { kind: "err", text: e.message }; Sound.oops(); render(); }
+    },
+    async "on-match"(el) { await showMatch(Number(el.dataset.v)); },
+    "on-match-close"() { ON.detail = null; onlineHash(); Sound.tap(); render(); },
     "rp-continue"() {
       if (!S.rp || !S.rp.states) return;
       const text = $("rp-input").value;
       if (S.kind !== "solo") setKind("solo", true);
+      S.rpRules = null;
       try { startFromSource({ type: "text", text }, S.rp.moves.slice(0, S.rpStep)); } catch (e) {
         if (e instanceof PR.BadInput) return;
         throw e;
@@ -2203,6 +2927,59 @@ function startApp(PR) {
       render();
     },
   };
+
+  async function joinRoom(code) {
+    if (ON.busy) return;
+    ON.busy = true; ON.msg = null;
+    try {
+      const v = await api("POST", `/api/rooms/${code}/join`);
+      ON.busy = false;
+      Sound.shuffle();
+      ON.form.join = "";
+      ON.detail = null;
+      enterRoom(code, v);
+    } catch (e) {
+      ON.busy = false;
+      if (e.status === 401) ON.me = null;
+      ON.msg = { kind: "err", text: e.status === 404 ? `No room ${code}: check the code (rooms close after a while without activity).` : e.message };
+      Sound.oops();
+      render();
+    }
+  }
+
+  // A saved match (from Your matches or a #match= link): results and move lists.
+  async function showMatch(id) {
+    try {
+      ON.detail = await api("GET", `/api/matches/${id}`);
+      ON.msg = null;
+      try { history.replaceState(null, "", "#match=" + id); } catch (e) { /* no URL updates */ }
+    } catch (e) { ON.detail = null; ON.msg = { kind: "err", text: e.message }; }
+    if (S.kind === "online") { render(); scrollTop(); }
+  }
+
+  // Each round's score from a move list (saved matches keep only the moves).
+  function roundsOf(inst, rules, moves) {
+    const g = new PR.Game(inst, rules), out = [];
+    for (const m of moves) {
+      const r = g.round, was = g.phase;
+      try { g.apply(m); } catch (e) { break; }
+      if (was === "play") out[r] = { score: g.round_score, cleared: g.phase === "play" ? null : g.cleared > r };
+    }
+    return out;
+  }
+
+  function matchDetailHTML(d) {
+    const inst = onInst(d.seed), R = inst.rounds;
+    const rows = d.players.slice().sort((a, b) => a.place - b.place || a.seat - b.seat);
+    const win = rows.filter((p) => p.place === 1);
+    const prow = rows.map((p) => ({ seat: p.seat, name: p.name, tag: p.bot ? `${LEVEL_NAMES[p.bot]} bot` : p.you ? "you" : "", total: p.total, cleared: p.cleared, moves: p.moves.length, place: p.place, note: p.left ? "left early" : "" }));
+    const board = boardTableHTML(d.players.map((p) => ({ seat: p.seat, name: p.name, tag: p.bot ? `${LEVEL_NAMES[p.bot]} bot` : "", rounds: roundsOf(inst, d.rules, p.moves), total: p.total, place: p.place, over: true })), R, d.you === null ? -1 : d.you, "Rounds");
+    return `<section class="panel summary results" style="--pc:${win.length > 1 ? "var(--gold)" : COLORS[win[0].seat]}" aria-label="Match ${d.id}">
+      <div class="kicker">Online match · ${esc(ONLINE_MODES[d.mode] || d.mode)} · ${esc(UI.rulesTitle(d.rules))} rules · seed ${d.seed} · ${esc(fmtDate(d.finished))}${d.ended === "expired" ? " · ended after a long pause" : ""}</div>
+      <div class="winner">${esc(win.length > 1 ? `Tie: ${win.map((p) => p.name).join(" & ")}` : `${win[0].name} won`)}</div>
+      <div class="podium">${podiumHTML(prow, R)}</div>
+      <div class="actions" style="justify-content:center;margin-top:14px">${btn("Back", "on-match-close", { cls: "primary" })}</div></section>${board}`;
+  }
 
   document.addEventListener("pointerdown", (ev) => {
     const el = ev.target.closest("[data-act], .tab");
@@ -2216,22 +2993,27 @@ function startApp(PR) {
   });
   document.addEventListener("change", (ev) => {
     if (ev.target.id === "sort-hand") { S.sort = ev.target.value; save(); render(); }
-    const type = ev.target.dataset && ev.target.dataset.mpType;
-    if (type !== undefined && M.setups[S.kind] && M.setups[S.kind].players) {
-      const v = ev.target.value;
-      M.setups[S.kind].players[Number(type)].bot = LEVEL_NAMES[v] ? v : null;
-      saveMP(); Sound.tap();
-    }
+    const f = ev.target.dataset && ev.target.dataset.onForm;
+    if (f === "random") { ON.form.random = ev.target.checked; Sound.tap(); renderKeepFocus(); if (!ON.form.random && $("on-seed")) $("on-seed").focus(); }
   });
   document.addEventListener("input", (ev) => {
-    const i = ev.target.dataset && ev.target.dataset.mpName;
-    if (i === undefined || !M.setups[S.kind]) return;
-    const su = M.setups[S.kind], name = ev.target.value.slice(0, 24);
-    if (S.kind === "bot") su.name = name; else su.players[Number(i)].name = name;
-    saveMP();
+    const f = ev.target.dataset && ev.target.dataset.onForm;
+    if (f === "seed") ON.form.seed = ev.target.value.slice(0, 12);
+    if (f === "join") {
+      const v = ev.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+      if (v !== ev.target.value) ev.target.value = v;
+      ON.form.join = v;
+    }
+    if (ev.target.dataset && ev.target.dataset.mpName !== undefined) { M.setups.bot.name = ev.target.value.slice(0, 24); saveMP(); }
   });
+  document.addEventListener("toggle", (ev) => {
+    if (ev.target.classList && ev.target.classList.contains("host-settings")) ON.settingsOpen = ev.target.open;
+  }, true);
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Enter" && ev.target.id === "mp-seed") actions["mp-start"]();
+    if (ev.key !== "Enter") return;
+    if (ev.target.id === "mp-seed") actions["mp-start"]();
+    else if (ev.target.id === "on-join") { ev.preventDefault(); actions["on-join"](); }
+    else if (ev.target.id === "on-seed") actions["on-create"]();
   });
   $("seed").addEventListener("keydown", (ev) => { if (ev.key === "Enter") actions.deal(); });
   $("rp-slider").addEventListener("input", (ev) => { S.rpStep = Number(ev.target.value); renderReplay(); });
@@ -2242,11 +3024,42 @@ function startApp(PR) {
   $("rp-input-file").addEventListener("change", (ev) => readFile(ev.target, (t) => { if (t !== null) $("rp-input").value = t; }));
   $("rp-output-file").addEventListener("change", (ev) => readFile(ev.target, (t) => { if (t !== null) $("rp-output").value = t; }));
 
+  // Online links within the page (#room=CODE, #match=ID) and pasted into the address bar.
+  function followHash(h) {
+    if (h.room && ROOM_RE.test(h.room)) {
+      S.mode = "play";
+      ON.detail = null;
+      if (S.kind !== "online") {   // the room is opened as the Online screen starts
+        onlineStop();
+        Object.assign(ON, { code: h.room, view: null, error: null, lost: false, msg: null, key: "", game: null, moves: [], seed: null, pending: 0 });
+        setKind("online", true);
+      } else if (ON.code !== h.room) {
+        if (ON.me) enterRoom(h.room); else { ON.code = h.room; ON.view = null; ON.error = null; onlineEnter(); }
+      }
+      render();
+      return true;
+    }
+    if (h.match !== null && Number.isSafeInteger(h.match)) {
+      if (S.kind !== "online") setKind("online", true);
+      S.mode = "play";
+      if (ON.code) { onlineStop(); ON.code = null; ON.view = null; }
+      const go = () => showMatch(h.match);
+      if (ON.me) go(); else onlineEnter().then(() => { if (ON.me) go(); });
+      render();
+      return true;
+    }
+    return false;
+  }
+  addEventListener("hashchange", () => followHash(UI.parseHash(location.hash)));
+
   // ---------- boot
-  // #seed= and #rules= set up the solo game; #mode=solo|bot|hotseat|draft picks the mode.
-  // A multiplayer #mode= link leaves the solo game alone: its seed and rules preset that mode's setup.
+  // #seed= and #rules= set up the solo game; #mode=solo|bot|online picks the mode (#mode=online&create=draft
+  // presets the room form); #room=CODE opens an online room, #match=ID a saved online match.
+  // The removed same-device modes' links (#mode=hotseat, #mode=draft) open Online.
   const hash = UI.parseHash(location.hash);
-  const hashKind = hash.mode !== null && Object.prototype.hasOwnProperty.call(KINDS, hash.mode) ? hash.mode : null;
+  const oldKind = hash.mode !== null && Object.prototype.hasOwnProperty.call(OLD_KINDS, hash.mode) ? hash.mode : null;
+  const onlineLink = oldKind !== null || hash.mode === "online" || (hash.room !== null && ROOM_RE.test(hash.room)) || hash.match !== null;
+  const hashKind = onlineLink ? "online" : hash.mode !== null && Object.prototype.hasOwnProperty.call(KINDS, hash.mode) ? hash.mode : null;
   const mpLink = hashKind !== null && hashKind !== "solo";
   const hashSeed = !mpLink && hash.seed !== null && Number.isSafeInteger(hash.seed) ? hash.seed : null;
   const hashRules = mpLink ? null : hash.rules;
@@ -2268,21 +3081,29 @@ function startApp(PR) {
     startFromSource({ type: "seed", seed: 1 });
   }
   $("rp-seed").value = $("seed").value;
-  for (const k of Object.keys(M.setups)) M.setups[k].seed = S.source.type === "seed" ? S.source.seed : 1;
+  M.setups.bot.seed = S.source.type === "seed" ? S.source.seed : 1;
   restoreMP();
   let kind = "solo";
   try { kind = localStorage.getItem(KIND_KEY) || "solo"; } catch (e) { /* storage unavailable */ }
+  if (Object.prototype.hasOwnProperty.call(OLD_KINDS, kind)) kind = "online";   // a saved same-device mode
   if (hashSeed !== null || !Object.prototype.hasOwnProperty.call(KINDS, kind)) kind = "solo";   // a #seed= link opens solo
   if (hashKind) kind = hashKind;
-  if (mpLink) {
-    // Open the mode's setup (a match still being played is resumed, a finished one makes way).
+  if (hashKind === "bot") {
+    // Open the setup (a match still being played is resumed, a finished one makes way).
     if (known(hash.rules)) M.rules = hash.rules;
-    if (hash.seed !== null && Number.isSafeInteger(hash.seed)) M.setups[hashKind].seed = hash.seed;
-    if (M.games[hashKind] && M.games[hashKind].match.over) M.games[hashKind] = null;
+    if (hash.seed !== null && Number.isSafeInteger(hash.seed)) M.setups.bot.seed = hash.seed;
+    if (M.games.bot && M.games.bot.match.over) M.games.bot = null;
     saveMP();
+  }
+  if (hashKind === "online") {
+    const preset = oldKind ? OLD_KINDS[oldKind] : hash.create;
+    if (preset && ONLINE_MODES[preset]) ON.form.mode = preset;
+    if (known(hash.rules)) ON.form.rules = hash.rules;
+    if (hash.room !== null && ROOM_RE.test(hash.room)) ON.code = hash.room;
   }
   setKind(kind, true);
   if (hashKind) { try { localStorage.setItem(KIND_KEY, kind); } catch (e) { /* storage unavailable */ } }   // remembered like a click on Mode
+  if (kind === "online" && hash.match !== null && Number.isSafeInteger(hash.match)) onlineEnter().then(() => { if (ON.me) showMatch(hash.match); });
   soundIcon();
   render();
 
@@ -2292,8 +3113,14 @@ function startApp(PR) {
     game: () => S.game,
     kind: () => S.kind,
     match: () => { const st = mpCur(); return st ? st.match : null; },
-    screen: () => { const st = mpCur(); return S.kind === "solo" ? "solo" : st ? st.screen : "setup"; },
+    screen: () => {
+      if (S.kind === "solo") return "solo";
+      if (S.kind === "online") return !ON.me ? "signin" : ON.error ? "error" : !ON.code ? "home" : !ON.view ? "loading" : ON.view.status;
+      const st = mpCur(); return st ? st.screen : "setup";
+    },
     viewer: () => { const st = mpCur(); return st ? st.viewer : -1; },
+    room: () => ON.view,
+    pending: () => ON.pending,
   };
 }
 
