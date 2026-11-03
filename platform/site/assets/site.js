@@ -15,6 +15,12 @@
     const x = Number(n);
     return Number.isFinite(x) ? Math.round(x).toLocaleString("en-US") : String(n);
   }
+  /** The contest score (0 to 100) with exactly 2 decimals, e.g. "47.31". */
+  function fmtScore(n) {
+    if (n === null || n === undefined || n === "") return "–";
+    const x = Number(n);
+    return Number.isFinite(x) ? x.toFixed(2) : String(n);
+  }
   /** Timestamps may be ISO strings or epoch seconds; returns ms or null. */
   function parseTime(t) {
     if (t === null || t === undefined || t === "") return null;
@@ -313,7 +319,7 @@
     for (const id of map.keys()) { const h = document.getElementById(id); if (h) io.observe(h); }
   }
 
-  window.UI = { esc, fmtInt, parseTime, fmtDate, relTime, fmtSecs, toast, countUp, contestPhase, splitDuration, shortDuration, reduced,
+  window.UI = { esc, fmtInt, fmtScore, parseTime, fmtDate, relTime, fmtSecs, toast, countUp, contestPhase, splitDuration, shortDuration, reduced,
     dialog, announcementHTML, renderAnnouncement, refreshAnnouncement };
 
   document.addEventListener("DOMContentLoaded", () => {

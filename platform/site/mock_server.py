@@ -129,7 +129,9 @@ def to_csv(header, rows):
     w = csv.writer(buf, lineterminator="\r\n")
     w.writerow(header)
     for r in rows:
-        w.writerow([csv_cell(r.get(k)) for k in header])
+        # scores as the real server writes them: exactly 2 decimals
+        w.writerow([csv_cell(f"{r[k]:.2f}" if k in ("score", "best_score") and r.get(k) is not None else r.get(k))
+                    for k in header])
     return buf.getvalue().encode("utf-8")
 
 
@@ -520,6 +522,7 @@ class State:
                 "last_login": iso(rec["last_login"]) if rec["last_login"] else None,
                 "public_submissions": sum(1 for s in mine if s["kind"] == "public"),
                 "full_submissions": sum(1 for s in mine if s["kind"] == "full"),
+                "best_score": best["score"] if best else None,
                 "best_relative_total": best["relative_total"] if best else None,
                 "best_submission_id": best["best_submission_id"] if best else None,
                 "rank": best["rank"] if best else None,
@@ -663,6 +666,10 @@ class State:
         cleared = min(8, max(1, int(8 * skill + (r % 3) - 1))) if verdict == "AC" else 0
         return {"test": k + 1, "verdict": verdict, "time": t, "_raw": raw, "_cleared": cleared, "_msg": msg or "valid"}
 
+    def score(self, rel):
+        """Contest score 0..100 (2 decimals) from a relative total, as the real server does."""
+        return None if rel is None else round(rel / (10_000 * self.hidden), 2) if self.hidden else 0.0
+
     def row(self, sub, with_user=False):
         status, done, started, finished = self.timeline(sub)
         if status == "done" and "JUDGE_ERROR" in sub["source"]:
@@ -671,7 +678,7 @@ class State:
         out = {"id": sub["id"], "kind": sub["kind"], "status": status, "created": iso(sub["created_t"]),
                "started": iso(started) if started else None,
                "finished": iso(finished) if finished and status in ("done", "error") else None,
-               "raw_total": None, "relative_total": None, "tests_ac": None, "tests_total": sub["tests_total"],
+               "raw_total": None, "score": None, "relative_total": None, "tests_ac": None, "tests_total": sub["tests_total"],
                "tests_done": done if status != "queued" else 0, "position": None, "max_time": None, "error": None}
         if status == "queued":
             out["position"] = self.position(sub)
@@ -685,6 +692,7 @@ class State:
             else:
                 out["raw_total"] = sum(r["_raw"] for r in res)
                 out["relative_total"] = sum(round(1_000_000 * r["_raw"] / max(r["_raw"], self.best[r["test"] - 1])) for r in res)
+                out["score"] = self.score(out["relative_total"])
         if with_user:
             out["username"] = sub["user"]
             out["user_id"] = self.users[sub["user"]]["id"] if sub["user"] in self.users else None
@@ -698,7 +706,10 @@ class State:
             out["results"] = res
         elif admin:   # admins see seeds and scores of full runs too
             out["results"] = [{"test": r["test"], "seed": self.hidden_seeds[r["test"] - 1], "verdict": r["verdict"],
-                               "score": r["_raw"], "cleared": r["_cleared"], "time": r["time"], "message": r["_msg"]} for r in res]
+                               "score": r["_raw"], "cleared": r["_cleared"], "time": r["time"], "message": r["_msg"],
+                               **({"best": max(r["_raw"], self.best[r["test"] - 1]),
+                                   "relative_pct": round(100 * r["_raw"] / max(r["_raw"], self.best[r["test"] - 1]), 2)}
+                                  if out["status"] == "done" else {})} for r in res]
         else:
             out["results"] = [{"test": r["test"], "verdict": r["verdict"], "time": r["time"]} for r in res]
         return out
@@ -719,11 +730,11 @@ class State:
         # rivalrook keeps improving a little, so rank arrows show up while you watch
         if "rivalrook" in best and not cutoff:
             bump = int((time.time() - T0) / 20) * 900_000
-            best["rivalrook"]["relative_total"] += bump
+            best["rivalrook"]["relative_total"] = min(self.hidden * 1_000_000, best["rivalrook"]["relative_total"] + bump)
         order = sorted(best.items(), key=lambda kv: (-kv[1]["relative_total"], kv[1]["created_t"]))
         rows, off = [], []
         for u, r in order:
-            item = {"rank": None, "username": u, "relative_total": r["relative_total"], "raw_total": r["raw_total"],
+            item = {"rank": None, "username": u, "score": self.score(r["relative_total"]), "relative_total": r["relative_total"], "raw_total": r["raw_total"],
                     "tests_ac": r["tests_ac"], "submitted": r["created"], "submissions": counts[u],
                     "best_submission_id": r["id"]}
             if self.active(u):
@@ -1366,7 +1377,7 @@ class Handler(SimpleHTTPRequestHandler):
             users = sorted((st.urow(n, live) for n in st.users), key=lambda r: r["id"])
             if path.endswith(".csv"):
                 header = ["id", "username", "email", "created", "is_admin", "admin_env", "status", "disabled_at", "disabled_reason", "last_login",
-                          "public_submissions", "full_submissions", "best_relative_total", "best_submission_id", "rank", "last_submission"]
+                          "public_submissions", "full_submissions", "best_score", "best_relative_total", "best_submission_id", "rank", "last_submission"]
                 return self.send_file(to_csv(header, users), "text/csv; charset=utf-8", "users.csv")
             summary = {"registered": len(users), "active": sum(1 for r in users if r["status"] == "active"),
                        "disabled": sum(1 for r in users if r["status"] == "disabled"), "admins": sum(1 for r in users if r["is_admin"]),
@@ -1550,7 +1561,8 @@ class Handler(SimpleHTTPRequestHandler):
                 st.subs.remove(sub)
                 st.bump()
                 st.log(me, "submission.delete", sub["user"], {"id": sub["id"], "kind": sub["kind"], "status": row["status"],
-                                                              "raw_total": row["raw_total"], "relative_total": row["relative_total"]})
+                                                              "raw_total": row["raw_total"], "relative_total": row["relative_total"],
+                                                              "score": row["score"]})
                 return self.send_json(200, {"deleted": sub["id"]})
             if method == "POST" and action == "cancel":
                 if row["status"] != "queued":
@@ -1581,8 +1593,9 @@ class Handler(SimpleHTTPRequestHandler):
                     s, row = chosen[user]
                     z.writestr("%s.py" % user, s["source"])
                     manifest.append({"username": user, "status": row["status"], "submission_id": s["id"], "created": row["created"],
-                                     "relative_total": row["relative_total"], "raw_total": row["raw_total"]})
-                z.writestr("manifest.csv", to_csv(["username", "status", "submission_id", "created", "relative_total", "raw_total"], manifest))
+                                     "score": row["score"], "relative_total": row["relative_total"], "raw_total": row["raw_total"]})
+                z.writestr("manifest.csv", to_csv(["username", "status", "submission_id", "created", "score", "relative_total", "raw_total"],
+                                                  manifest))
             return self.send_file(buf.getvalue(), "application/zip", "submissions-%s.zip" % pick)
         if method == "GET" and path == "/api/admin/leaderboard.csv":
             view = q.get("view", "live")
@@ -1592,7 +1605,7 @@ class Handler(SimpleHTTPRequestHandler):
             rows = st.standings(cutoff, include_disabled=False)
             for r in rows:
                 r["best_submitted"] = r["submitted"]
-            header = ["rank", "username", "relative_total", "raw_total", "tests_ac", "submissions", "best_submission_id", "best_submitted"]
+            header = ["rank", "username", "score", "relative_total", "raw_total", "tests_ac", "submissions", "best_submission_id", "best_submitted"]
             return self.send_file(to_csv(header, rows), "text/csv; charset=utf-8", "leaderboard-%s.csv" % view)
         if method == "GET" and path == "/api/admin/similarity":
             limit = int_arg(q.get("limit", "50"))

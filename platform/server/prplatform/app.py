@@ -376,6 +376,7 @@ def create_app(settings=None):
             "started": r["started"],
             "finished": r["finished"],
             "raw_total": r["raw_total"],
+            "score": scoring.score_of(rel, settings),
             "relative_total": rel,
             "tests_ac": r["tests_ac"],
             "tests_done": r["tests_done"],
@@ -418,6 +419,9 @@ def create_app(settings=None):
                 item = {"test": i, "verdict": x["verdict"], "time": x["time"]}
                 if admin:  # admins know the hidden seeds anyway
                     item.update(seed=x["seed"], score=x["score"], cleared=x["cleared"], message=x["message"])
+                    if r["status"] == "done":
+                        item["best"] = board.best.get(x["seed"], 0)
+                        item["relative_pct"] = scoring.relative_pct(x["score"], item["best"])
                 results.append(item)
             out["results"] = results
         return out
@@ -568,13 +572,14 @@ def admin_routes(app, settings, get_conn, get_cfg, require_admin, sub_json, SUB_
         return {"users": rows, "summary": admin_ops.summary(rows)}
 
     USER_CSV = ("id", "username", "email", "created", "status", "is_admin", "last_login", "public_submissions",
-                "full_submissions", "best_relative_total", "rank", "best_submission_id", "last_submission",
+                "full_submissions", "best_score", "best_relative_total", "rank", "best_submission_id", "last_submission",
                 "disabled_at", "disabled_reason")
 
     @app.get("/api/admin/users.csv")
     def admin_users_csv(admin=Depends(require_admin), conn=Depends(get_conn)):
         rows = admin_ops.user_rows(conn, settings)
-        return csv_response(USER_CSV, [[r[k] for k in USER_CSV] for r in rows], f"poker-run-students-{stamp()}.csv")
+        return csv_response(USER_CSV, [[scoring.score_text(r[k]) if k == "best_score" else r[k] for k in USER_CSV]
+                                       for r in rows], f"poker-run-students-{stamp()}.csv")
 
     @app.get("/api/admin/users/{uid}")
     def admin_user(uid: int, admin=Depends(require_admin), conn=Depends(get_conn)):
@@ -709,14 +714,17 @@ def admin_routes(app, settings, get_conn, get_cfg, require_admin, sub_json, SUB_
         buf = io.BytesIO()
         manifest = io.StringIO()
         w = csv.writer(manifest, lineterminator="\r\n")
-        w.writerow(["username", "account", "file", "submission_id", "created", "status", "relative_total", "raw_total"])
+        w.writerow(["username", "account", "file", "submission_id", "created", "status", "score", "relative_total",
+                    "raw_total"])
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
             for r in rows:
                 fname = f"{r['username']}.py"
                 z.writestr(fname, r["source"])
                 rel = board.totals.get(r["id"], 0) if r["status"] == "done" else None
                 w.writerow([csv_cell(x) for x in (r["username"], "disabled" if r["disabled_at"] else "active", fname,
-                                                  r["id"], r["created"], r["status"], rel, r["raw_total"])])
+                                                  r["id"], r["created"], r["status"],
+                                                  scoring.score_text(scoring.score_of(rel, settings)), rel,
+                                                  r["raw_total"])])
             z.writestr("manifest.csv", manifest.getvalue())
         return Response(buf.getvalue(), media_type="application/zip",
                         headers={"Content-Disposition": f'attachment; filename="poker-run-{pick}-{stamp()}.zip"'})
@@ -731,9 +739,9 @@ def admin_routes(app, settings, get_conn, get_cfg, require_admin, sub_json, SUB_
         cutoff = cfg.freeze if (view == "public" and cfg.frozen(db.now())) else None
         rows = scoring.standings(conn, cfg, cutoff=cutoff, include_disabled=False)
         return csv_response(
-            ("rank", "username", "relative_total", "raw_total", "tests_ac", "submissions", "best_submission_id",
-             "best_submitted"),
-            [[e["rank"], e["username"], e["relative_total"], e["raw_total"], e["tests_ac"], e["submissions"],
+            ("rank", "username", "score", "relative_total", "raw_total", "tests_ac", "submissions",
+             "best_submission_id", "best_submitted"),
+            [[e["rank"], e["username"], scoring.score_text(e["score"]), e["relative_total"], e["raw_total"], e["tests_ac"], e["submissions"],
               e["best_id"], e["submitted"]] for e in rows],
             f"poker-run-standings-{view}-{stamp()}.csv")
 

@@ -3,7 +3,7 @@
 <head>
 <!--#head-->
 <title>Leaderboard · Poker Run</title>
-<meta name="description" content="Poker Run contest leaderboard: best full submission per player, by relative score.">
+<meta name="description" content="Poker Run contest leaderboard: best full submission per player, by score (0 to 100).">
 <script defer src="/assets/leaderboard.js"></script>
 </head>
 <body>
@@ -15,7 +15,7 @@
         <div>
           <span class="eyebrow">Leaderboard</span>
           <h1>Standings</h1>
-          <p class="sub">Each player's best full submission. Per hidden test you earn 1,000,000 × your score ÷ the best score on that test.</p>
+          <p class="sub">Each player's best full submission. Score = the average over the hidden tests of your score ÷ the best score on that test, from 0.00 to 100.00.</p>
         </div>
         <a class="btn primary" href="/contest/">Submit a solver <span class="arrow" aria-hidden="true">→</span></a>
       </div>
@@ -37,11 +37,11 @@
 
     <div class="table-scroll">
       <table class="data lb" id="lb-table">
-        <caption class="sr-only">Leaderboard ranked by relative total</caption>
+        <caption class="sr-only">Leaderboard ranked by score</caption>
         <thead><tr>
           <th scope="col">Rank</th>
           <th scope="col">Player</th>
-          <th scope="col" class="r">Relative total</th>
+          <th scope="col" class="r">Score</th>
           <th scope="col" class="r opt">Raw total</th>
           <th scope="col" class="r opt">Valid tests</th>
           <th scope="col" class="r opt">Submissions</th>

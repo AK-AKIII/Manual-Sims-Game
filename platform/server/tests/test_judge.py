@@ -36,6 +36,7 @@ class SubmissionFlowTest(PlatformTest):
         self.assertEqual(d["tests_ac"], 2)
         self.assertEqual(d["tests_done"], 2)
         self.assertIsNone(d["relative_total"])
+        self.assertIsNone(d["score"])
         # The same scores the checker gives when the starter is run directly.
         for r in d["results"]:
             self.assertEqual(r["verdict"], "AC")
@@ -60,6 +61,7 @@ class SubmissionFlowTest(PlatformTest):
         self.assertEqual(d["status"], "done")
         self.assertEqual(d["tests_total"], 3)
         self.assertEqual(d["relative_total"], 3_000_000)  # the only submission is the best on every seed
+        self.assertEqual(d["score"], 100.0)
         self.assertEqual([x["test"] for x in d["results"]], [1, 2, 3])
         for x in d["results"]:
             self.assertEqual(set(x), {"test", "verdict", "time"})
@@ -73,9 +75,11 @@ class SubmissionFlowTest(PlatformTest):
         boss = self.user_client("boss")
         d = self.detail(sid, client=boss)
         self.assertEqual([x["seed"] for x in d["results"]], HIDDEN_SEEDS)
+        self.assertEqual([x["relative_pct"] for x in d["results"]], [100.0] * 3)
         lb = self.client.get("/api/leaderboard").json()
         self.assertEqual(lb["rows"][0]["username"], "alice")
         self.assertEqual(lb["rows"][0]["relative_total"], 3_000_000)
+        self.assertEqual(lb["rows"][0]["score"], 100.0)
 
     def test_tle_re_wa(self):
         cases = [(TLE_SOLVER, "TLE"), (RE_SOLVER, "RE"), (WA_SOLVER, "WA"), (EMPTY_SOLVER, "WA"),

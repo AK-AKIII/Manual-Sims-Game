@@ -70,9 +70,10 @@ The worker checks every test's stdout with `poker_run.check` outside the sandbox
 ## Scoring
 
 - Raw score of a test: the checker's `score` (0 unless AC).
-- Relative score of a test: `round(1_000_000 * raw / best)`, where `best` is the highest raw score on that seed over all finished full submissions (0 if best is 0).
-- A submission's relative total: sum over hidden seeds. It changes as others improve, so it is computed when read.
-- Leaderboard: each user's best full submission by relative total. Ties: earlier submission first.
+- `best` of a hidden seed: the highest raw score on that seed over all finished full submissions (of active users).
+- **Contest score** (`score`, the number the site shows): `100 × mean over the hidden tests of (raw / best)`, a test whose best is 0 contributing 0. A float from 0.00 to 100.00 with 2 decimals (`100.0` = the best on every test, `50.0` = half the best on every test). It changes as others improve, so it is computed when read.
+- Internally (and in responses, for compatibility) the exact integer `relative_total` = sum over hidden tests of `round(1_000_000 * raw / best)` is kept; `score = round(relative_total / (10_000 × hidden tests), 2)`, a monotonic rescaling, so it equals the exact mean to within 0.00005 and never disagrees with the ranking. The site no longer displays `relative_total`.
+- Leaderboard: each user's best full submission by relative total (equivalently by score). Ties: earlier submission first.
 - During a freeze, non-admins see the leaderboard computed only from submissions created before `PR_FREEZE`.
 
 ## Database (SQLite)
@@ -102,9 +103,9 @@ All JSON. Errors: `{"error": "human readable message"}` with a 4xx/5xx status. S
 | `GET /api/me` | | `{username, is_admin, email}` (email may be null) or 401 |
 | `POST /api/account/email` | `{email, password}` | the signed-in user adds or changes their email; current password required (401 "wrong password"); 400 invalid, 409 taken. 200 `{username, is_admin, email}` |
 | `POST /api/submissions` | `{kind: "public"|"full", source: "<python code>"}` | 202 `{id}`. 401 not logged in; 403 contest closed (full only; public always allowed while logged in); 413 too big; 429 if the user already has a queued/running submission, or exceeded `PR_FULL_PER_HOUR` |
-| `GET /api/submissions` | | `[{id, kind, status, created, started, finished, raw_total, relative_total, tests_ac, tests_done, tests_total, position, max_time, error}]` newest first, own only (`relative_total` null for public; `position` is the place in the queue, null unless queued) |
-| `GET /api/submissions/{id}` | | the row above plus `source` and `results`. For **public** submissions results are per seed `{seed, verdict, score, cleared, time, message}`; for **full** submissions results are anonymised `{test: 1..N, verdict, time}` (no seeds, no scores) so hidden seeds stay hidden. Own submissions only, admins any. `position` = place in queue while queued |
-| `GET /api/leaderboard` | | `{frozen: bool, rows: [{rank, username, relative_total, raw_total, tests_ac, submitted, submissions}]}` |
+| `GET /api/submissions` | | `[{id, kind, status, created, started, finished, raw_total, score, relative_total, tests_ac, tests_done, tests_total, position, max_time, error}]` newest first, own only (`score` 0–100 and `relative_total`, see Scoring; both null for public and for unfinished runs; `position` is the place in the queue, null unless queued) |
+| `GET /api/submissions/{id}` | | the row above plus `source` and `results`. For **public** submissions results are per seed `{seed, verdict, score, cleared, time, message}`; for **full** submissions results are anonymised `{test: 1..N, verdict, time}` (no seeds, no scores) so hidden seeds stay hidden; admins also get `seed, score, cleared, message` and, once the submission is done, `best` (the best raw on that seed) and `relative_pct` (`100 × score / best`, 2 decimals; 0 when best is 0). Own submissions only, admins any. `position` = place in queue while queued |
+| `GET /api/leaderboard` | | `{frozen: bool, rows: [{rank, username, score, relative_total, raw_total, tests_ac, submitted, submissions}]}` (`score` 0–100, 2 decimals) |
 | `GET /api/admin/submissions` | | admin only: all submissions with username (see Admin API for filters) |
 | `POST /api/admin/rejudge/{id}` | | admin only: back to queued, results cleared. 200 `{id, status}`; 409 while running |
 
@@ -112,7 +113,7 @@ All JSON. Errors: `{"error": "human readable message"}` with a 4xx/5xx status. S
 
 Every `/api/admin/*` endpoint: 401 when signed out, 403 for non-admins, CSRF header on state-changing methods (403 without), 404 `{"error": ...}` for an unknown user or submission id, 400 for invalid input, 409 when a safety rule refuses. Every state-changing admin action writes an `audit` row. The site's admin panel is `/admin/`.
 
-**User row** (`U`): `{id, username, email, created, is_admin, admin_env: bool (listed in PR_ADMINS), status: "active"|"disabled", disabled_at, disabled_reason, last_login, public_submissions, full_submissions, best_relative_total (null without a finished full run), best_submission_id, rank (null when unranked or disabled; same ranks as the live leaderboard), last_submission (ISO or null)}`.
+**User row** (`U`): `{id, username, email, created, is_admin, admin_env: bool (listed in PR_ADMINS), status: "active"|"disabled", disabled_at, disabled_reason, last_login, public_submissions, full_submissions, best_score (0–100; null without a finished full run), best_relative_total (null likewise), best_submission_id, rank (null when unranked or disabled; same ranks as the live leaderboard), last_submission (ISO or null)}`.
 
 **Admin submission row** (`S`): the `GET /api/submissions` row plus `username, user_id, user_disabled: bool`.
 
@@ -129,11 +130,11 @@ Every `/api/admin/*` endpoint: 401 when signed out, 403 for non-admins, CSRF hea
 | `POST /api/admin/users/{id}/email` | `{email}` (null or "" clears it) | `U`; 400 invalid, 409 taken. Audit details mask both values (`a***@example.com`) |
 | `DELETE /api/admin/users/{id}` | `{confirm: "<username>"}` (must equal the username, case-insensitive) | `{deleted: username, submissions: n}`. 400 when `confirm` doesn't match; 409 while one of their submissions is running (disable first, wait, retry) |
 | `GET /api/admin/submissions` | `?user=&kind=public\|full&status=queued\|running\|done\|error&verdict=AC\|WA\|TLE\|RE&since=&until=&limit=1000` | `[S...]` newest first. `user` is an exact username (case-insensitive); `verdict` keeps submissions with at least one test of that verdict; `since`/`until` are ISO times on `created` |
-| `DELETE /api/admin/submissions/{id}` | | `{deleted: id}`; removes the source and results. 409 while it is running (cancel isn't possible mid-run; wait for it to finish). The audit row keeps username, id, kind, status, raw and relative total |
+| `DELETE /api/admin/submissions/{id}` | | `{deleted: id}`; removes the source and results. 409 while it is running (cancel isn't possible mid-run; wait for it to finish). The audit row keeps username, id, kind, status, raw total, relative total and score |
 | `POST /api/admin/submissions/{id}/cancel` | | `S` with status `error` and error `cancelled by an admin`; 409 unless queued |
 | `POST /api/admin/rejudge-bulk` | `{which: "errored"\|"full"}` | `{count, ids}`. `errored`: every submission in status `error` except cancelled ones; `full`: every full submission that is `done` or `error` (not cancelled). Submissions of disabled users are skipped; running/queued ones are left alone |
-| `GET /api/admin/submissions.zip` | `?pick=best\|latest` | ZIP attachment: per student one `<username>.py`: their best finished full submission by relative total (`best`) or their latest full submission (`latest`), plus `manifest.csv` (username, account active/disabled, file, submission_id, created, status, relative_total, raw_total) |
-| `GET /api/admin/leaderboard.csv` | `?view=live\|public` | CSV attachment: `rank, username, relative_total, raw_total, tests_ac, submissions, best_submission_id, best_submitted`. `public` is what students see (frozen during a freeze) |
+| `GET /api/admin/submissions.zip` | `?pick=best\|latest` | ZIP attachment: per student one `<username>.py`: their best finished full submission by score (`best`) or their latest full submission (`latest`), plus `manifest.csv` (username, account active/disabled, file, submission_id, created, status, score, relative_total, raw_total) |
+| `GET /api/admin/leaderboard.csv` | `?view=live\|public` | CSV attachment: `rank, username, score, relative_total, raw_total, tests_ac, submissions, best_submission_id, best_submitted` (`score` 0–100 is the contest score; `relative_total` stays as a secondary column for exact tie-checking). `public` is what students see (frozen during a freeze) |
 | `GET /api/admin/similarity` | `?limit=50` (1-500) | `{pairs: [{a: {username, submission_id}, b: {...}, similarity (0-1), shared, a_size, b_size}], compared, skipped, truncated: bool, method}` most similar first; see Similarity below |
 | `GET /api/admin/settings` | | `{editable: {KEY: {value, env, overridden: bool}}, readonly: {hidden_count, public_seeds, time_limit, memory_mb, max_source_kb, sandbox, workers}}`; keys below |
 | `POST /api/admin/settings` | `{set: {KEY: value}, clear: [KEY]}` | same as GET. Validated together; nothing is saved on a 400 |

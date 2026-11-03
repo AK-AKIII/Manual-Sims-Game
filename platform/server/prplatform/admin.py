@@ -124,6 +124,7 @@ def user_rows(conn, settings, uid=None):
             "last_login": r["last_login"],
             "public_submissions": r["n_public"],
             "full_submissions": r["n_full"],
+            "best_score": e["score"] if e else None,
             "best_relative_total": e["relative_total"] if e else None,
             "best_submission_id": e["best_id"] if e else None,
             "rank": e["rank"] if e else None,
@@ -272,7 +273,7 @@ def delete_submission(conn, settings, actor, sid):
     conn.execute("DELETE FROM submissions WHERE id = ?", (sid,))
     audit(conn, actor, "submission.delete", r["username"],
           {"submission_id": sid, "kind": r["kind"], "status": r["status"], "created": r["created"],
-           "raw_total": r["raw_total"], "relative_total": rel})
+           "raw_total": r["raw_total"], "relative_total": rel, "score": scoring.score_of(rel, settings)})
 
 
 def cancel_submission(conn, actor, sid):

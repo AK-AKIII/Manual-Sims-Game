@@ -10,7 +10,7 @@
   "use strict";
   const UI = window.UI, API = window.API;
   if (!UI || !API) return;
-  const { esc, fmtInt, fmtDate, relTime, fmtSecs, toast, countUp, parseTime } = UI;
+  const { esc, fmtInt, fmtScore, fmtDate, relTime, fmtSecs, toast, countUp, parseTime } = UI;
   const $ = (id) => document.getElementById(id);
   const SECTIONS = ["overview", "students", "submissions", "settings", "leaderboard", "similarity", "activity"];
   const ACTIVE = (s) => s.status === "queued" || s.status === "running";
@@ -97,8 +97,8 @@
   const kindTag = (k) => `<span class="kind ${k === "full" ? "full" : ""}">${k === "full" ? "full" : "public"}</span>`;
   function scoreCell(s) {
     if (s.status !== "done") return `<span class="muted">–</span>`;
-    if (s.kind === "full" && s.relative_total !== null && s.relative_total !== undefined) {
-      return `<b>${fmtInt(s.relative_total)}</b><br><span class="muted" style="font-size:12px">raw ${fmtInt(s.raw_total)}</span>`;
+    if (s.kind === "full" && s.score !== null && s.score !== undefined) {
+      return `<b>${fmtScore(s.score)}</b><br><span class="muted" style="font-size:12px">raw ${fmtInt(s.raw_total)}</span>`;
     }
     return `<b>${fmtInt(s.raw_total)}</b><br><span class="muted" style="font-size:12px">raw total</span>`;
   }
@@ -406,7 +406,7 @@
       // top 5
       const top = Array.isArray(d.top) ? d.top : [];
       $("ov-top").innerHTML = top.length
-        ? `<ol class="top5">${top.map((r) => `<li><span class="rk">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : esc(r.rank)}</span><b class="u">${esc(r.username)}</b><span class="num">${fmtInt(r.relative_total)}</span></li>`).join("")}</ol>`
+        ? `<ol class="top5">${top.map((r) => `<li><span class="rk">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : esc(r.rank)}</span><b class="u">${esc(r.username)}</b><span class="num">${fmtScore(r.score)}</span></li>`).join("")}</ol>`
         : `<p class="muted" style="margin:0">No finished full submissions yet.</p>`;
     },
     renderContest(c) {
@@ -460,7 +460,7 @@
         case "last_login": return parseTime(u.last_login);
         case "status": return u.status === "disabled" ? 1 : 0;
         case "subs": return (u.public_submissions || 0) + (u.full_submissions || 0);
-        case "best": return scoreOf(u.best_relative_total);
+        case "best": return scoreOf(u.best_score);
         case "rank": return u.rank === null || u.rank === undefined ? null : -u.rank; // so "descending" = #1 first
         default: return null;
       }
@@ -514,7 +514,7 @@
             `<td class="opt nw">${when(u.created)}</td><td class="opt nw">${u.last_login ? when(u.last_login) : `<span class="muted">never</span>`}</td>` +
             `<td>${dis ? `<span class="badge error" title="${esc(u.disabled_reason || "")}">disabled</span>` : `<span class="badge done">active</span>`}</td>` +
             `<td class="r opt nw">${fmtInt(u.public_submissions)} <span class="muted">/</span> ${fmtInt(u.full_submissions)}</td>` +
-            `<td class="r">${u.best_relative_total === null || u.best_relative_total === undefined ? `<span class="muted">–</span>` : fmtInt(u.best_relative_total)}</td>` +
+            `<td class="r">${u.best_score === null || u.best_score === undefined ? `<span class="muted">–</span>` : fmtScore(u.best_score)}</td>` +
             `<td class="r">${u.rank ? `#${fmtInt(u.rank)}` : `<span class="muted">–</span>`}</td>`,
         };
       }), this.rowCache);
@@ -611,7 +611,7 @@
         ["Email", u.email || "none"], ["Joined", fullDate(u.created)], ["Last login", u.last_login ? fullDate(u.last_login) : "never"],
         ["Last submission", u.last_submission ? fullDate(u.last_submission) : "never"],
         ["Submissions", `${fmtInt(u.public_submissions)} public · ${fmtInt(u.full_submissions)} full`],
-        ["Best", u.best_relative_total === null || u.best_relative_total === undefined ? "no finished full run" : fmtInt(u.best_relative_total) + (u.best_submission_id ? ` (#${u.best_submission_id})` : "")],
+        ["Best", u.best_score === null || u.best_score === undefined ? "no finished full run" : fmtScore(u.best_score) + (u.best_submission_id ? ` (#${u.best_submission_id})` : "")],
         ["Rank", u.rank ? "#" + fmtInt(u.rank) : dis ? "not ranked while disabled" : "unranked"],
       ];
       const selfHint = `title="That's you"`;
@@ -636,7 +636,7 @@
           ${subs.length ? `<button type="button" class="btn sm ghost" data-act="show-subs">Open in Submissions <span class="arrow" aria-hidden="true">→</span></button>` : ""}</div>
         ${subs.length ? `<ul class="dr-subs">${subs.map((s) => `<li>
             <span class="dr-sub-id">#${esc(s.id)}</span>${kindTag(s.kind)}${statusBadge(s)}
-            <span class="dr-sub-score num">${s.status === "done" ? fmtInt(s.kind === "full" ? s.relative_total : s.raw_total) : ""}</span>
+            <span class="dr-sub-score num">${s.status === "done" ? (s.kind === "full" ? fmtScore(s.score) : fmtInt(s.raw_total)) : ""}</span>
             <span class="muted dr-sub-when">${when(s.created)}</span>
             <button type="button" class="btn sm ghost danger" data-del-sub="${s.id}" ${s.status === "running" ? 'disabled title="Running: wait for it to finish"' : ""} aria-label="Delete submission ${s.id}">Delete</button></li>`).join("")}</ul>`
           : `<p class="muted">No submissions yet.</p>`}`;
@@ -854,7 +854,7 @@
       if (d.status === "error" || d.error) out += `<div class="err"><b>${/cancel/i.test(d.error || "") ? "Cancelled." : "Judge error."}</b> ${esc(d.error || "")}</div>`;
       const stats = [["User", d.username || s.username]];
       if (d.status === "done") {
-        if (d.kind === "full") stats.push(["Relative total", fmtInt(d.relative_total)]);
+        if (d.kind === "full") stats.push(["Score (0–100)", fmtScore(d.score)]);
         stats.push(["Raw total", fmtInt(d.raw_total)], ["Tests passed", `${fmtInt(d.tests_ac)} / ${fmtInt(tot)}`], ["Slowest test", fmtSecs(d.max_time)]);
       }
       stats.push(["Submitted", fullDate(d.created)]);
@@ -865,7 +865,8 @@
         const chips = results.map((r) => {
           const lab = r.test !== undefined ? r.test : r.seed;
           const tip = [r.test !== undefined ? `Test ${r.test}` : "", r.seed !== undefined ? `seed ${r.seed}` : "", r.verdict,
-            r.score !== undefined && r.verdict === "AC" ? `${fmtInt(r.score)} pts` : "", r.time !== undefined && r.time !== null ? fmtSecs(r.time) : ""].filter(Boolean).join(" · ");
+            r.score !== undefined && r.verdict === "AC" ? `${fmtInt(r.score)} pts` : "",
+            r.relative_pct !== undefined && r.relative_pct !== null ? `${fmtScore(r.relative_pct)}% of best` : "", r.time !== undefined && r.time !== null ? fmtSecs(r.time) : ""].filter(Boolean).join(" · ");
           return `<span class="v ${esc(r.verdict)}" tabindex="0" role="listitem" data-tip="${esc(tip)}" aria-label="${esc(tip)}">${esc(lab)}</span>`;
         });
         for (let i = results.length; i < tot; i++) chips.push(`<span class="v pending" role="listitem" aria-label="not judged yet">·</span>`);
@@ -873,9 +874,9 @@
       }
       if (bySeed) {
         out += `<details class="src"><summary>Per-seed results · ${results.length}</summary><div class="table-scroll" style="background:transparent;margin-top:8px"><table class="data">
-          <thead><tr>${d.kind === "full" ? `<th scope="col">Test</th>` : ""}<th scope="col">Seed</th><th scope="col">Verdict</th><th scope="col" class="r">Score</th><th scope="col">Cleared</th><th scope="col" class="r">Time</th><th scope="col" class="opt">Message</th></tr></thead><tbody>` +
+          <thead><tr>${d.kind === "full" ? `<th scope="col">Test</th>` : ""}<th scope="col">Seed</th><th scope="col">Verdict</th><th scope="col" class="r">Score</th>${d.kind === "full" ? `<th scope="col" class="r" title="This test's score as a percentage of the best score anyone got on it">% of best</th>` : ""}<th scope="col">Cleared</th><th scope="col" class="r">Time</th><th scope="col" class="opt">Message</th></tr></thead><tbody>` +
           results.map((r) => `<tr>${d.kind === "full" ? `<td class="mono">${esc(r.test)}</td>` : ""}<td class="mono">${esc(r.seed)}</td><td><span class="v ${esc(r.verdict)}" style="height:24px">${esc(r.verdict)}</span></td>` +
-            `<td class="r">${fmtInt(r.score)}</td><td class="nw">${esc(r.cleared === undefined ? "–" : r.cleared + "/8")}</td><td class="r nw">${fmtSecs(r.time)}</td>` +
+            `<td class="r">${fmtInt(r.score)}</td>${d.kind === "full" ? `<td class="r nw" title="best ${esc(fmtInt(r.best))}">${r.relative_pct === undefined || r.relative_pct === null ? "–" : fmtScore(r.relative_pct) + "%"}</td>` : ""}<td class="nw">${esc(r.cleared === undefined ? "–" : r.cleared + "/8")}</td><td class="r nw">${fmtSecs(r.time)}</td>` +
             `<td class="opt muted" style="font-size:13px;max-width:320px;overflow-wrap:anywhere">${esc(r.message || "")}</td></tr>`).join("") + `</tbody></table></div></details>`;
       }
       if (typeof d.source === "string") {
@@ -1234,15 +1235,14 @@
         return;
       }
       const c = st.contest;
-      const max = c && c.hidden_count ? c.hidden_count * 1e6 : Math.max(1, ...this.rows.map((r) => Number(r.relative_total) || 0));
       patchRows(tbody, list.map((r) => {
         const off = r.rank === null || r.rank === undefined || r.disabled;
-        const pct = Math.max(0, Math.min(100, (100 * (Number(r.relative_total) || 0)) / max));
+        const pct = Math.max(0, Math.min(100, Number(r.score) || 0));  // score is already 0..100
         return {
           key: "lbx-" + r.username, cls: "row" + (off ? " is-disabled" : ""),
           html: `<td class="rank">${off ? `<span class="badge-disabled">disabled</span>` : r.rank <= 3 ? `<span class="medal m${r.rank}" aria-label="rank ${r.rank}">${r.rank}</span>` : `<span class="rk">${esc(r.rank)}</span>`}</td>` +
             `<td class="user">${esc(r.username)}</td>` +
-            `<td class="r scorecell"><div class="scorebar"><b class="num">${fmtInt(r.relative_total)}</b><span class="track" aria-hidden="true"><i style="width:${pct}%"></i></span></div></td>` +
+            `<td class="r scorecell"><div class="scorebar"><b class="num">${fmtScore(r.score)}</b><span class="track" aria-hidden="true"><i style="width:${pct}%"></i></span></div></td>` +
             `<td class="r opt">${fmtInt(r.raw_total)}</td><td class="r opt">${fmtInt(r.tests_ac)}${c && c.hidden_count ? `<span class="muted">/${c.hidden_count}</span>` : ""}</td>` +
             `<td class="r opt">${fmtInt(r.submissions)}</td><td class="r opt">${when(r.submitted)}</td>`,
         };

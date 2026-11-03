@@ -4,7 +4,7 @@
  * (the full admin panel is /admin/). */
 (function () {
   "use strict";
-  const { esc, fmtInt, fmtSecs, relTime, fmtDate, toast, countUp, parseTime } = window.UI;
+  const { esc, fmtInt, fmtScore, fmtSecs, relTime, fmtDate, toast, countUp, parseTime } = window.UI;
   const API = window.API;
   const $ = (id) => document.getElementById(id);
   const POLL_MS = 3000;
@@ -379,8 +379,8 @@
 
   function scoreCell(s) {
     if (s.status !== "done") return `<span class="muted">–</span>`;
-    if (s.kind === "full" && s.relative_total !== null && s.relative_total !== undefined) {
-      return `<b>${fmtInt(s.relative_total)}</b><br><span class="muted" style="font-size:12px">raw ${fmtInt(s.raw_total)}</span>`;
+    if (s.kind === "full" && s.score !== null && s.score !== undefined) {
+      return `<b>${fmtScore(s.score)}</b><br><span class="muted" style="font-size:12px">raw ${fmtInt(s.raw_total)}</span>`;
     }
     return `<b>${fmtInt(s.raw_total)}</b>${s.kind === "public" ? `<br><span class="muted" style="font-size:12px">raw total</span>` : ""}`;
   }
@@ -459,7 +459,7 @@
 
     const stats = [];
     if (d.status === "done") {
-      if (kind === "full") stats.push(["Relative total", d.relative_total, true]);
+      if (kind === "full") stats.push(["Score (0–100)", d.score, "score"]);
       stats.push(["Raw total", d.raw_total, true]);
       stats.push(["Tests passed", `${fmtInt(d.tests_ac)} / ${fmtInt(tot)}`]);
       stats.push(["Slowest test", fmtSecs(d.max_time)]);
@@ -467,7 +467,7 @@
     stats.push(["Submitted", fmtDate(d.created)]);
     if (d.finished) stats.push(["Finished", fmtDate(d.finished)]);
     if (which === "all" && d.username) stats.unshift(["User", d.username]);
-    out += `<div class="detail-stats">${stats.map(([k, v, n]) => `<div class="fact"><div class="k">${esc(k)}</div><div class="v" style="font-size:18px"${n ? ` data-count="${esc(v)}"` : ""}>${n ? fmtInt(v) : esc(v)}</div></div>`).join("")}</div>`;
+    out += `<div class="detail-stats">${stats.map(([k, v, n]) => `<div class="fact"><div class="k">${esc(k)}</div><div class="v" style="font-size:18px"${n ? ` data-count="${esc(v)}"${n === "score" ? ` data-fmt="score"` : ""}` : ""}>${n === "score" ? fmtScore(v) : n ? fmtInt(v) : esc(v)}</div></div>`).join("")}</div>`;
 
     // verdict chips
     if (tot) {
@@ -544,7 +544,7 @@
           if (inner) inner.style.animation = "none";
         } else tr.innerHTML = w.html;
         st.rowHTML.set(w.key, w.html);
-        tr.querySelectorAll("[data-count]").forEach((el) => { el.dataset.v = "0"; countUp(el, Number(el.dataset.count)); });
+        tr.querySelectorAll("[data-count]").forEach((el) => { el.dataset.v = "0"; countUp(el, Number(el.dataset.count), el.dataset.fmt === "score" ? { fmt: fmtScore } : undefined); });
       }
       const after = prev ? prev.nextSibling : tbody.firstChild;
       if (after !== tr) tbody.insertBefore(tr, after);
@@ -576,7 +576,7 @@
       if (prev && prev !== s.status && (prev === "queued" || prev === "running")) {
         if (s.status === "done") {
           const all = s.tests_ac === s.tests_total;
-          const score = s.kind === "full" && s.relative_total != null ? `${fmtInt(s.relative_total)} relative` : `${fmtInt(s.raw_total)} points`;
+          const score = s.kind === "full" && s.score != null ? `score ${fmtScore(s.score)}` : `${fmtInt(s.raw_total)} points`;
           toast(all ? "ok" : "info", `Submission #${s.id} judged: ${fmtInt(s.tests_ac)}/${fmtInt(s.tests_total)} valid · ${score}.`);
           if (!all && window.Sound) window.Sound.tick();
         } else if (s.status === "error") toast("bad", `Submission #${s.id} failed: ${s.error || "judge error"}.`);

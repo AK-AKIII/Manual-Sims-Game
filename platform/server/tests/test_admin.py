@@ -128,10 +128,12 @@ class UsersListTest(AdminBase):
         u = self.users()
         self.assertEqual(set(u["alice"]), {
             "id", "username", "email", "created", "is_admin", "admin_env", "status", "disabled_at", "disabled_reason",
-            "last_login", "public_submissions", "full_submissions", "best_relative_total", "best_submission_id",
-            "rank", "last_submission"})
+            "last_login", "public_submissions", "full_submissions", "best_score", "best_relative_total",
+            "best_submission_id", "rank", "last_submission"})
         self.assertEqual((u["alice"]["rank"], u["alice"]["best_relative_total"], u["alice"]["full_submissions"]),
                          (1, 3_000_000, 2))
+        self.assertEqual((u["alice"]["best_score"], u["bob"]["best_score"]), (100.0, 50.0))
+        self.assertIsNone(u["carol"]["best_score"])
         self.assertEqual((u["bob"]["rank"], u["bob"]["public_submissions"], u["bob"]["full_submissions"]), (2, 1, 1))
         self.assertIsNone(u["carol"]["rank"])
         self.assertIsNone(u["carol"]["best_relative_total"])
@@ -173,6 +175,7 @@ class UsersListTest(AdminBase):
         self.assertNotIn("-cmd", names)
         alice = next(x for x in rows if x["username"] == "alice")
         self.assertEqual((alice["rank"], alice["status"], alice["email"]), ("1", "active", "alice@example.com"))
+        self.assertEqual((alice["best_score"], alice["best_relative_total"]), ("100.00", "3000000"))
         from prplatform.app import csv_cell
         for bad in ("=1+1", "+x", "-x", "@x", "\tx", "\rx"):
             self.assertEqual(csv_cell(bad), "'" + bad)
@@ -462,15 +465,19 @@ class SubmissionAdminTest(AdminBase):
             manifest = list(csv.DictReader(io.StringIO(z.read("manifest.csv").decode())))
             self.assertEqual([m["username"] for m in manifest], ["alice", "bob"])
             self.assertEqual(manifest[0]["submission_id"], str(best if pick == "best" else latest))
+            self.assertIn("score", manifest[0])
+            if manifest[0]["status"] == "done":
+                self.assertRegex(manifest[0]["score"], r"^\d{1,3}\.\d\d$")
 
     def test_leaderboard_csv(self):
         self.fake_full("alice", [100, 100, 100])
         b = self.fake_full("bob", [50, 50, 50])
         r = self.boss.get("/api/admin/leaderboard.csv")
         rows = list(csv.reader(io.StringIO(r.text)))
-        self.assertEqual(rows[0], ["rank", "username", "relative_total", "raw_total", "tests_ac", "submissions",
-                                   "best_submission_id", "best_submitted"])
-        self.assertEqual(rows[2][:7], ["2", "bob", "1500000", "150", "3", "1", str(b)])
+        self.assertEqual(rows[0], ["rank", "username", "score", "relative_total", "raw_total", "tests_ac",
+                                   "submissions", "best_submission_id", "best_submitted"])
+        self.assertEqual(rows[1][:3], ["1", "alice", "100.00"])
+        self.assertEqual(rows[2][:8], ["2", "bob", "50.00", "1500000", "150", "3", "1", str(b)])
         self.boss.post(f"/api/admin/users/{self.uid('alice')}/disable")
         rows = list(csv.reader(io.StringIO(self.boss.get("/api/admin/leaderboard.csv?view=public").text)))
         self.assertEqual([r[1] for r in rows[1:]], ["bob"])

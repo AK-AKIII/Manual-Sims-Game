@@ -118,6 +118,7 @@ class LeaderboardTest(PlatformTest):
         self.assertEqual([r["rank"] for r in rows], [1, 2, 3])
         # alice: 1e6 + 5e5 + 0 (best on s3 is 0 -> 0); bob: 5e5 + 1e6; carol same as alice.
         self.assertEqual([r["relative_total"] for r in rows], [1_500_000] * 3)
+        self.assertEqual([r["score"] for r in rows], [50.0] * 3)  # 100 * mean(1, 0.5, 0)
         self.assertEqual(rows[0]["raw_total"], 150)
         self.assertEqual(rows[0]["submissions"], 2)
         self.assertEqual(rows[0]["submitted"], t0)
@@ -139,6 +140,57 @@ class LeaderboardTest(PlatformTest):
         self.assertEqual(mine[a1], 1_500_000)
         self.assertNotIn(b1, mine)
         self.assertNotIn(c1, mine)
+
+
+class NormalisedScoreTest(PlatformTest):
+    """score = 100 * mean over hidden tests of raw / best, 2 decimals (3 hidden tests here)."""
+
+    def setUp(self):
+        super().setUp()
+        for u in ("alice", "bob", "carol", "dave"):
+            self.register(u, client=self.new_client())
+
+    def rows(self):
+        return [(r["username"], r["score"]) for r in self.client.get("/api/leaderboard").json()["rows"]]
+
+    def test_single_full_is_100(self):
+        self.fake_full("alice", [37, 5, 900])
+        self.assertEqual(self.rows(), [("alice", 100.0)])
+
+    def test_half_zero_and_ranking(self):
+        t = iso_offset(minutes=-10)
+        self.fake_full("alice", [100, 40, 8], created=t)
+        self.fake_full("bob", [50, 20, 4], created=t)     # half the best on every test
+        self.fake_full("carol", [0, 0, 0], created=t)     # nothing
+        self.fake_full("dave", [100, 0, 0], created=t)    # 100 * (1 + 0 + 0) / 3
+        lb = self.client.get("/api/leaderboard").json()["rows"]
+        self.assertEqual([(r["username"], r["score"]) for r in lb],
+                         [("alice", 100.0), ("bob", 50.0), ("dave", 33.33), ("carol", 0.0)])
+        # Ranking is by relative total, and score is a monotonic rescaling of it.
+        self.assertEqual([r["rank"] for r in lb], [1, 2, 3, 4])
+        self.assertEqual(sorted(lb, key=lambda r: -r["relative_total"]), lb)
+        self.assertEqual([r["score"] for r in lb], sorted((r["score"] for r in lb), reverse=True))
+
+    def test_best_zero_test_contributes_zero(self):
+        self.fake_full("alice", [10, 10, 0])
+        self.assertEqual(self.rows(), [("alice", 66.67)])
+
+    def test_helpers(self):
+        self.assertEqual(scoring.normalised(50 * 1_000_000, 50), 100.0)
+        self.assertEqual(scoring.normalised(23_655_000, 50), 47.31)
+        self.assertEqual(scoring.normalised(0, 50), 0.0)
+        self.assertIsNone(scoring.normalised(None, 50))
+        self.assertEqual(scoring.normalised(5, 0), 0.0)
+        self.assertEqual(scoring.relative_pct(1, 3), 33.33)
+        self.assertEqual(scoring.relative_pct(4, 0), 0.0)
+
+    def test_own_submissions_have_score(self):
+        c = self.new_client()
+        c.post("/api/login", json={"username": "alice", "password": "password123"})
+        self.fake_full("alice", [100, 100, 100])
+        self.fake_full("bob", [200, 50, 100])
+        mine = c.get("/api/submissions").json()
+        self.assertEqual([s["score"] for s in mine], [round(100 * (0.5 + 1 + 1) / 3, 2)])
 
 
 class FreezeTest(PlatformTest):

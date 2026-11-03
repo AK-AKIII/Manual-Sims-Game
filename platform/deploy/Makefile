@@ -89,7 +89,7 @@ stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
 os.makedirs("/backups/exports", exist_ok=True)
 base = f"/backups/exports/leaderboard-{stamp}"
 json.dump(rows, open(base + ".json", "w"), indent=1)
-cols = ["rank", "username", "relative_total", "raw_total", "tests_ac", "submitted", "submissions"]
+cols = ["rank", "username", "score", "relative_total", "raw_total", "tests_ac", "submitted", "submissions"]
 with open(base + ".csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
     w.writeheader()

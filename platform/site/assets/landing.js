@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   const PR = window.PokerRun;
-  const { esc, fmtInt, countUp, toast } = window.UI;
+  const { esc, fmtInt, fmtScore, countUp, toast } = window.UI;
   const SND = () => window.Sound || { select() {}, deselect() {}, score() {}, success() {}, error() {}, tick() {} };
   const GLYPH = ["♠︎", "♥︎", "♦︎", "♣︎"];
   const SUIT_NAME = ["spades", "hearts", "diamonds", "clubs"];
@@ -365,7 +365,7 @@
         } else {
           clearInterval(s5timer);
           badge.className = "badge done"; badge.textContent = "done"; label.textContent = "48 / 50 valid";
-          countUp(score, 31482907, { dur: 900 });
+          countUp(score, 62.97, { dur: 900, fmt: fmtScore });
         }
       }, 55);
     };

@@ -2,7 +2,14 @@
 
 relative(test) = round(1_000_000 * raw / best), best = highest raw score on that
 seed over all finished full submissions (0 if best is 0). A submission's
-relative total is the sum over the hidden seeds; it is computed when read.
+relative total is the sum over the hidden seeds; it is computed when read and
+is what ranking uses (an exact integer, so ties are exact).
+
+The score people see is the normalised `score` = 100 * mean over the hidden
+tests of raw / best, with 2 decimals (0.00 to 100.00). It is derived from the
+relative total (relative_total / (10_000 * hidden tests)), so it is a monotonic
+rescaling of it: ordering by score and by relative total always agree. It
+matches the exact mean to within 0.00005 (the per-test rounding).
 
 Freeze: non-admins see everything computed only from full submissions created
 before PR_FREEZE. For a non-admin's own submission list during the freeze, the
@@ -23,6 +30,29 @@ from . import db
 
 def relative(raw, best):
     return round(1_000_000 * raw / best) if best > 0 else 0
+
+
+def normalised(rel, n_tests):
+    """Contest score 0..100 (2 decimals) from a relative total over n_tests hidden tests."""
+    if rel is None:
+        return None
+    if not n_tests:
+        return 0.0
+    return round(rel / (10_000 * n_tests), 2)
+
+
+def score_of(rel, settings):
+    return normalised(rel, len(settings.hidden_seeds))
+
+
+def score_text(score):
+    """A score as CSV text with exactly 2 decimals ("48.20"); "" for None."""
+    return "" if score is None else f"{score:.2f}"
+
+
+def relative_pct(raw, best):
+    """One test's raw / best as a percentage of the best (2 decimals); 0 when best is 0."""
+    return round(100 * raw / best, 2) if best and best > 0 and raw is not None else 0.0
 
 
 class Board:
@@ -98,7 +128,7 @@ def board_for_viewer(conn, settings, user_id, admin, now):
 def standings(conn, settings, cutoff=None, include_disabled=False):
     """Each user's best finished full submission, ranked: a list of dicts with
     user_id, username, disabled, rank (None for disabled users, listed last),
-    relative_total, raw_total, tests_ac, best_id, submitted, submissions."""
+    relative_total, score (0..100), raw_total, tests_ac, best_id, submitted, submissions."""
     board = compute(conn, settings, cutoff=cutoff, include_user=None)
     sql = ("SELECT s.id, s.user_id, u.username, u.disabled_at, s.created, s.raw_total, s.tests_ac "
            "FROM submissions s JOIN users u ON u.id = s.user_id "
@@ -133,6 +163,7 @@ def standings(conn, settings, cutoff=None, include_disabled=False):
             "disabled": dis,
             "rank": None if dis else i,
             "relative_total": u["rel"],
+            "score": score_of(u["rel"], settings),
             "raw_total": s["raw_total"],
             "tests_ac": s["tests_ac"],
             "best_id": s["id"],
@@ -147,7 +178,7 @@ def leaderboard(conn, settings, admin, now):
     cutoff = settings.freeze if frozen else None
     rows = []
     for e in standings(conn, settings, cutoff=cutoff, include_disabled=admin):
-        row = {k: e[k] for k in ("rank", "username", "relative_total", "raw_total", "tests_ac", "submitted",
+        row = {k: e[k] for k in ("rank", "username", "score", "relative_total", "raw_total", "tests_ac", "submitted",
                                  "submissions")}
         if e["disabled"]:
             row["disabled"] = True

@@ -4,14 +4,14 @@
  * ranked rows (rank null, disabled true); they're marked and never ranked. */
 (function () {
   "use strict";
-  const { esc, fmtInt, fmtDate, relTime, countUp, toast } = window.UI;
+  const { esc, fmtInt, fmtScore, fmtDate, relTime, countUp, toast } = window.UI;
   const API = window.API;
   const $ = (id) => document.getElementById(id);
   const REFRESH_MS = 15000;
   const AUTO_KEY = "pr-lb-auto";
 
   let rows = [], me = null, contest = null, prevRanks = null, timer = null, firstLoad = true, scrolledToMe = false;
-  const shownScore = new Map(); // username -> last displayed relative total (for count-up)
+  const shownScore = new Map(); // username -> last displayed score (for count-up)
 
   const unranked = (r) => r.rank === null || r.rank === undefined || r.disabled === true;
 
@@ -33,7 +33,6 @@
   function render() {
     const tbody = document.querySelector("#lb-table tbody");
     const q = $("lb-filter").value.trim().toLowerCase();
-    const max = contest && contest.hidden_count ? contest.hidden_count * 1e6 : Math.max(1, ...rows.map((r) => Number(r.relative_total) || 0));
     const list = q ? rows.filter((r) => String(r.username).toLowerCase().includes(q)) : rows;
     if (!rows.length) {
       tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="big" aria-hidden="true">♣︎</span>No full submissions yet. <a href="/contest/">Be the first on the board</a>.</div></td></tr>`;
@@ -46,11 +45,11 @@
     const entrance = firstLoad && !(window.Motion && window.Motion.reduced());
     tbody.innerHTML = list.map((r, idx) => {
       const isMe = me && r.username === me.username;
-      const pct = Math.max(0, Math.min(100, (100 * (Number(r.relative_total) || 0)) / max));
+      const pct = Math.max(0, Math.min(100, Number(r.score) || 0));  // score is already 0..100
       return `<tr class="row${isMe ? " me" : ""}${unranked(r) ? " is-disabled" : ""}${entrance ? " row-in" : ""}" style="--i:${Math.min(idx, 14)}" data-user="${esc(r.username)}">
         <td class="rank">${medal(r)} ${moveHTML(r)}</td>
         <td class="user">${esc(r.username)}</td>
-        <td class="r scorecell"><div class="scorebar"><b class="num" data-score="${esc(r.relative_total)}">${fmtInt(shownScore.has(r.username) ? shownScore.get(r.username) : 0)}</b>
+        <td class="r scorecell"><div class="scorebar"><b class="num" data-score="${esc(r.score)}">${fmtScore(shownScore.has(r.username) ? shownScore.get(r.username) : 0)}</b>
           <span class="track" aria-hidden="true"><i class="${entrance ? "grow" : ""}" style="width:${pct}%"></i></span></div></td>
         <td class="r opt">${fmtInt(r.raw_total)}</td>
         <td class="r opt">${fmtInt(r.tests_ac)}${contest && contest.hidden_count ? `<span class="muted">/${contest.hidden_count}</span>` : ""}</td>
@@ -62,7 +61,7 @@
       const tr = el.closest("tr"), u = tr.dataset.user;
       const to = Number(el.dataset.score);
       el.dataset.v = String(shownScore.has(u) ? shownScore.get(u) : 0);
-      countUp(el, to, { dur: firstLoad ? 900 : 600 });
+      countUp(el, to, { dur: firstLoad ? 900 : 600, fmt: fmtScore });
       shownScore.set(u, to);
     });
     updatePinned();
@@ -78,7 +77,7 @@
     const rect = tr.getBoundingClientRect();
     const out = rect.bottom < 70 || rect.top > window.innerHeight - 10;
     if (out) {
-      pin.innerHTML = `<span>You're <b>#${r.rank}</b> with <b>${fmtInt(r.relative_total)}</b></span><button type="button" class="btn sm" id="pin-go">Show me</button>`;
+      pin.innerHTML = `<span>You're <b>#${r.rank}</b> with <b>${fmtScore(r.score)}</b></span><button type="button" class="btn sm" id="pin-go">Show me</button>`;
       pin.classList.remove("hidden");
       $("pin-go").addEventListener("click", () => {
         tr.scrollIntoView({ behavior: window.UI.reduced() ? "auto" : "smooth", block: "center" });
